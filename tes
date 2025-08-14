@@ -1,8 +1,4 @@
-local debug_ = false -- debug logs
 
-while not game:IsLoaded() do
-    task.wait()
-end
 
 local plrs:Players = game:GetService("Players")
 while not plrs.LocalPlayer do
