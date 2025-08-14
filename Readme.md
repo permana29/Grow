@@ -2,15 +2,15 @@ esp eg file adalah lua script untuk game roblox grow a garden
 
 scrip ini bukan 💯 saya yg buat! saya hanya tester lalu ingin menyimpanya saja untuk mempelajari.
 
-Fitur 
+#Fitur 
+-Esp egg server. (work Setelah waktu egg selesai)
+-Esp roll ped 🥚 (sepertinya hanya visual)
 
-Esp egg server. (work Setelah waktu egg selesai)
-
-Esp roll ped 🥚 (sepertinya hanya visual)
 
 Ini script nya yg ku buat di esp_egg
 
-ESP Egg Script
+
+#ESP Egg Script
 
 Script ini berfungsi untuk menjalankan ESP Egg di Roblox.
 
