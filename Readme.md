@@ -25,8 +25,8 @@ Cara Pakai
 3. Jalankan.
 
 
-
+```
 loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()  
-  
-Kami isiin komentar
+```
+
 
