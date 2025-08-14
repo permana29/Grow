@@ -1,16 +1,32 @@
 esp eg file adalah lua script untuk game roblox grow a garden
-script ini bukan 💯 saya yg buat! saya hanya tester lalu ingin menyimpanya saja untuk mempelajari.
 
-Fitur
-Esp egg server. (work Setelah waktu egg selesai) 
-Esp roll ped 🥚 (visual / fake)
+scrip ini bukan 💯 saya yg buat! saya hanya tester lalu ingin menyimpanya saja untuk mempelajari.
 
-penggunaan :
+Fitur 
 
-Gunakan executor roblox. delta executor atau sejenisnya
-copy paste ini ke dalam executor anda
+Esp egg server. (work Setelah waktu egg selesai)
+
+Esp roll ped 🥚 (sepertinya hanya visual)
+
+Ini script nya yg ku buat di esp_egg
+
+ESP Egg Script
+
+Script ini berfungsi untuk menjalankan ESP Egg di Roblox.
+
+Cara Pakai
+
+1. Buka Roblox.
 
 
-```
-loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()
-```
+2. Tempel script ini di executor.
+
+
+3. Jalankan.
+
+
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()  
+  
+Kami isiin komentar
+
