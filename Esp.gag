@@ -1,88 +1,125 @@
---// Permana Loader UI
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local MainFrame = Instance.new("Frame", ScreenGui)
-local MinButton = Instance.new("TextButton", MainFrame)
-local CloseButton = Instance.new("TextButton", MainFrame)
-local Drag = Instance.new("TextLabel", MainFrame)
+-- Permana Loader by ChatGPT
+-- UI Drag + Minimize + Close + Script Loader
 
-local MiniFrame = Instance.new("TextButton", ScreenGui) -- kotak kecil P.L
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- UI Utama
-MainFrame.Size = UDim2.new(0, 300, 0, 200)
-MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-MainFrame.Visible = true
+-- ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "PermanaLoader"
+gui.ResetOnSpawn = false
+gui.Parent = game.CoreGui
 
--- Drag area
-Drag.Size = UDim2.new(1, 0, 0, 25)
-Drag.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Drag.Text = "Permana Loader"
-Drag.TextColor3 = Color3.fromRGB(255, 255, 255)
+-- Main Frame
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 300, 0, 200)
+main.Position = UDim2.new(0.3, 0, 0.3, 0)
+main.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+main.Active = true
+main.Draggable = true
+main.Parent = gui
 
--- Tombol Minimize
-MinButton.Size = UDim2.new(0, 25, 0, 25)
-MinButton.Position = UDim2.new(1, -50, 0, 0)
-MinButton.Text = "-"
-MinButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+-- Title Bar
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -60, 0, 30)
+title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+title.Text = "Permana Loader"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = main
 
--- Tombol Close
-CloseButton.Size = UDim2.new(0, 25, 0, 25)
-CloseButton.Position = UDim2.new(1, -25, 0, 0)
-CloseButton.Text = "X"
-CloseButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+-- Close Button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -30, 0, 0)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+closeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+closeBtn.Parent = main
 
--- Kotak kecil Minimize
-MiniFrame.Size = UDim2.new(0, 60, 0, 30)
-MiniFrame.Position = UDim2.new(0.5, -30, 0.8, 0)
-MiniFrame.Text = "P.L"
-MiniFrame.TextColor3 = Color3.fromRGB(255,255,255)
-MiniFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
-MiniFrame.Visible = false
+-- Minimize Button
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 30, 0, 30)
+minBtn.Position = UDim2.new(1, -60, 0, 0)
+minBtn.Text = "-"
+minBtn.TextColor3 = Color3.fromRGB(255, 255, 0)
+minBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+minBtn.Parent = main
 
---// Fungsi Minimize
-MinButton.MouseButton1Click:Connect(function()
-	MainFrame.Visible = false
-	MiniFrame.Visible = true
-end)
+-- Buttons Frame
+local btnFrame = Instance.new("Frame")
+btnFrame.Size = UDim2.new(1, -20, 1, -50)
+btnFrame.Position = UDim2.new(0, 10, 0, 40)
+btnFrame.BackgroundTransparency = 1
+btnFrame.Parent = main
 
-MiniFrame.MouseButton1Click:Connect(function()
-	MainFrame.Visible = true
-	MiniFrame.Visible = false
-end)
-
---// Fungsi Close
-CloseButton.MouseButton1Click:Connect(function()
-	ScreenGui:Destroy()
-end)
-
---// Fungsi Drag
-local UserInputService = game:GetService("UserInputService")
-
-local function makeDraggable(frame, dragPart)
-	local dragging, dragStart, startPos
-	dragPart.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = true
-			dragStart = input.Position
-			startPos = frame.Position
-			input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then
-					dragging = false
-				end
-			end)
-		end
-	end)
-
-	UserInputService.InputChanged:Connect(function(input)
-		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-			local delta = input.Position - dragStart
-			frame.Position = UDim2.new(
-				startPos.X.Scale, startPos.X.Offset + delta.X,
-				startPos.Y.Scale, startPos.Y.Offset + delta.Y
-			)
-		end
-	end)
+-- Function to create buttons
+local function createButton(text, yPos)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.Position = UDim2.new(0, 0, 0, yPos)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 16
+    btn.Text = text
+    btn.Parent = btnFrame
+    return btn
 end
 
-makeDraggable(MainFrame, Drag) -- drag lewat bar atas
-makeDraggable(MiniFrame, MiniFrame) -- kotak kecil bisa digeser juga
+local gagBtn = createButton("SCRIPT GAG", 0)
+local menu2Btn = createButton("MENU 2", 50)
+local menu3Btn = createButton("MENU 3 (Komentar)", 100)
+
+-- Minimized Icon (P.L)
+local mini = Instance.new("TextButton")
+mini.Size = UDim2.new(0, 60, 0, 30)
+mini.Position = UDim2.new(0.4, 0, 0.4, 0)
+mini.Text = "P.L"
+mini.TextColor3 = Color3.fromRGB(255, 255, 255)
+mini.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
+mini.Visible = false
+mini.Active = true
+mini.Draggable = true
+mini.Parent = gui
+
+-- Close Function
+closeBtn.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+-- Minimize Function
+minBtn.MouseButton1Click:Connect(function()
+    main.Visible = false
+    mini.Visible = true
+end)
+
+-- Restore Function
+mini.MouseButton1Click:Connect(function()
+    main.Visible = true
+    mini.Visible = false
+end)
+
+-- Button Functions
+gagBtn.MouseButton1Click:Connect(function()
+    -- Load GAG script
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Liriosha/GAGAPI/main/source.lua"))()
+end)
+
+menu2Btn.MouseButton1Click:Connect(function()
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Menu 2";
+        Text = "Masih kosong...";
+        Duration = 3;
+    })
+end)
+
+menu3Btn.MouseButton1Click:Connect(function()
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Komentar";
+        Text = "Terima kasih atas masukannya!";
+        Duration = 3;
+    })
+end)
