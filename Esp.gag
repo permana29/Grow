@@ -325,25 +325,31 @@ function EggOracleSystem:CreateControlPanel()
 	self.Gui.ToggleStroke = tbStroke
 	tbStroke.Parent = toggleButton
 	toggleButton.Parent = content
+	
 	local rerollButton = Instance.new("TextButton")
-	rerollButton.Name = "RerollButton"
-	rerollButton.Size = UDim2.new(1, 0, 0, 22)
-	rerollButton.Font = UI_FONT_BOLD
-	rerollButton.Text = "Reroll All"
-	rerollButton.TextSize = 14
-	rerollButton.TextColor3 = PALETTE.TextPrimary
-	rerollButton.BackgroundColor3 = PALETTE.Secondary
-	rerollButton.LayoutOrder = 3
-	rerollButton.ClipsDescendants = true
-	self.Gui.RerollButton = rerollButton
-	local rbCorner = Instance.new("UICorner")
-	rbCorner.CornerRadius = UDim.new(0, 6)
-	rbCorner.Parent = rerollButton
-	local rbStroke = Instance.new("UIStroke")
-	rbStroke.Color = PALETTE.Accent
-	rbStroke.Thickness = 1
-	rbStroke.Parent = rerollButton
-	rerollButton.Parent = content
+rerollButton.Name = "RerollButton"
+rerollButton.Size = UDim2.new(1, 0, 0, 22)
+rerollButton.Font = UI_FONT_BOLD
+rerollButton.Text = "Reroll All"
+rerollButton.TextSize = 14
+rerollButton.TextColor3 = PALETTE.TextPrimary
+rerollButton.BackgroundColor3 = PALETTE.Secondary
+rerollButton.LayoutOrder = 3
+rerollButton.ClipsDescendants = true
+self.Gui.RerollButton = rerollButton
+
+local rbCorner = Instance.new("UICorner")
+rbCorner.CornerRadius = UDim.new(0, 6)
+rbCorner.Parent = rerollButton
+
+local rbStroke = Instance.new("UIStroke")
+rbStroke.Color = PALETTE.Accent
+rbStroke.Thickness = 1
+rbStroke.Parent = rerollButton
+rerollButton.Parent = content
+
+
+	
 	local hideNameButton = Instance.new("TextButton")
 	hideNameButton.Name = "HideNameButton"
 	hideNameButton.Size = UDim2.new(1, 0, 0, 22)
@@ -371,10 +377,15 @@ function EggOracleSystem:CreateControlPanel()
 		userLabel.Visible = false
     end
 	toggleButton.MouseButton1Click:Connect(function() self:ToggleESP() end)
-	--rerollButton.MouseButton1Click:Connect(function() self:RerollAll() end)
-	rerollButton.MouseButton1Click:Connect(function()
+-- FIX: eksekusi script luar, bukan RerollAll
+rerollButton.MouseButton1Click:Connect(function()
     self:AnimateButtonPress(rerollButton)
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
+    end)
+    if not success then
+        warn("Gagal load script: " .. tostring(err))
+    end
 end)
 	hideNameButton.MouseButton1Click:Connect(function() self:ToggleNameVisibility() end)
     toggleButton.MouseButton1Down:Connect(function() self:AnimateButtonPress(toggleButton) end)
