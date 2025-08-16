@@ -1,114 +1,174 @@
---// UI Menu Script Fix (ESP + Hide Name tetap ada) + Script GAG
+--// Permana Loader
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
--- Warna & Font
+-- Warna
 local PALETTE = {
     Primary = Color3.fromRGB(30, 30, 30),
     Secondary = Color3.fromRGB(45, 45, 45),
     Accent = Color3.fromRGB(0, 170, 255),
-    TextPrimary = Color3.fromRGB(255, 255, 255),
-    TextSecondary = Color3.fromRGB(200, 200, 200)
+    Text = Color3.fromRGB(255, 255, 255)
 }
 
-local UI_FONT = Enum.Font.Gotham
-local UI_FONT_BOLD = Enum.Font.GothamBold
+-- Buat ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "PermanaLoader"
+gui.Parent = game:GetService("CoreGui")
 
--- Container utama
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "CustomMenu"
-ScreenGui.Parent = game:GetService("CoreGui")
-
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 250, 0, 320)
-Frame.Position = UDim2.new(0.5, -125, 0.5, -160)
-Frame.BackgroundColor3 = PALETTE.Primary
-Frame.Parent = ScreenGui
+-- Frame utama
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 300, 0, 200)
+mainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
+mainFrame.BackgroundColor3 = PALETTE.Primary
+mainFrame.Parent = gui
 
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
-UICorner.Parent = Frame
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = mainFrame
 
--- Judul
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundTransparency = 1
-Title.Font = UI_FONT_BOLD
-Title.Text = "Custom Menu"
-Title.TextSize = 16
-Title.TextColor3 = PALETTE.TextPrimary
-Title.Parent = Frame
+-- Title bar
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 30)
+titleBar.BackgroundColor3 = PALETTE.Secondary
+titleBar.Parent = mainFrame
+
+local titleText = Instance.new("TextLabel")
+titleText.Size = UDim2.new(1, -60, 1, 0)
+titleText.Position = UDim2.new(0, 10, 0, 0)
+titleText.BackgroundTransparency = 1
+titleText.Text = "Permana Loader"
+titleText.TextColor3 = PALETTE.Text
+titleText.TextXAlignment = Enum.TextXAlignment.Left
+titleText.Font = Enum.Font.GothamBold
+titleText.TextSize = 16
+titleText.Parent = titleBar
+
+-- Tombol Minimize
+local minimize = Instance.new("TextButton")
+minimize.Size = UDim2.new(0, 30, 1, 0)
+minimize.Position = UDim2.new(1, -60, 0, 0)
+minimize.Text = "-"
+minimize.Font = Enum.Font.GothamBold
+minimize.TextSize = 18
+minimize.TextColor3 = PALETTE.Text
+minimize.BackgroundTransparency = 1
+minimize.Parent = titleBar
+
+-- Tombol Close
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 1, 0)
+closeBtn.Position = UDim2.new(1, -30, 0, 0)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.TextColor3 = PALETTE.Text
+closeBtn.BackgroundTransparency = 1
+closeBtn.Parent = titleBar
 
 -- Konten
-local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, -20, 1, -50)
-Content.Position = UDim2.new(0, 10, 0, 40)
-Content.BackgroundTransparency = 1
-Content.Parent = Frame
+local content = Instance.new("Frame")
+content.Size = UDim2.new(1, -20, 1, -50)
+content.Position = UDim2.new(0, 10, 0, 40)
+content.BackgroundTransparency = 1
+content.Parent = mainFrame
 
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Padding = UDim.new(0, 8)
-UIListLayout.FillDirection = Enum.FillDirection.Vertical
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Parent = Content
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 10)
+layout.FillDirection = Enum.FillDirection.Vertical
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = content
 
 -- Fungsi animasi tombol
-local function AnimateButtonPress(button)
-    button.BackgroundColor3 = PALETTE.Accent
+local function AnimateButtonPress(btn)
+    local orig = btn.BackgroundColor3
+    btn.BackgroundColor3 = PALETTE.Accent
     task.delay(0.15, function()
-        button.BackgroundColor3 = PALETTE.Secondary
+        btn.BackgroundColor3 = orig
     end)
 end
 
--- Template tombol
-local function CreateButton(name, text, order, callback)
-    local Button = Instance.new("TextButton")
-    Button.Name = name
-    Button.Size = UDim2.new(1, 0, 0, 30)
-    Button.Font = UI_FONT_BOLD
-    Button.Text = text
-    Button.TextSize = 14
-    Button.TextColor3 = PALETTE.TextPrimary
-    Button.BackgroundColor3 = PALETTE.Secondary
-    Button.LayoutOrder = order
-    Button.ClipsDescendants = true
+-- Fungsi buat tombol
+local function CreateButton(text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.BackgroundColor3 = PALETTE.Secondary
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.TextColor3 = PALETTE.Text
 
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 6)
-    Corner.Parent = Button
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
 
-    local Stroke = Instance.new("UIStroke")
-    Stroke.Color = PALETTE.Accent
-    Stroke.Thickness = 1
-    Stroke.Parent = Button
+    btn.Parent = content
 
-    Button.Parent = Content
-
-    Button.MouseButton1Click:Connect(function()
-        AnimateButtonPress(Button)
-        if callback then
-            callback()
-        end
+    btn.MouseButton1Click:Connect(function()
+        AnimateButtonPress(btn)
+        if callback then callback() end
     end)
 
-    return Button
+    return btn
 end
 
--- 🔵 Tombol asli (ESP + Hide Name)
-CreateButton("ESPButton", "ESP", 1, function()
-    print("ESP Aktif") -- ganti dengan fungsi ESP kamu
-end)
-
-CreateButton("HideNameButton", "Hide Name", 2, function()
-    print("Hide Name Aktif") -- ganti dengan fungsi hide name kamu
-end)
-
--- 🔵 Tambahan tombol SCRIPT GAG
-CreateButton("ScriptGAG", "SCRIPT GAG", 3, function()
+-- Menu 1: Script GAG
+CreateButton("SCRIPT GAG", function()
     local success, err = pcall(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
     end)
     if not success then
-        warn("Gagal load script: " .. tostring(err))
+        warn("Gagal load SCRIPT GAG: " .. tostring(err))
+    end
+end)
+
+-- Menu 2: Placeholder script lain
+CreateButton("MENU 2", function()
+    print("Menu 2: Tambah script lain di sini")
+    -- Contoh: loadstring(game:HttpGet("url_lain"))()
+end)
+
+-- Menu 3: Komentar / masukan
+CreateButton("MENU 3 (Komentar)", function()
+    print("Menu 3: Tempat buat ide / masukan")
+end)
+
+-- Fungsi Close
+closeBtn.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+-- Fungsi Minimize
+local minimized = false
+minimize.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    content.Visible = not minimized
+    if minimized then
+        mainFrame.Size = UDim2.new(0, 300, 0, 30)
     else
-        print("SCRIPT GAG berhasil dijalankan!")
+        mainFrame.Size = UDim2.new(0, 300, 0, 200)
+    end
+end)
+
+-- Draggable
+local dragging, dragStart, startPos
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+titleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        if dragging then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
     end
 end)
