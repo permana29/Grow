@@ -1,174 +1,88 @@
---// Permana Loader
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+--// Permana Loader UI
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local MainFrame = Instance.new("Frame", ScreenGui)
+local MinButton = Instance.new("TextButton", MainFrame)
+local CloseButton = Instance.new("TextButton", MainFrame)
+local Drag = Instance.new("TextLabel", MainFrame)
 
--- Warna
-local PALETTE = {
-    Primary = Color3.fromRGB(30, 30, 30),
-    Secondary = Color3.fromRGB(45, 45, 45),
-    Accent = Color3.fromRGB(0, 170, 255),
-    Text = Color3.fromRGB(255, 255, 255)
-}
+local MiniFrame = Instance.new("TextButton", ScreenGui) -- kotak kecil P.L
 
--- Buat ScreenGui
-local gui = Instance.new("ScreenGui")
-gui.Name = "PermanaLoader"
-gui.Parent = game:GetService("CoreGui")
+-- UI Utama
+MainFrame.Size = UDim2.new(0, 300, 0, 200)
+MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainFrame.Visible = true
 
--- Frame utama
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 300, 0, 200)
-mainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
-mainFrame.BackgroundColor3 = PALETTE.Primary
-mainFrame.Parent = gui
-
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 8)
-UICorner.Parent = mainFrame
-
--- Title bar
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 30)
-titleBar.BackgroundColor3 = PALETTE.Secondary
-titleBar.Parent = mainFrame
-
-local titleText = Instance.new("TextLabel")
-titleText.Size = UDim2.new(1, -60, 1, 0)
-titleText.Position = UDim2.new(0, 10, 0, 0)
-titleText.BackgroundTransparency = 1
-titleText.Text = "Permana Loader"
-titleText.TextColor3 = PALETTE.Text
-titleText.TextXAlignment = Enum.TextXAlignment.Left
-titleText.Font = Enum.Font.GothamBold
-titleText.TextSize = 16
-titleText.Parent = titleBar
+-- Drag area
+Drag.Size = UDim2.new(1, 0, 0, 25)
+Drag.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Drag.Text = "Permana Loader"
+Drag.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 -- Tombol Minimize
-local minimize = Instance.new("TextButton")
-minimize.Size = UDim2.new(0, 30, 1, 0)
-minimize.Position = UDim2.new(1, -60, 0, 0)
-minimize.Text = "-"
-minimize.Font = Enum.Font.GothamBold
-minimize.TextSize = 18
-minimize.TextColor3 = PALETTE.Text
-minimize.BackgroundTransparency = 1
-minimize.Parent = titleBar
+MinButton.Size = UDim2.new(0, 25, 0, 25)
+MinButton.Position = UDim2.new(1, -50, 0, 0)
+MinButton.Text = "-"
+MinButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 
 -- Tombol Close
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 1, 0)
-closeBtn.Position = UDim2.new(1, -30, 0, 0)
-closeBtn.Text = "X"
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 16
-closeBtn.TextColor3 = PALETTE.Text
-closeBtn.BackgroundTransparency = 1
-closeBtn.Parent = titleBar
+CloseButton.Size = UDim2.new(0, 25, 0, 25)
+CloseButton.Position = UDim2.new(1, -25, 0, 0)
+CloseButton.Text = "X"
+CloseButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 
--- Konten
-local content = Instance.new("Frame")
-content.Size = UDim2.new(1, -20, 1, -50)
-content.Position = UDim2.new(0, 10, 0, 40)
-content.BackgroundTransparency = 1
-content.Parent = mainFrame
+-- Kotak kecil Minimize
+MiniFrame.Size = UDim2.new(0, 60, 0, 30)
+MiniFrame.Position = UDim2.new(0.5, -30, 0.8, 0)
+MiniFrame.Text = "P.L"
+MiniFrame.TextColor3 = Color3.fromRGB(255,255,255)
+MiniFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+MiniFrame.Visible = false
 
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 10)
-layout.FillDirection = Enum.FillDirection.Vertical
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Parent = content
+--// Fungsi Minimize
+MinButton.MouseButton1Click:Connect(function()
+	MainFrame.Visible = false
+	MiniFrame.Visible = true
+end)
 
--- Fungsi animasi tombol
-local function AnimateButtonPress(btn)
-    local orig = btn.BackgroundColor3
-    btn.BackgroundColor3 = PALETTE.Accent
-    task.delay(0.15, function()
-        btn.BackgroundColor3 = orig
-    end)
+MiniFrame.MouseButton1Click:Connect(function()
+	MainFrame.Visible = true
+	MiniFrame.Visible = false
+end)
+
+--// Fungsi Close
+CloseButton.MouseButton1Click:Connect(function()
+	ScreenGui:Destroy()
+end)
+
+--// Fungsi Drag
+local UserInputService = game:GetService("UserInputService")
+
+local function makeDraggable(frame, dragPart)
+	local dragging, dragStart, startPos
+	dragPart.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local delta = input.Position - dragStart
+			frame.Position = UDim2.new(
+				startPos.X.Scale, startPos.X.Offset + delta.X,
+				startPos.Y.Scale, startPos.Y.Offset + delta.Y
+			)
+		end
+	end)
 end
 
--- Fungsi buat tombol
-local function CreateButton(text, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 35)
-    btn.BackgroundColor3 = PALETTE.Secondary
-    btn.Text = text
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
-    btn.TextColor3 = PALETTE.Text
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = btn
-
-    btn.Parent = content
-
-    btn.MouseButton1Click:Connect(function()
-        AnimateButtonPress(btn)
-        if callback then callback() end
-    end)
-
-    return btn
-end
-
--- Menu 1: Script GAG
-CreateButton("SCRIPT GAG", function()
-    local success, err = pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
-    end)
-    if not success then
-        warn("Gagal load SCRIPT GAG: " .. tostring(err))
-    end
-end)
-
--- Menu 2: Placeholder script lain
-CreateButton("MENU 2", function()
-    print("Menu 2: Tambah script lain di sini")
-    -- Contoh: loadstring(game:HttpGet("url_lain"))()
-end)
-
--- Menu 3: Komentar / masukan
-CreateButton("MENU 3 (Komentar)", function()
-    print("Menu 3: Tempat buat ide / masukan")
-end)
-
--- Fungsi Close
-closeBtn.MouseButton1Click:Connect(function()
-    gui:Destroy()
-end)
-
--- Fungsi Minimize
-local minimized = false
-minimize.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    content.Visible = not minimized
-    if minimized then
-        mainFrame.Size = UDim2.new(0, 300, 0, 30)
-    else
-        mainFrame.Size = UDim2.new(0, 300, 0, 200)
-    end
-end)
-
--- Draggable
-local dragging, dragStart, startPos
-titleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-titleBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        if dragging then
-            local delta = input.Position - dragStart
-            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end
-end)
+makeDraggable(MainFrame, Drag) -- drag lewat bar atas
+makeDraggable(MiniFrame, MiniFrame) -- kotak kecil bisa digeser juga
