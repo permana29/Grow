@@ -105,6 +105,7 @@ local function styleButton(btn, text)
 	stroke.Color = Color3.fromRGB(0, 200, 255)
 	stroke.Thickness = 1.5
 
+	-- Hover efek
 	btn.MouseEnter:Connect(function()
 		btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 	end)
@@ -120,7 +121,7 @@ Script1Btn.MouseButton1Click:Connect(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
 end)
 
--- ================== ESP EGG (Blue Outline + Distance) ==================
+-- == ESP AUTO-DETECT ==
 styleButton(Script2Btn, "🥚 ESP")
 Script2Btn.Parent = Content
 
@@ -130,6 +131,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
 LocalPlayer.CharacterAdded:Connect(function(c)
 	character = c
 	humanoidRootPart = c:WaitForChild("HumanoidRootPart")
@@ -137,9 +139,13 @@ end)
 
 local function makeESP(model)
 	if not model:IsA("Model") then return end
+	if not string.find(string.lower(model.Name), "egg") then return end
 	if model:FindFirstChild("PermanaEggESP") then return end
 
-	-- highlight border biru
+	local part = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+	if not part then return end
+	model.PrimaryPart = part
+
 	local h = Instance.new("Highlight")
 	h.Name = "PermanaEggESP"
 	h.FillTransparency = 1
@@ -148,18 +154,13 @@ local function makeESP(model)
 	h.Adornee = model
 	h.Parent = model
 
-	-- billboard label (nama + jarak)
-	local p = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-	if not p then return end
-	if not model.PrimaryPart then model.PrimaryPart = p end
-
 	local bb = Instance.new("BillboardGui")
 	bb.Name = "PermanaEggLabel"
 	bb.Size = UDim2.new(0,120,0,28)
 	bb.StudsOffset = Vector3.new(0,3,0)
 	bb.AlwaysOnTop = true
 	bb.MaxDistance = 3000
-	bb.Parent = p
+	bb.Parent = part
 
 	local tl = Instance.new("TextLabel")
 	tl.Size = UDim2.new(1,0,1,0)
@@ -172,21 +173,24 @@ local function makeESP(model)
 end
 
 local function updateLabels()
-	if not ESP_ON then return end
-	for _, egg in ipairs(workspace.Eggs:GetChildren()) do
-		if egg:IsA("Model") and egg:FindFirstChild("PermanaEggESP") then
-			local bb = egg.PrimaryPart and egg.PrimaryPart:FindFirstChild("PermanaEggLabel")
-			if bb and bb:FindFirstChildOfClass("TextLabel") and humanoidRootPart and egg.PrimaryPart then
-				local dist = (humanoidRootPart.Position - egg.PrimaryPart.Position).Magnitude
-				bb.TextLabel.Text = string.format("🥚 %s [%.0f]", egg.Name, dist)
+	if not ESP_ON or not humanoidRootPart then return end
+	for _, egg in ipairs(workspace:GetDescendants()) do
+		if egg:IsA("Model") and string.find(string.lower(egg.Name), "egg") then
+			local part = egg.PrimaryPart
+			if part then
+				local bb = part:FindFirstChild("PermanaEggLabel")
+				if bb and bb:FindFirstChildOfClass("TextLabel") then
+					local dist = (humanoidRootPart.Position - part.Position).Magnitude
+					bb.TextLabel.Text = string.format("🥚 %s [%.0f]", egg.Name, dist)
+				end
 			end
 		end
 	end
 end
 
 local function clearESP()
-	for _, egg in ipairs(workspace.Eggs:GetChildren()) do
-		if egg:IsA("Model") then
+	for _, egg in ipairs(workspace:GetDescendants()) do
+		if egg:IsA("Model") and string.find(string.lower(egg.Name), "egg") then
 			local h = egg:FindFirstChild("PermanaEggESP")
 			if h then h:Destroy() end
 			if egg.PrimaryPart then
@@ -197,12 +201,11 @@ local function clearESP()
 	end
 end
 
--- toggle handler
 Script2Btn.MouseButton1Click:Connect(function()
 	ESP_ON = not ESP_ON
 	if ESP_ON then
-		for _, egg in ipairs(workspace.Eggs:GetChildren()) do
-			makeESP(egg)
+		for _, obj in ipairs(workspace:GetDescendants()) do
+			makeESP(obj)
 		end
 		Script2Btn.Text = "🥚 ESP: ON"
 	else
@@ -211,20 +214,20 @@ Script2Btn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- auto add ESP kalau ada egg baru spawn
-workspace.Eggs.ChildAdded:Connect(function(egg)
+workspace.DescendantAdded:Connect(function(obj)
 	if ESP_ON then
-		makeESP(egg)
+		makeESP(obj)
 	end
 end)
 
--- update loop untuk jarak
 RunService.RenderStepped:Connect(updateLabels)
--- ================== END ESP EGG ==================
 
 -- Menu 3
 styleButton(Script3Btn, "📂 Next Update")
 Script3Btn.Parent = Content
+Script3Btn.MouseButton1Click:Connect(function()
+	-- coming soon
+end)
 
 --== Floating PL Button ==--
 PLButton.Parent = ScreenGui
