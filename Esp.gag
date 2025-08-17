@@ -1,4 +1,4 @@
---== Permana Loader + Integrasi ESP 710 Tanpa Menu Kedua ==--
+--== Permana Loader + Integrasi ESP 710 + Menu 4 Log Hatch ==--
 
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
@@ -16,6 +16,7 @@ local PLButton = Instance.new("TextButton")
 local Script1Btn = Instance.new("TextButton")
 local Script2Btn = Instance.new("TextButton") -- ESP
 local Script3Btn = Instance.new("TextButton")
+local Script4Btn = Instance.new("TextButton") -- Log Hatch
 
 -- Parent
 ScreenGui.Parent = game.CoreGui
@@ -25,7 +26,7 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
-MainFrame.Size = UDim2.new(0, 280, 0, 210)
+MainFrame.Size = UDim2.new(0, 280, 0, 300) -- dibesarin dikit biar muat log
 MainFrame.Active = true
 MainFrame.Draggable = true
 
@@ -109,18 +110,18 @@ local function styleButton(btn, text)
 	btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(35,35,35) end)
 end
 
--- Script 1 (GAG)
+--== Script 1 (GAG) ==--
 styleButton(Script1Btn, "🚀 Script GAG")
 Script1Btn.Parent = Content
 Script1Btn.MouseButton1Click:Connect(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
 end)
 
--- == ESP 710 Integrasi (tanpa menu dia) ==
+--== ESP 710 Integrasi (tanpa menu dia) ==--
 styleButton(Script2Btn, "🥚 ESP")
 Script2Btn.Parent = Content
 
--- helper untuk cari GUI & tombol dari script 710
+-- helper cari GUI & tombol dari script 710
 local function getEggOracleGui()
 	for _, pg in ipairs(game.Players.LocalPlayer:WaitForChild("PlayerGui"):GetChildren()) do
 		if pg:IsA("ScreenGui") and pg.Name == "EggOracle_Container" then
@@ -136,7 +137,6 @@ local function getEggOracleGui()
 end
 
 local function ensureBlueStroke(tagFrame)
-	-- paksa border biru dan jaga kalau diubah script aslinya
 	if not tagFrame then return end
 	local bg = tagFrame:FindFirstChild("Background")
 	if not bg then return end
@@ -157,7 +157,6 @@ local function applyBlueToAllTags(container)
 			ensureBlueStroke(f.Parent)
 		end
 	end
-	-- kalau ada tag baru dibuat setelahnya:
 	container.DescendantAdded:Connect(function(d)
 		if d:IsA("Frame") and d.Name == "Background" and d.Parent and d.Parent:IsA("Frame") then
 			ensureBlueStroke(d.Parent)
@@ -165,8 +164,7 @@ local function applyBlueToAllTags(container)
 	end)
 end
 
--- Simulate toggle via firesignal pada tombol bawaan skrip
-local function toggleESPViaButton(container, forceState) -- forceState: true=ON, false=OFF, nil=toggle
+local function toggleESPViaButton(container, forceState)
 	if not container then return end
 	local panel = container:FindFirstChild("ControlPanel")
 	if not panel then return end
@@ -190,7 +188,6 @@ local function toggleESPViaButton(container, forceState) -- forceState: true=ON,
 	end
 end
 
--- Hide penuh UI bawaan script 710 (tanpa ganggu logic ESP-nya)
 local function hideOracleUI(container)
 	if not container then return end
 	local cp = container:FindFirstChild("ControlPanel")
@@ -206,7 +203,6 @@ Script2Btn.MouseButton1Click:Connect(function()
 	local container = getEggOracleGui()
 
 	if not ESP_LOADED or not container then
-		-- Load skrip 710 baris (tetap versi asli supaya fitur sama persis)
 		local ok, err = pcall(function()
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()
 		end)
@@ -215,27 +211,19 @@ Script2Btn.MouseButton1Click:Connect(function()
 			return
 		end
 
-		-- tunggu GUI-nya kebentuk
 		container = getEggOracleGui()
 		if not container then
 			warn("ESP 710 tidak membuat GUI container. Coba klik lagi.")
 			return
 		end
 
-		-- sembunyikan UI bawaan
 		hideOracleUI(container)
-
-		-- pastikan border tag biru
 		applyBlueToAllTags(container)
-
-		-- nyalakan ESP (kalau belum ON)
 		toggleESPViaButton(container, true)
 		ESP_LOADED, ESP_ON = true, true
 		Script2Btn.Text = "🥚 ESP: ON"
 	else
-		-- toggle ON/OFF
 		toggleESPViaButton(container, nil)
-		-- cek status text tombol bawaan untuk sync label loader
 		local panel = container:FindFirstChild("ControlPanel")
 		local content = panel and panel:FindFirstChild("Content")
 		local toggleBtn = content and content:FindFirstChild("ToggleButton")
@@ -246,51 +234,73 @@ Script2Btn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Menu 3
+--== Menu 3 ==--
 styleButton(Script3Btn, "📂 Next Update")
 Script3Btn.Parent = Content
-Script3Btn.MouseButton1Click:Connect(function()
-	-- coming soon
-end)
 
--- Menu 4: Log Hatch Events
-local Script4Btn = Instance.new("TextButton")
+--== Menu 4: Log Hatch ==--
 styleButton(Script4Btn, "📜 Log Hatch")
 Script4Btn.Parent = Content
+
+-- Scrolling log panel
+local LogFrame = Instance.new("ScrollingFrame")
+LogFrame.Parent = Content
+LogFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+LogFrame.Size = UDim2.new(0.9,0,0,100)
+LogFrame.Visible = false
+LogFrame.CanvasSize = UDim2.new(0,0,0,0)
+LogFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+LogFrame.ScrollBarThickness = 4
+Instance.new("UICorner", LogFrame).CornerRadius = UDim.new(0,6)
+
+local LogLayout = Instance.new("UIListLayout", LogFrame)
+LogLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function addLog(msg)
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.new(1, -4, 0, 18)
+	lbl.BackgroundTransparency = 1
+	lbl.Font = Enum.Font.Code
+	lbl.TextSize = 14
+	lbl.TextXAlignment = Enum.TextXAlignment.Left
+	lbl.TextColor3 = Color3.fromRGB(0,200,255)
+	lbl.Text = msg
+	lbl.Parent = LogFrame
+end
 
 local hatchLogging = false
 
 Script4Btn.MouseButton1Click:Connect(function()
-    if hatchLogging then
-        Script4Btn.Text = "📜 Log Hatch: OFF"
-        hatchLogging = false
-        return
-    end
+	if hatchLogging then
+		Script4Btn.Text = "📜 Log Hatch: OFF"
+		hatchLogging = false
+		LogFrame.Visible = false
+		return
+	end
 
-    hatchLogging = true
-    Script4Btn.Text = "📜 Log Hatch: ON"
+	hatchLogging = true
+	Script4Btn.Text = "📜 Log Hatch: ON"
+	LogFrame.Visible = true
 
-    local rs = game:GetService("ReplicatedStorage")
-
-    for _, obj in ipairs(rs:GetDescendants()) do
-        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-            local lname = string.lower(obj.Name)
-            if string.find(lname, "egg") or string.find(lname, "hatch") then
-                print("[Egg Logger] Hooking:", obj.Name)
-
-                if obj:IsA("RemoteEvent") then
-                    obj.OnClientEvent:Connect(function(...)
-                        warn("[Egg Logger][Event] "..obj.Name, ...)
-                    end)
-                elseif obj:IsA("RemoteFunction") then
-                    local old; old = hookfunction(obj.InvokeServer, function(self, ...)
-                        warn("[Egg Logger][Function] "..self.Name, ...)
-                        return old(self, ...)
-                    end)
-                end
-            end
-        end
-    end
+	local rs = game:GetService("ReplicatedStorage")
+	for _, obj in ipairs(rs:GetDescendants()) do
+		if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+			local lname = string.lower(obj.Name)
+			if string.find(lname, "egg") or string.find(lname, "hatch") then
+				addLog("[Hooked] "..obj.Name)
+				if obj:IsA("RemoteEvent") then
+					obj.OnClientEvent:Connect(function(...)
+						addLog("[Event] "..obj.Name)
+					end)
+				elseif obj:IsA("RemoteFunction") then
+					local old; old = hookfunction(obj.InvokeServer, function(self, ...)
+						addLog("[Function] "..self.Name)
+						return old(self, ...)
+					end)
+				end
+			end
+		end
+	end
 end)
 
 --== Floating PL Button ==--
@@ -324,7 +334,6 @@ end)
 
 --== Close Logic ==--
 CloseBtn.MouseButton1Click:Connect(function()
-	-- coba OFF-kan ESP & hapus GUI bawaan 710 kalau ada
 	local container = getEggOracleGui()
 	if container then
 		pcall(function() toggleESPViaButton(container, false) end)
