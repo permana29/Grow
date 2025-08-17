@@ -1,4 +1,4 @@
--- Remote Scanner + Tester (Final + Search + Minimize + Close)
+-- Remote Scanner permana
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
@@ -16,7 +16,7 @@ frame.Draggable = true
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1,0,0,25)
 title.BackgroundColor3 = Color3.fromRGB(40,40,40)
-title.Text = "🔎 Remote Scanner"
+title.Text = "🔎 SCANER|PERMANA"
 title.TextColor3 = Color3.fromRGB(0,255,0)
 title.TextSize = 14
 
