@@ -1,30 +1,32 @@
--- Remote Explorer Final Version (Auto-Update + Scroll + Copy)
+-- Remote Scanner (Final Version - Always show all + Auto Update)
+
+local CoreGui = game:GetService("CoreGui")
 
 -- GUI
-local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local ScreenGui = Instance.new("ScreenGui", CoreGui)
 local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 400, 0, 300)
-Frame.Position = UDim2.new(0.5, -200, 0.5, -150)
+Frame.Size = UDim2.new(0, 420, 0, 320)
+Frame.Position = UDim2.new(0.5, -210, 0.5, -160)
 Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Frame.Active = true
 Frame.Draggable = true
 
 local Title = Instance.new("TextLabel", Frame)
 Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "Remote Explorer"
-Title.TextColor3 = Color3.new(1,1,1)
-Title.BackgroundColor3 = Color3.fromRGB(45,45,45)
+Title.Text = "🔍 Remote Scanner"
+Title.TextColor3 = Color3.fromRGB(0,255,0)
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 20
 
 local Search = Instance.new("TextBox", Frame)
-Search.PlaceholderText = "Search remote..."
+Search.PlaceholderText = "Search..."
 Search.Size = UDim2.new(1, -10, 0, 25)
 Search.Position = UDim2.new(0, 5, 0, 35)
 Search.BackgroundColor3 = Color3.fromRGB(40,40,40)
 Search.TextColor3 = Color3.new(1,1,1)
 
--- Scrollable list
+-- Scroll List
 local Scroll = Instance.new("ScrollingFrame", Frame)
 Scroll.Size = UDim2.new(1, -10, 1, -100)
 Scroll.Position = UDim2.new(0, 5, 0, 65)
@@ -42,65 +44,50 @@ BtnFrame.Size = UDim2.new(1, -10, 0, 30)
 BtnFrame.Position = UDim2.new(0, 5, 1, -35)
 BtnFrame.BackgroundTransparency = 1
 
-local RescanBtn = Instance.new("TextButton", BtnFrame)
-RescanBtn.Size = UDim2.new(0.33, -5, 1, 0)
-RescanBtn.Text = "Rescan"
-RescanBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-RescanBtn.TextColor3 = Color3.new(1,1,1)
+local function MakeBtn(name, pos)
+    local Btn = Instance.new("TextButton", BtnFrame)
+    Btn.Size = UDim2.new(0.33, -5, 1, 0)
+    Btn.Position = UDim2.new(pos, 5, 0, 0)
+    Btn.Text = name
+    Btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    Btn.TextColor3 = Color3.new(1,1,1)
+    return Btn
+end
 
-local ClearBtn = Instance.new("TextButton", BtnFrame)
-ClearBtn.Size = UDim2.new(0.33, -5, 1, 0)
-ClearBtn.Position = UDim2.new(0.33, 5, 0, 0)
-ClearBtn.Text = "Clear"
-ClearBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-ClearBtn.TextColor3 = Color3.new(1,1,1)
-
-local CopyBtn = Instance.new("TextButton", BtnFrame)
-CopyBtn.Size = UDim2.new(0.33, -5, 1, 0)
-CopyBtn.Position = UDim2.new(0.66, 5, 0, 0)
-CopyBtn.Text = "CopyAll"
-CopyBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-CopyBtn.TextColor3 = Color3.new(1,1,1)
+local ClearBtn = MakeBtn("Clear", 0)
+local RescanBtn = MakeBtn("Rescan", 0.33)
+local CopyBtn = MakeBtn("Copy All", 0.66)
 
 -- Data
-local Remotes = {}
+local Logs = {}
 
 local function UpdateCanvas()
     Scroll.CanvasSize = UDim2.new(0,0,0,UIList.AbsoluteContentSize.Y)
 end
 UIList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateCanvas)
 
--- Show Remote Data
-function ShowData(obj)
-    print("Clicked:", obj:GetFullName())
-end
+-- Add to list
+local function AddLog(text)
+    if Logs[text] then return end
+    Logs[text] = true
 
--- Add Remote to List
-local function AddRemote(obj)
-    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-        if not Remotes[obj] then
-            Remotes[obj] = true
-            local Btn = Instance.new("TextButton", Scroll)
-            Btn.Size = UDim2.new(1, -5, 0, 25)
-            Btn.Text = obj:GetFullName()
-            Btn.TextColor3 = Color3.new(1,1,1)
-            Btn.BackgroundColor3 = Color3.fromRGB(55,55,55)
-            Btn.TextWrapped = true
-
-            Btn.MouseButton1Click:Connect(function()
-                ShowData(obj)
-            end)
-        end
-    end
+    local Line = Instance.new("TextLabel", Scroll)
+    Line.Size = UDim2.new(1, -5, 0, 20)
+    Line.Text = text
+    Line.TextColor3 = Color3.new(1,1,1)
+    Line.BackgroundTransparency = 1
+    Line.TextXAlignment = Enum.TextXAlignment.Left
 end
 
 -- Rescan
 local function Rescan()
     Scroll:ClearAllChildren()
     UIList.Parent = Scroll
-    Remotes = {}
+    Logs = {}
     for _, obj in ipairs(game:GetDescendants()) do
-        AddRemote(obj)
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            AddLog(obj:GetFullName())
+        end
     end
 end
 
@@ -110,49 +97,40 @@ RescanBtn.MouseButton1Click:Connect(Rescan)
 ClearBtn.MouseButton1Click:Connect(function()
     Scroll:ClearAllChildren()
     UIList.Parent = Scroll
-    Remotes = {}
+    Logs = {}
 end)
 
--- CopyAll
+-- Copy All
 CopyBtn.MouseButton1Click:Connect(function()
     local all = {}
-    for obj, _ in pairs(Remotes) do
-        table.insert(all, obj:GetFullName())
+    for txt, _ in pairs(Logs) do
+        table.insert(all, txt)
     end
-    setclipboard(table.concat(all, "\n"))
+    if setclipboard then
+        setclipboard(table.concat(all, "\n"))
+    end
 end)
 
--- Realtime auto-update
+-- Auto update realtime
 game.DescendantAdded:Connect(function(obj)
-    AddRemote(obj)
-end)
-
-game.DescendantRemoving:Connect(function(obj)
-    if Remotes[obj] then
-        Remotes[obj] = nil
-        Rescan()
+    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+        AddLog(obj:GetFullName())
     end
 end)
 
 -- Search filter
 Search:GetPropertyChangedSignal("Text"):Connect(function()
     local keyword = string.lower(Search.Text)
-    Scroll:ClearAllChildren()
-    UIList.Parent = Scroll
-    for obj, _ in pairs(Remotes) do
-        if keyword == "" or string.find(string.lower(obj:GetFullName()), keyword) then
-            local Btn = Instance.new("TextButton", Scroll)
-            Btn.Size = UDim2.new(1, -5, 0, 25)
-            Btn.Text = obj:GetFullName()
-            Btn.TextColor3 = Color3.new(1,1,1)
-            Btn.BackgroundColor3 = Color3.fromRGB(55,55,55)
-            Btn.TextWrapped = true
-            Btn.MouseButton1Click:Connect(function()
-                ShowData(obj)
-            end)
+    for _, line in ipairs(Scroll:GetChildren()) do
+        if line:IsA("TextLabel") then
+            if keyword == "" or string.find(string.lower(line.Text), keyword) then
+                line.Visible = true
+            else
+                line.Visible = false
+            end
         end
     end
 end)
 
--- Run awal
+-- First run
 Rescan()
