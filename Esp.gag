@@ -1,125 +1,128 @@
--- Permana Loader by ChatGPT
--- UI Drag + Minimize + Close + Script Loader
+-- Permana Loader - Versi Desain Baru
+-- Bisa drag, ada minimize, border warna, menu script loader
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+--== GUI Components ==--
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local TopBar = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local MinimizeBtn = Instance.new("TextButton")
+local CloseBtn = Instance.new("TextButton")
+local Content = Instance.new("Frame")
+local UIListLayout = Instance.new("UIListLayout")
 
--- ScreenGui
-local gui = Instance.new("ScreenGui")
-gui.Name = "PermanaLoader"
-gui.ResetOnSpawn = false
-gui.Parent = game.CoreGui
+-- Buttons
+local Script1Btn = Instance.new("TextButton")
+local Script2Btn = Instance.new("TextButton")
+local Script3Btn = Instance.new("TextButton")
 
--- Main Frame
-local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 300, 0, 200)
-main.Position = UDim2.new(0.3, 0, 0.3, 0)
-main.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-main.Active = true
-main.Draggable = true
-main.Parent = gui
+--== Parent ==--
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Title Bar
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -60, 0, 30)
-title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-title.Text = "Permana Loader"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 18
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = main
+--== Main Frame ==--
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderColor3 = Color3.fromRGB(0, 170, 255) -- pinggiran kotak warna biru
+MainFrame.BorderSizePixel = 2
+MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
+MainFrame.Size = UDim2.new(0, 260, 0, 200)
+MainFrame.Active = true
+MainFrame.Draggable = true -- Bisa digeser
 
--- Close Button
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -30, 0, 0)
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-closeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-closeBtn.Parent = main
+--== Top Bar ==--
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TopBar.Size = UDim2.new(1, 0, 0, 30)
+
+-- Title
+Title.Parent = TopBar
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, -60, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "Permana Loader"
+Title.TextColor3 = Color3.fromRGB(0, 200, 255)
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Minimize Button
-local minBtn = Instance.new("TextButton")
-minBtn.Size = UDim2.new(0, 30, 0, 30)
-minBtn.Position = UDim2.new(1, -60, 0, 0)
-minBtn.Text = "-"
-minBtn.TextColor3 = Color3.fromRGB(255, 255, 0)
-minBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-minBtn.Parent = main
+MinimizeBtn.Parent = TopBar
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+MinimizeBtn.Size = UDim2.new(0, 30, 1, 0)
+MinimizeBtn.Position = UDim2.new(1, -60, 0, 0)
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextSize = 20
 
--- Buttons Frame
-local btnFrame = Instance.new("Frame")
-btnFrame.Size = UDim2.new(1, -20, 1, -50)
-btnFrame.Position = UDim2.new(0, 10, 0, 40)
-btnFrame.BackgroundTransparency = 1
-btnFrame.Parent = main
+-- Close Button
+CloseBtn.Parent = TopBar
+CloseBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+CloseBtn.Size = UDim2.new(0, 30, 1, 0)
+CloseBtn.Position = UDim2.new(1, -30, 0, 0)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 18
 
--- Function to create buttons
-local function createButton(text, yPos)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 40)
-    btn.Position = UDim2.new(0, 0, 0, yPos)
-    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 16
-    btn.Text = text
-    btn.Parent = btnFrame
-    return btn
+--== Content ==--
+Content.Parent = MainFrame
+Content.BackgroundTransparency = 1
+Content.Position = UDim2.new(0, 0, 0, 35)
+Content.Size = UDim2.new(1, 0, 1, -35)
+
+UIListLayout.Parent = Content
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+--== Buttons Style ==--
+local function styleButton(btn, text)
+	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	btn.BorderColor3 = Color3.fromRGB(0, 170, 255)
+	btn.BorderSizePixel = 1
+	btn.Size = UDim2.new(0.9, 0, 0, 40)
+	btn.Text = text
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 14
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 end
 
-local gagBtn = createButton("SCRIPT GAG", 0)
-local menu2Btn = createButton("MENU 2", 50)
-local menu3Btn = createButton("MENU 3 (Komentar)", 100)
-
--- Minimized Icon (P.L)
-local mini = Instance.new("TextButton")
-mini.Size = UDim2.new(0, 60, 0, 30)
-mini.Position = UDim2.new(0.4, 0, 0.4, 0)
-mini.Text = "P.L"
-mini.TextColor3 = Color3.fromRGB(255, 255, 255)
-mini.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
-mini.Visible = false
-mini.Active = true
-mini.Draggable = true
-mini.Parent = gui
-
--- Close Function
-closeBtn.MouseButton1Click:Connect(function()
-    gui:Destroy()
+-- Button Script GAG
+styleButton(Script1Btn, "SCRIPT GAG")
+Script1Btn.Parent = Content
+Script1Btn.MouseButton1Click:Connect(function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Liriosha/GAGAPI/main/GAGAPI.lua"))()
 end)
 
--- Minimize Function
-minBtn.MouseButton1Click:Connect(function()
-    main.Visible = false
-    mini.Visible = true
+-- Button Menu 2 (Loader Kosong)
+styleButton(Script2Btn, "MENU 2 (Loader)")
+Script2Btn.Parent = Content
+Script2Btn.MouseButton1Click:Connect(function()
+	-- isi script kamu di sini
 end)
 
--- Restore Function
-mini.MouseButton1Click:Connect(function()
-    main.Visible = true
-    mini.Visible = false
+-- Button Menu 3 (Loader Kosong)
+styleButton(Script3Btn, "MENU 3 (Loader)")
+Script3Btn.Parent = Content
+Script3Btn.MouseButton1Click:Connect(function()
+	-- isi script kamu di sini
 end)
 
--- Button Functions
-gagBtn.MouseButton1Click:Connect(function()
-    -- Load GAG script
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Liriosha/GAGAPI/main/source.lua"))()
+--== Minimize Logic ==--
+local minimized = false
+MinimizeBtn.MouseButton1Click:Connect(function()
+	minimized = not minimized
+	Content.Visible = not minimized
+	if minimized then
+		MainFrame.Size = UDim2.new(0, 260, 0, 30)
+	else
+		MainFrame.Size = UDim2.new(0, 260, 0, 200)
+	end
 end)
 
-menu2Btn.MouseButton1Click:Connect(function()
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "Menu 2";
-        Text = "Masih kosong...";
-        Duration = 3;
-    })
-end)
-
-menu3Btn.MouseButton1Click:Connect(function()
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "Komentar";
-        Text = "Terima kasih atas masukannya!";
-        Duration = 3;
-    })
+--== Close Logic ==--
+CloseBtn.MouseButton1Click:Connect(function()
+	ScreenGui:Destroy()
 end)
