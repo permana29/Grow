@@ -1,59 +1,65 @@
--- FRAME UTAMA
-local FruitFrame = Instance.new("Frame")
-FruitFrame.Size = UDim2.new(0, 250, 0, 200) -- bikin fix height
-FruitFrame.Position = UDim2.new(0.5, -125, 0.5, -100)
-FruitFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+-- Auto Claim GUI (Rayfield Style)
 
--- TITLE
-local Title = Instance.new("TextLabel", FruitFrame)
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundTransparency = 1
-Title.Text = "🍏 Select Fruit"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- SCROLLING LIST
-local Scroll = Instance.new("ScrollingFrame", FruitFrame)
-Scroll.Size = UDim2.new(1, -10, 1, -40) -- sisakan space buat tombol di bawah
-Scroll.Position = UDim2.new(0, 5, 0, 35)
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-Scroll.ScrollBarThickness = 4
-Scroll.BackgroundTransparency = 1
+local Window = Rayfield:CreateWindow({
+    Name = "🍏 Auto Claim",
+    LoadingTitle = "Loading Auto Claim...",
+    LoadingSubtitle = "By Permana",
+    ConfigurationSaving = {
+       Enabled = false,
+    }
+})
 
--- Tambahin list fruits
-local Fruits = {"Apple", "Banana", "Mango", "Strawberry", "Grapes", "Watermelon"}
-local UIList = Instance.new("UIListLayout", Scroll)
-UIList.Padding = UDim.new(0, 5)
+-- Tab utama
+local MainTab = Window:CreateTab("Main", 4483362458) -- icon id bebas
 
-for _, fruit in ipairs(Fruits) do
-    local Btn = Instance.new("TextButton", Scroll)
-    Btn.Size = UDim2.new(1, -10, 0, 25)
-    Btn.Text = fruit
-    Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    Btn.TextColor3 = Color3.fromRGB(255,255,255)
+-- Dropdown pilih buah
+local SelectedFruit = "None"
+local FruitDropdown = MainTab:CreateDropdown({
+    Name = "Select Fruit",
+    Options = {"Apple","Banana","Mango","Strawberry","Grapes","Watermelon"},
+    CurrentOption = {"None"},
+    MultipleOptions = false,
+    Flag = "FruitChoice",
+    Callback = function(Option)
+        SelectedFruit = Option[1]
+        Rayfield:Notify({
+            Title = "Fruit Selected",
+            Content = "You selected: "..SelectedFruit,
+            Duration = 2
+        })
+    end,
+})
 
-    Btn.MouseButton1Click:Connect(function()
-        print("Selected: "..fruit)
-    end)
-end
+-- Toggle Auto Claim Selected Fruit
+local AutoSelected = false
+MainTab:CreateToggle({
+    Name = "Auto Claim Selected Fruit",
+    CurrentValue = false,
+    Flag = "AutoSelected",
+    Callback = function(Value)
+        AutoSelected = Value
+        if AutoSelected then
+            print("Auto Claiming: "..SelectedFruit)
+        else
+            print("Stopped Auto Claim Selected Fruit")
+        end
+    end,
+})
 
--- UPDATE canvas size biar bisa scroll
-UIList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    Scroll.CanvasSize = UDim2.new(0,0,0,UIList.AbsoluteContentSize.Y)
-end)
-
--- TOMBOL AUTO CLAIM
-local AutoBtn = Instance.new("TextButton", FruitFrame)
-AutoBtn.Size = UDim2.new(1, -20, 0, 30)
-AutoBtn.Position = UDim2.new(0, 10, 1, -35)
-AutoBtn.Text = "Auto Claim: OFF"
-AutoBtn.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
-AutoBtn.TextColor3 = Color3.fromRGB(255,255,255)
-
-local toggled = false
-AutoBtn.MouseButton1Click:Connect(function()
-    toggled = not toggled
-    AutoBtn.Text = "Auto Claim: "..(toggled and "ON" or "OFF")
-    AutoBtn.BackgroundColor3 = toggled and Color3.fromRGB(0,120,0) or Color3.fromRGB(120,0,0)
-end)
+-- Toggle Auto Claim Semua Fruits
+local AutoAll = false
+MainTab:CreateToggle({
+    Name = "Auto Claim All Fruits",
+    CurrentValue = false,
+    Flag = "AutoAll",
+    Callback = function(Value)
+        AutoAll = Value
+        if AutoAll then
+            print("Auto Claiming ALL Fruits")
+        else
+            print("Stopped Auto Claim ALL Fruits")
+        end
+    end,
+})
