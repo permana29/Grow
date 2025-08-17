@@ -236,21 +236,33 @@ Script2Btn.MouseButton1Click:Connect(function()
 	end
 end)
 
---== MENU 3 (Reroll) ==--
+---== MENU 3 (Reroll Egg + Refresh ESP Display Local Side) ==--
 styleButton(Script3Btn, "🔄 Reroll Egg")
 Script3Btn.Parent = Content
 Script3Btn.MouseButton1Click:Connect(function()
-	local ok, err = pcall(function()
+	local success, err = pcall(function()
+		-- kirim reroll request ke server
 		game.ReplicatedStorage:WaitForChild("EggOracle"):WaitForChild("Reroll"):FireServer()
 	end)
-	if not ok then
+
+	if not success then
 		warn("Reroll gagal: ".. tostring(err))
 	else
-		task.wait(0.8)
-		local container = getEggOracleGui()
-		if container then
-			applyBlueToAllTags(container)
-		end
+		-- langsung refresh esp local side tanpa tunggu server
+		task.delay(0.3, function()
+			local container = getEggOracleGui()
+			if container then
+				-- apply ulang style biru biar gak balik pink
+				applyBlueToAllTags(container)
+
+				-- refresh teks esp (simulasi update)
+				for _, tag in ipairs(container:GetDescendants()) do
+					if tag:IsA("TextLabel") and tag.Parent and tag.Parent.Name == "Background" then
+						tag.Text = "[UPDATED] " .. tag.Text
+					end
+				end
+			end
+		end)
 	end
 end)
 
