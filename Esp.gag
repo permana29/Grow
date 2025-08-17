@@ -1,238 +1,127 @@
---== Permana Loader + ESP + Logger + Reroll ==--
+-- 🟢 Loader UI
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local TopBar = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local MinimizeBtn = Instance.new("TextButton")
-local CloseBtn = Instance.new("TextButton")
-local Content = Instance.new("Frame")
-local UIListLayout = Instance.new("UIListLayout")
+local Window = OrionLib:MakeWindow({
+    Name = "Permana Loader ⚡",
+    HidePremium = false,
+    SaveConfig = false,
+    ConfigFolder = "PermanaLoader"
+})
 
--- Floating button
-local PLButton = Instance.new("TextButton")
+-- 📌 Variabel log
+local HatchLogs = {}
+local lastPayload = nil
 
--- Buttons
-local Script1Btn = Instance.new("TextButton")
-local Script2Btn = Instance.new("TextButton") -- ESP
-local Script3Btn = Instance.new("TextButton") -- Reroll
-local Script4Btn = Instance.new("TextButton") -- Logger
+-- 📌 Menu utama
+local MainTab = Window:MakeTab({
+    Name = "Main",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
--- Logger UI
-local LogFrame = Instance.new("Frame")
-local LogBox = Instance.new("TextBox")
-local ClearLogBtn = Instance.new("TextButton")
+-- Script GAG tombol
+MainTab:AddButton({
+    Name = "🚀 Script GAG",
+    Callback = function()
+        print("[Script GAG] aktif")
+    end
+})
 
--- Parent
-ScreenGui.Parent = game.CoreGui
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+-- ESP toggle
+MainTab:AddToggle({
+    Name = "🥚 ESP",
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            print("[ESP] Aktif.")
+            -- taruh script ESP kamu di sini
+        else
+            print("[ESP] Nonaktif.")
+        end
+    end
+})
 
---== Main Frame ==--
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
-MainFrame.Size = UDim2.new(0, 300, 0, 240)
-MainFrame.Active = true
-MainFrame.Draggable = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+-- Reroll (sementara kosong)
+MainTab:AddButton({
+    Name = "🎲 Reroll (sementara kosong)",
+    Callback = function()
+        if lastPayload then
+            print("[Reroll] Payload:", lastPayload)
+        else
+            print("[Reroll] Belum ada payload.")
+        end
+    end
+})
 
-local frameStroke = Instance.new("UIStroke", MainFrame)
-frameStroke.Thickness = 2
-frameStroke.Color = Color3.fromRGB(0, 200, 255)
+-- 🟡 Log Hatch menu
+MainTab:AddToggle({
+    Name = "📜 Log Hatch",
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            print("[Info] Logger siap. Jalankan aktivitas egg, log akan muncul di sini.")
+        else
+            print("[Info] Logger dimatikan.")
+        end
+    end
+})
 
---== Top Bar ==--
-TopBar.Parent = MainFrame
-TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-TopBar.Size = UDim2.new(1, 0, 0, 35)
-Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 12)
+-- 🟡 Window log Hatch scrollable + copyable
+local LogWindow = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local ScrollingFrame = Instance.new("ScrollingFrame")
+local TextBox = Instance.new("TextBox")
 
-Title.Parent = TopBar
-Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(1, -70, 1, 0)
-Title.Position = UDim2.new(0, 12, 0, 0)
-Title.Font = Enum.Font.GothamBold
-Title.Text = "⚡ Permana Loader ⚡"
-Title.TextColor3 = Color3.fromRGB(0, 200, 255)
-Title.TextSize = 16
-Title.TextXAlignment = Enum.TextXAlignment.Left
+LogWindow.Name = "HatchLogger"
+LogWindow.Parent = game:GetService("CoreGui")
 
--- Minimize
-MinimizeBtn.Parent = TopBar
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-MinimizeBtn.Size = UDim2.new(0, 30, 0, 22)
-MinimizeBtn.Position = UDim2.new(1, -65, 0.2, 0)
-MinimizeBtn.Text = "-"
-MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeBtn.Font = Enum.Font.GothamBold
-MinimizeBtn.TextSize = 20
-Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
+Frame.Parent = LogWindow
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Frame.Position = UDim2.new(0.6, 0, 0.3, 0)
+Frame.Size = UDim2.new(0, 350, 0, 250)
+Frame.Active = true
+Frame.Draggable = true
 
--- Close
-CloseBtn.Parent = TopBar
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseBtn.Size = UDim2.new(0, 30, 0, 22)
-CloseBtn.Position = UDim2.new(1, -33, 0.2, 0)
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 18
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+ScrollingFrame.Parent = Frame
+ScrollingFrame.Size = UDim2.new(1, 0, 1, 0)
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 5, 0)
+ScrollingFrame.ScrollBarThickness = 6
 
---== Content ==--
-Content.Parent = MainFrame
-Content.BackgroundTransparency = 1
-Content.Position = UDim2.new(0, 0, 0, 40)
-Content.Size = UDim2.new(1, 0, 1, -40)
+TextBox.Parent = ScrollingFrame
+TextBox.BackgroundTransparency = 1
+TextBox.Size = UDim2.new(1, -10, 1, 0)
+TextBox.Position = UDim2.new(0, 5, 0, 0)
+TextBox.TextXAlignment = Enum.TextXAlignment.Left
+TextBox.TextYAlignment = Enum.TextYAlignment.Top
+TextBox.ClearTextOnFocus = false
+TextBox.MultiLine = true
+TextBox.TextEditable = true
+TextBox.Font = Enum.Font.Code
+TextBox.TextSize = 14
+TextBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+TextBox.Text = "[Info] Logger siap.\n"
 
-UIListLayout.Parent = Content
-UIListLayout.Padding = UDim.new(0, 10)
-UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
---== Style Button ==--
-local function styleButton(btn, text)
-	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-	btn.Size = UDim2.new(0.85, 0, 0, 40)
-	btn.Text = text
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 14
-	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-	local stroke = Instance.new("UIStroke", btn)
-	stroke.Color = Color3.fromRGB(0, 200, 255)
-	stroke.Thickness = 1.5
-	btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(55,55,55) end)
-	btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(35,35,35) end)
+-- Fungsi tambah log
+local function AddLog(msg)
+    table.insert(HatchLogs, msg)
+    TextBox.Text = table.concat(HatchLogs, "\n")
+    ScrollingFrame.CanvasSize = UDim2.new(0,0,0,TextBox.TextBounds.Y+20)
 end
 
---== Script 1 GAG ==--
-styleButton(Script1Btn, "🚀 Script GAG")
-Script1Btn.Parent = Content
-Script1Btn.MouseButton1Click:Connect(function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
-end)
-
---== ESP (Script 2) ==
-styleButton(Script2Btn, "🥚 ESP")
-Script2Btn.Parent = Content
-Script2Btn.MouseButton1Click:Connect(function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()
-end)
-
---== Reroll (Script 3) ==
-styleButton(Script3Btn, "🎲 Reroll")
-Script3Btn.Parent = Content
-Script3Btn.MouseButton1Click:Connect(function()
-	if _G.LastEggPayload and _G.LastEggRemote then
-		LogBox.Text = LogBox.Text.."\n[Reroll] Kirim ulang payload..."
-		_G.LastEggRemote:FireServer(unpack(_G.LastEggPayload))
-	else
-		LogBox.Text = LogBox.Text.."\n[Reroll] Belum ada payload terekam."
-	end
-end)
-
---== Logger (Script 4) ==
-styleButton(Script4Btn, "📜 Logger")
-Script4Btn.Parent = Content
-Script4Btn.MouseButton1Click:Connect(function()
-	LogFrame.Visible = not LogFrame.Visible
-end)
-
--- Logger Frame
-LogFrame.Parent = ScreenGui
-LogFrame.Size = UDim2.new(0, 360, 0, 220)
-LogFrame.Position = UDim2.new(0.65, 0, 0.35, 0)
-LogFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-LogFrame.Visible = false
-Instance.new("UICorner", LogFrame).CornerRadius = UDim.new(0, 10)
-local logStroke = Instance.new("UIStroke", LogFrame)
-logStroke.Color = Color3.fromRGB(0,200,255)
-logStroke.Thickness = 2
-
-LogBox.Parent = LogFrame
-LogBox.Size = UDim2.new(1, -10, 1, -40)
-LogBox.Position = UDim2.new(0,5,0,5)
-LogBox.BackgroundColor3 = Color3.fromRGB(10,10,10)
-LogBox.Font = Enum.Font.Code
-LogBox.TextColor3 = Color3.fromRGB(0,255,0)
-LogBox.TextSize = 14
-LogBox.ClearTextOnFocus = false
-LogBox.TextXAlignment = Enum.TextXAlignment.Left
-LogBox.TextYAlignment = Enum.TextYAlignment.Top
-LogBox.MultiLine = true
-LogBox.TextWrapped = false
-LogBox.Text = "[Info] Logger siap. Jalankan aktivitas egg."
-
-ClearLogBtn.Parent = LogFrame
-ClearLogBtn.Size = UDim2.new(0,80,0,25)
-ClearLogBtn.Position = UDim2.new(1,-85,1,-30)
-ClearLogBtn.Text = "Clear"
-ClearLogBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-ClearLogBtn.TextColor3 = Color3.fromRGB(255,255,255)
-ClearLogBtn.Font = Enum.Font.GothamBold
-ClearLogBtn.TextSize = 14
-Instance.new("UICorner", ClearLogBtn).CornerRadius = UDim.new(0,6)
-ClearLogBtn.MouseButton1Click:Connect(function() LogBox.Text = "" end)
-
---== Floating PL Button ==--
-PLButton.Parent = ScreenGui
-PLButton.Size = UDim2.new(0, 55, 0, 55)
-PLButton.Position = UDim2.new(0.4, 0, 0.5, 0)
-PLButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-PLButton.Text = "P.L"
-PLButton.TextColor3 = Color3.fromRGB(0, 200, 255)
-PLButton.Font = Enum.Font.GothamBold
-PLButton.TextSize = 18
-PLButton.Visible = false
-PLButton.Active = true
-PLButton.Draggable = true
-Instance.new("UICorner", PLButton).CornerRadius = UDim.new(1, 0)
-local plStroke = Instance.new("UIStroke", PLButton)
-plStroke.Color = Color3.fromRGB(0, 200, 255)
-plStroke.Thickness = 2
-
---== Minimize Logic ==--
-MinimizeBtn.MouseButton1Click:Connect(function()
-	MainFrame.Visible = false
-	PLButton.Visible = true
-end)
-PLButton.MouseButton1Click:Connect(function()
-	MainFrame.Visible = true
-	PLButton.Visible = false
-end)
-
---== Close ==--
-CloseBtn.MouseButton1Click:Connect(function()
-	ScreenGui:Destroy()
-	LogFrame:Destroy()
-end)
-
---== Remote Hooking (Spy Only) ==--
-_G.LastEggPayload = nil
-_G.LastEggRemote = nil
-
-local function hookRemote(remote)
-	if remote:IsA("RemoteEvent") then
-		local old; old = hookfunction(remote.FireServer, function(self, ...)
-			if self == remote then
-				local args = {...}
-				_G.LastEggRemote = self
-				_G.LastEggPayload = args
-				LogBox.Text = LogBox.Text.."\n[Hooked] ".. self.Name .." | ".. game:GetService("HttpService"):JSONEncode(args)
-			end
-			return old(self, ...)
-		end)
-	end
+-- Contoh hook event
+local function HookEggEvent()
+    -- simulasi payload
+    local payload = "EggHatch_"..math.random(1000,9999)
+    lastPayload = payload
+    AddLog("[✅] Payload berhasil direkam: " .. payload)
 end
 
-for _, obj in ipairs(game:GetDescendants()) do
-	if obj:IsA("RemoteEvent") and string.find(obj.Name:lower(), "egg") then
-		hookRemote(obj)
-	end
-end
+-- simulasi button test
+MainTab:AddButton({
+    Name = "🎯 Simulasi Egg Hatch",
+    Callback = function()
+        HookEggEvent()
+    end
+})
 
-game.DescendantAdded:Connect(function(obj)
-	if obj:IsA("RemoteEvent") and string.find(obj.Name:lower(), "egg") then
-		hookRemote(obj)
-	end
-end)
+OrionLib:Init()
