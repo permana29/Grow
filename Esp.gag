@@ -258,12 +258,24 @@ local Script4Btn = Instance.new("TextButton")
 styleButton(Script4Btn, "📜 Log Hatch")
 Script4Btn.Parent = Content
 
+local hatchLogging = false
+
 Script4Btn.MouseButton1Click:Connect(function()
+    if hatchLogging then
+        Script4Btn.Text = "📜 Log Hatch: OFF"
+        hatchLogging = false
+        return
+    end
+
+    hatchLogging = true
+    Script4Btn.Text = "📜 Log Hatch: ON"
+
     local rs = game:GetService("ReplicatedStorage")
-    -- coba cari semua RemoteEvent / RemoteFunction terkait egg
+
     for _, obj in ipairs(rs:GetDescendants()) do
         if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-            if string.find(string.lower(obj.Name), "egg") or string.find(string.lower(obj.Name), "hatch") then
+            local lname = string.lower(obj.Name)
+            if string.find(lname, "egg") or string.find(lname, "hatch") then
                 print("[Egg Logger] Hooking:", obj.Name)
 
                 if obj:IsA("RemoteEvent") then
@@ -279,7 +291,6 @@ Script4Btn.MouseButton1Click:Connect(function()
             end
         end
     end
-    Script4Btn.Text = "📜 Log Hatch: ON"
 end)
 
 --== Floating PL Button ==--
