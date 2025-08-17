@@ -236,34 +236,43 @@ Script2Btn.MouseButton1Click:Connect(function()
 	end
 end)
 
----== MENU 3 (Reroll Egg + Refresh ESP Display Local Side) ==--
+----== MENU 3 (Reroll + Reload ESP 710) ==--
 styleButton(Script3Btn, "🔄 Reroll Egg")
 Script3Btn.Parent = Content
 Script3Btn.MouseButton1Click:Connect(function()
-	local success, err = pcall(function()
-		-- kirim reroll request ke server
+	local ok, err = pcall(function()
+		-- request reroll dari server
 		game.ReplicatedStorage:WaitForChild("EggOracle"):WaitForChild("Reroll"):FireServer()
 	end)
 
-	if not success then
+	if not ok then
 		warn("Reroll gagal: ".. tostring(err))
-	else
-		-- langsung refresh esp local side tanpa tunggu server
-		task.delay(0.3, function()
-			local container = getEggOracleGui()
-			if container then
-				-- apply ulang style biru biar gak balik pink
-				applyBlueToAllTags(container)
-
-				-- refresh teks esp (simulasi update)
-				for _, tag in ipairs(container:GetDescendants()) do
-					if tag:IsA("TextLabel") and tag.Parent and tag.Parent.Name == "Background" then
-						tag.Text = "[UPDATED] " .. tag.Text
-					end
-				end
-			end
-		end)
+		return
 	end
+
+	-- setelah reroll, destroy ESP lama dan load ulang
+	task.delay(0.5, function()
+		local container = getEggOracleGui()
+		if container then container:Destroy() end
+
+		-- load ulang esp 710
+		local ok2, err2 = pcall(function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()
+		end)
+		if not ok2 then
+			warn("Gagal reload ESP 710: " .. tostring(err2))
+			return
+		end
+
+		-- tunggu container baru terbentuk
+		task.wait(0.3)
+		local newContainer = getEggOracleGui()
+		if newContainer then
+			hideOracleUI(newContainer)
+			applyBlueToAllTags(newContainer)
+			toggleESPViaButton(newContainer, true) -- langsung ON lagi
+		end
+	end)
 end)
 
 --== MENU 4 ==--
