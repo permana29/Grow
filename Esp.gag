@@ -1,4 +1,4 @@
---== Permana Loader + Integrasi ESP 710 Tanpa Menu Kedua ==--
+--== Permana Loader + Integrasi ESP 710 + Reroll ==--
 
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
@@ -116,11 +116,11 @@ Script1Btn.MouseButton1Click:Connect(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
 end)
 
--- == ESP 710 Integrasi (tanpa menu dia) ==
+-- == ESP 710 Integrasi (Menu 2) ==
 styleButton(Script2Btn, "🥚 ESP")
 Script2Btn.Parent = Content
 
--- helper untuk cari GUI & tombol dari script 710
+-- helper cari GUI & tombol dari script 710
 local function getEggOracleGui()
 	for _, pg in ipairs(game.Players.LocalPlayer:WaitForChild("PlayerGui"):GetChildren()) do
 		if pg:IsA("ScreenGui") and pg.Name == "EggOracle_Container" then
@@ -136,7 +136,6 @@ local function getEggOracleGui()
 end
 
 local function ensureBlueStroke(tagFrame)
-	-- paksa border biru dan jaga kalau diubah script aslinya
 	if not tagFrame then return end
 	local bg = tagFrame:FindFirstChild("Background")
 	if not bg then return end
@@ -157,7 +156,6 @@ local function applyBlueToAllTags(container)
 			ensureBlueStroke(f.Parent)
 		end
 	end
-	-- kalau ada tag baru dibuat setelahnya:
 	container.DescendantAdded:Connect(function(d)
 		if d:IsA("Frame") and d.Name == "Background" and d.Parent and d.Parent:IsA("Frame") then
 			ensureBlueStroke(d.Parent)
@@ -165,8 +163,7 @@ local function applyBlueToAllTags(container)
 	end)
 end
 
--- Simulate toggle via firesignal pada tombol bawaan skrip
-local function toggleESPViaButton(container, forceState) -- forceState: true=ON, false=OFF, nil=toggle
+local function toggleESPViaButton(container, forceState)
 	if not container then return end
 	local panel = container:FindFirstChild("ControlPanel")
 	if not panel then return end
@@ -190,7 +187,6 @@ local function toggleESPViaButton(container, forceState) -- forceState: true=ON,
 	end
 end
 
--- Hide penuh UI bawaan script 710 (tanpa ganggu logic ESP-nya)
 local function hideOracleUI(container)
 	if not container then return end
 	local cp = container:FindFirstChild("ControlPanel")
@@ -206,7 +202,6 @@ Script2Btn.MouseButton1Click:Connect(function()
 	local container = getEggOracleGui()
 
 	if not ESP_LOADED or not container then
-		-- Load skrip 710 baris (tetap versi asli supaya fitur sama persis)
 		local ok, err = pcall(function()
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()
 		end)
@@ -215,27 +210,20 @@ Script2Btn.MouseButton1Click:Connect(function()
 			return
 		end
 
-		-- tunggu GUI-nya kebentuk
 		container = getEggOracleGui()
 		if not container then
 			warn("ESP 710 tidak membuat GUI container. Coba klik lagi.")
 			return
 		end
 
-		-- sembunyikan UI bawaan
 		hideOracleUI(container)
-
-		-- pastikan border tag biru
 		applyBlueToAllTags(container)
 
-		-- nyalakan ESP (kalau belum ON)
 		toggleESPViaButton(container, true)
 		ESP_LOADED, ESP_ON = true, true
 		Script2Btn.Text = "🥚 ESP: ON"
 	else
-		-- toggle ON/OFF
 		toggleESPViaButton(container, nil)
-		-- cek status text tombol bawaan untuk sync label loader
 		local panel = container:FindFirstChild("ControlPanel")
 		local content = panel and panel:FindFirstChild("Content")
 		local toggleBtn = content and content:FindFirstChild("ToggleButton")
@@ -246,11 +234,45 @@ Script2Btn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Menu 3
-styleButton(Script3Btn, "📂 Next Update")
+-- == Menu 3: Reroll Egg ==
+styleButton(Script3Btn, "🔄 Reroll Egg")
 Script3Btn.Parent = Content
+
+local rerollPayloads = {}
+local RS = game:GetService("ReplicatedStorage")
+local EggEvent = RS:WaitForChild("EggReadyToHatch_RE", 10)
+local PetEggService = RS:WaitForChild("PetEggService", 10)
+
+if EggEvent then
+	EggEvent.OnClientEvent:Connect(function(payload)
+		table.insert(rerollPayloads, payload)
+		warn("[Reroll] Payload diterima:", payload)
+	end)
+end
+
+local function doReroll()
+	if #rerollPayloads == 0 then
+		warn("[Reroll] Belum ada payload terekam.")
+		return
+	end
+
+	local payload = rerollPayloads[#rerollPayloads]
+	if PetEggService then
+		PetEggService:FireServer(payload)
+		warn("[Reroll] Payload dikirim ulang ke server.")
+	end
+
+	local container = getEggOracleGui()
+	if container then
+		toggleESPViaButton(container, false)
+		task.wait(0.2)
+		toggleESPViaButton(container, true)
+		warn("[Reroll] ESP di-refresh.")
+	end
+end
+
 Script3Btn.MouseButton1Click:Connect(function()
-	-- coming soon
+	doReroll()
 end)
 
 --== Floating PL Button ==--
@@ -284,7 +306,6 @@ end)
 
 --== Close Logic ==--
 CloseBtn.MouseButton1Click:Connect(function()
-	-- coba OFF-kan ESP & hapus GUI bawaan 710 kalau ada
 	local container = getEggOracleGui()
 	if container then
 		pcall(function() toggleESPViaButton(container, false) end)
