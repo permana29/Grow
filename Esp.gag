@@ -1,3 +1,5 @@
+--== Permana Loader Final ==--
+
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local TopBar = Instance.new("Frame")
@@ -64,7 +66,6 @@ MinimizeBtn.Text = "-"
 MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeBtn.Font = Enum.Font.GothamBold
 MinimizeBtn.TextSize = 20
-
 Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
 
 -- Close
@@ -76,7 +77,6 @@ CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 18
-
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
 --== Content ==--
@@ -105,7 +105,6 @@ local function styleButton(btn, text)
 	stroke.Color = Color3.fromRGB(0, 200, 255)
 	stroke.Thickness = 1.5
 
-	-- Hover efek
 	btn.MouseEnter:Connect(function()
 		btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 	end)
@@ -114,62 +113,57 @@ local function styleButton(btn, text)
 	end)
 end
 
---== Script Buttons ==--
--- Script GAG
+--== ESP Function ==--
+local function addESP(eggModel)
+    if eggModel:IsA("Model") and eggModel:FindFirstChild("Egg") then
+        if not eggModel:FindFirstChild("ESP_Highlight") then
+            local hl = Instance.new("Highlight", eggModel)
+            hl.Name = "ESP_Highlight"
+            hl.OutlineColor = Color3.fromRGB(0,200,255)
+            hl.FillTransparency = 1
+        end
+        if not eggModel:FindFirstChild("ESP_Label") then
+            local billboard = Instance.new("BillboardGui", eggModel)
+            billboard.Name = "ESP_Label"
+            billboard.Size = UDim2.new(0,100,0,30)
+            billboard.AlwaysOnTop = true
+            billboard.StudsOffset = Vector3.new(0,3,0)
+
+            local txt = Instance.new("TextLabel", billboard)
+            txt.Size = UDim2.new(1,0,1,0)
+            txt.BackgroundTransparency = 1
+            txt.Text = eggModel.Name
+            txt.TextColor3 = Color3.fromRGB(255,255,255)
+            txt.Font = Enum.Font.GothamBold
+            txt.TextSize = 14
+        end
+    end
+end
+
+--== Buttons ==--
 styleButton(Script1Btn, "🚀 Script GAG")
 Script1Btn.Parent = Content
 Script1Btn.MouseButton1Click:Connect(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
 end)
 
--- ESP Egg
 styleButton(Script2Btn, "🥚 ESP Egg")
 Script2Btn.Parent = Content
 Script2Btn.MouseButton1Click:Connect(function()
-	-- ESP basic
-	for i,v in pairs(workspace:GetChildren()) do
-		if v:IsA("Model") and v:FindFirstChild("Egg") then
-			if not v:FindFirstChild("ESP_Highlight") then
-				local hl = Instance.new("Highlight", v)
-				hl.Name = "ESP_Highlight"
-				hl.OutlineColor = Color3.fromRGB(0,200,255)
-				hl.FillTransparency = 1
-			end
-			if not v:FindFirstChild("ESP_Label") then
-				local billboard = Instance.new("BillboardGui", v)
-				billboard.Name = "ESP_Label"
-				billboard.Size = UDim2.new(0,100,0,30)
-				billboard.AlwaysOnTop = true
-				billboard.StudsOffset = Vector3.new(0,3,0)
-
-				local txt = Instance.new("TextLabel", billboard)
-				txt.Size = UDim2.new(1,0,1,0)
-				txt.BackgroundTransparency = 1
-				txt.Text = v.Name
-				txt.TextColor3 = Color3.fromRGB(255,255,255)
-				txt.Font = Enum.Font.GothamBold
-				txt.TextSize = 14
-			end
-		end
+	for _,v in pairs(workspace:GetChildren()) do
+		addESP(v)
 	end
+	workspace.ChildAdded:Connect(function(obj)
+		addESP(obj)
+	end)
 end)
 
--- Manual Reroll Once
 styleButton(Script3Btn, "♻️ Reroll Once")
 Script3Btn.Parent = Content
 Script3Btn.MouseButton1Click:Connect(function()
 	local rerollRemote = game.ReplicatedStorage:FindFirstChild("RerollEgg")
-	if rerollRemote and rerollRemote:IsA("RemoteFunction") then
-		local success, result = pcall(function()
-			return rerollRemote:InvokeServer()
-		end)
-		if success then
-			print("Reroll result:", result)
-		else
-			warn("Reroll failed:", result)
-		end
-	else
-		warn("RerollEgg remote tidak ditemukan!")
+	if rerollRemote then
+		rerollRemote:InvokeServer()
 	end
 end)
 
@@ -185,7 +179,6 @@ PLButton.TextSize = 18
 PLButton.Visible = false
 PLButton.Active = true
 PLButton.Draggable = true
-
 Instance.new("UICorner", PLButton).CornerRadius = UDim.new(1, 0)
 
 local plStroke = Instance.new("UIStroke", PLButton)
