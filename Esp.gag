@@ -1,3 +1,5 @@
+--== Permana Loader + Integrasi ESP 710 Tanpa Menu Kedua ==--
+
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local TopBar = Instance.new("Frame")
@@ -12,7 +14,7 @@ local PLButton = Instance.new("TextButton")
 
 -- Buttons
 local Script1Btn = Instance.new("TextButton")
-local Script2Btn = Instance.new("TextButton")
+local Script2Btn = Instance.new("TextButton") -- ESP
 local Script3Btn = Instance.new("TextButton")
 
 -- Parent
@@ -64,7 +66,6 @@ MinimizeBtn.Text = "-"
 MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeBtn.Font = Enum.Font.GothamBold
 MinimizeBtn.TextSize = 20
-
 Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
 
 -- Close
@@ -76,7 +77,6 @@ CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 18
-
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
 --== Content ==--
@@ -105,122 +105,146 @@ local function styleButton(btn, text)
 	stroke.Color = Color3.fromRGB(0, 200, 255)
 	stroke.Thickness = 1.5
 
-	-- Hover efek
-	btn.MouseEnter:Connect(function()
-		btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-	end)
-	btn.MouseLeave:Connect(function()
-		btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-	end)
+	btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(55,55,55) end)
+	btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(35,35,35) end)
 end
 
--- Script GAG
+-- Script 1 (GAG)
 styleButton(Script1Btn, "🚀 Script GAG")
 Script1Btn.Parent = Content
 Script1Btn.MouseButton1Click:Connect(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
 end)
 
--- == ESP AUTO-DETECT ==
+-- == ESP 710 Integrasi (tanpa menu dia) ==
 styleButton(Script2Btn, "🥚 ESP")
 Script2Btn.Parent = Content
 
+-- helper untuk cari GUI & tombol dari script 710
+local function getEggOracleGui()
+	for _, pg in ipairs(game.Players.LocalPlayer:WaitForChild("PlayerGui"):GetChildren()) do
+		if pg:IsA("ScreenGui") and pg.Name == "EggOracle_Container" then
+			return pg
+		end
+	end
+	for _, cg in ipairs(game.CoreGui:GetChildren()) do
+		if cg:IsA("ScreenGui") and cg.Name == "EggOracle_Container" then
+			return cg
+		end
+	end
+	return nil
+end
+
+local function ensureBlueStroke(tagFrame)
+	-- paksa border biru dan jaga kalau diubah script aslinya
+	if not tagFrame then return end
+	local bg = tagFrame:FindFirstChild("Background")
+	if not bg then return end
+	local stroke = bg:FindFirstChildOfClass("UIStroke")
+	if not stroke then return end
+	stroke.Color = Color3.fromRGB(0,200,255)
+	stroke.Changed:Connect(function(prop)
+		if prop=="Color" then
+			stroke.Color = Color3.fromRGB(0,200,255)
+		end
+	end)
+end
+
+local function applyBlueToAllTags(container)
+	if not container then return end
+	for _, f in ipairs(container:GetDescendants()) do
+		if f:IsA("Frame") and f.Name == "Background" and f.Parent and f.Parent:IsA("Frame") then
+			ensureBlueStroke(f.Parent)
+		end
+	end
+	-- kalau ada tag baru dibuat setelahnya:
+	container.DescendantAdded:Connect(function(d)
+		if d:IsA("Frame") and d.Name == "Background" and d.Parent and d.Parent:IsA("Frame") then
+			ensureBlueStroke(d.Parent)
+		end
+	end)
+end
+
+-- Simulate toggle via firesignal pada tombol bawaan skrip
+local function toggleESPViaButton(container, forceState) -- forceState: true=ON, false=OFF, nil=toggle
+	if not container then return end
+	local panel = container:FindFirstChild("ControlPanel")
+	if not panel then return end
+	local content = panel:FindFirstChild("Content")
+	if not content then return end
+	local toggleBtn = content:FindFirstChild("ToggleButton")
+	if not toggleBtn or not toggleBtn:IsA("TextButton") then return end
+
+	local function isOn()
+		return string.find(toggleBtn.Text or "", "ON") ~= nil
+	end
+
+	if forceState == nil then
+		pcall(function() firesignal(toggleBtn.MouseButton1Click) end)
+	else
+		if forceState and not isOn() then
+			pcall(function() firesignal(toggleBtn.MouseButton1Click) end)
+		elseif (forceState == false) and isOn() then
+			pcall(function() firesignal(toggleBtn.MouseButton1Click) end)
+		end
+	end
+end
+
+-- Hide penuh UI bawaan script 710 (tanpa ganggu logic ESP-nya)
+local function hideOracleUI(container)
+	if not container then return end
+	local cp = container:FindFirstChild("ControlPanel")
+	if cp then cp.Visible = false end
+	local sb = container:FindFirstChild("ShowButton")
+	if sb then sb.Visible = false end
+end
+
+local ESP_LOADED = false
 local ESP_ON = false
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
-LocalPlayer.CharacterAdded:Connect(function(c)
-	character = c
-	humanoidRootPart = c:WaitForChild("HumanoidRootPart")
-end)
-
-local function makeESP(model)
-	if not model:IsA("Model") then return end
-	if not string.find(string.lower(model.Name), "egg") then return end
-	if model:FindFirstChild("PermanaEggESP") then return end
-
-	local part = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-	if not part then return end
-	model.PrimaryPart = part
-
-	local h = Instance.new("Highlight")
-	h.Name = "PermanaEggESP"
-	h.FillTransparency = 1
-	h.OutlineColor = Color3.fromRGB(0,200,255)
-	h.OutlineTransparency = 0
-	h.Adornee = model
-	h.Parent = model
-
-	local bb = Instance.new("BillboardGui")
-	bb.Name = "PermanaEggLabel"
-	bb.Size = UDim2.new(0,120,0,28)
-	bb.StudsOffset = Vector3.new(0,3,0)
-	bb.AlwaysOnTop = true
-	bb.MaxDistance = 3000
-	bb.Parent = part
-
-	local tl = Instance.new("TextLabel")
-	tl.Size = UDim2.new(1,0,1,0)
-	tl.BackgroundTransparency = 1
-	tl.Font = Enum.Font.GothamBold
-	tl.TextScaled = true
-	tl.TextColor3 = Color3.fromRGB(0,200,255)
-	tl.Text = "🥚 " .. model.Name
-	tl.Parent = bb
-end
-
-local function updateLabels()
-	if not ESP_ON or not humanoidRootPart then return end
-	for _, egg in ipairs(workspace:GetDescendants()) do
-		if egg:IsA("Model") and string.find(string.lower(egg.Name), "egg") then
-			local part = egg.PrimaryPart
-			if part then
-				local bb = part:FindFirstChild("PermanaEggLabel")
-				if bb and bb:FindFirstChildOfClass("TextLabel") then
-					local dist = (humanoidRootPart.Position - part.Position).Magnitude
-					bb.TextLabel.Text = string.format("🥚 %s [%.0f]", egg.Name, dist)
-				end
-			end
-		end
-	end
-end
-
-local function clearESP()
-	for _, egg in ipairs(workspace:GetDescendants()) do
-		if egg:IsA("Model") and string.find(string.lower(egg.Name), "egg") then
-			local h = egg:FindFirstChild("PermanaEggESP")
-			if h then h:Destroy() end
-			if egg.PrimaryPart then
-				local bb = egg.PrimaryPart:FindFirstChild("PermanaEggLabel")
-				if bb then bb:Destroy() end
-			end
-		end
-	end
-end
 
 Script2Btn.MouseButton1Click:Connect(function()
-	ESP_ON = not ESP_ON
-	if ESP_ON then
-		for _, obj in ipairs(workspace:GetDescendants()) do
-			makeESP(obj)
+	local container = getEggOracleGui()
+
+	if not ESP_LOADED or not container then
+		-- Load skrip 710 baris (tetap versi asli supaya fitur sama persis)
+		local ok, err = pcall(function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()
+		end)
+		if not ok then
+			warn("Gagal load ESP 710: ".. tostring(err))
+			return
 		end
+
+		-- tunggu GUI-nya kebentuk
+		container = getEggOracleGui()
+		if not container then
+			warn("ESP 710 tidak membuat GUI container. Coba klik lagi.")
+			return
+		end
+
+		-- sembunyikan UI bawaan
+		hideOracleUI(container)
+
+		-- pastikan border tag biru
+		applyBlueToAllTags(container)
+
+		-- nyalakan ESP (kalau belum ON)
+		toggleESPViaButton(container, true)
+		ESP_LOADED, ESP_ON = true, true
 		Script2Btn.Text = "🥚 ESP: ON"
 	else
-		clearESP()
-		Script2Btn.Text = "🥚 ESP: OFF"
+		-- toggle ON/OFF
+		toggleESPViaButton(container, nil)
+		-- cek status text tombol bawaan untuk sync label loader
+		local panel = container:FindFirstChild("ControlPanel")
+		local content = panel and panel:FindFirstChild("Content")
+		local toggleBtn = content and content:FindFirstChild("ToggleButton")
+		if toggleBtn and toggleBtn:IsA("TextButton") then
+			ESP_ON = string.find(toggleBtn.Text or "", "ON") ~= nil
+			Script2Btn.Text = ESP_ON and "🥚 ESP: ON" or "🥚 ESP: OFF"
+		end
 	end
 end)
-
-workspace.DescendantAdded:Connect(function(obj)
-	if ESP_ON then
-		makeESP(obj)
-	end
-end)
-
-RunService.RenderStepped:Connect(updateLabels)
 
 -- Menu 3
 styleButton(Script3Btn, "📂 Next Update")
@@ -241,9 +265,7 @@ PLButton.TextSize = 18
 PLButton.Visible = false
 PLButton.Active = true
 PLButton.Draggable = true
-
 Instance.new("UICorner", PLButton).CornerRadius = UDim.new(1, 0)
-
 local plStroke = Instance.new("UIStroke", PLButton)
 plStroke.Color = Color3.fromRGB(0, 200, 255)
 plStroke.Thickness = 2
@@ -262,6 +284,11 @@ end)
 
 --== Close Logic ==--
 CloseBtn.MouseButton1Click:Connect(function()
-	clearESP()
+	-- coba OFF-kan ESP & hapus GUI bawaan 710 kalau ada
+	local container = getEggOracleGui()
+	if container then
+		pcall(function() toggleESPViaButton(container, false) end)
+		container:Destroy()
+	end
 	ScreenGui:Destroy()
 end)
