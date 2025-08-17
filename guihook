@@ -1,4 +1,4 @@
--- Remote Scanner + Tester (Final + Search Bar)
+-- Remote Scanner + Tester (Final + Search + Minimize + Close)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
@@ -23,10 +23,18 @@ title.TextSize = 14
 -- Minimize button
 local minimizeBtn = Instance.new("TextButton", frame)
 minimizeBtn.Size = UDim2.new(0,25,0,25)
-minimizeBtn.Position = UDim2.new(1,-25,0,0)
+minimizeBtn.Position = UDim2.new(1,-50,0,0)
 minimizeBtn.Text = "-"
 minimizeBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
 minimizeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+
+-- Close button
+local closeBtn = Instance.new("TextButton", frame)
+closeBtn.Size = UDim2.new(0,25,0,25)
+closeBtn.Position = UDim2.new(1,-25,0,0)
+closeBtn.Text = "X"
+closeBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
 
 local minimized = false
 
@@ -183,6 +191,10 @@ minimizeBtn.MouseButton1Click:Connect(function()
         frame.Size = UDim2.new(0,400,0,320)
         minimizeBtn.Text = "-"
     end
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+    gui:Destroy()
 end)
 
 -- Start
