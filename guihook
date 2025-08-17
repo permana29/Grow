@@ -1,11 +1,9 @@
---// Detector Remote Claim/Buy/Sell
-local Http = game:GetService("HttpService")
-
--- GUI kecil
-local gui = Instance.new("ScreenGui", game.CoreGui)
+--// Grow a Garden Module Scanner
+-- GUI
+local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 340, 0, 220)
-frame.Position = UDim2.new(0.65,0,0.25,0)
+frame.Size = UDim2.new(0, 420, 0, 260)
+frame.Position = UDim2.new(0.2,0,0.2,0)
 frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 frame.Active = true
 frame.Draggable = true
@@ -13,7 +11,7 @@ frame.Draggable = true
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1,0,0,25)
 title.BackgroundColor3 = Color3.fromRGB(50,50,50)
-title.Text = "Fruit/Buy/Sell Detector"
+title.Text = "🔍 Grow a Garden Module Scanner"
 title.TextColor3 = Color3.fromRGB(0,255,0)
 title.TextSize = 14
 
@@ -38,7 +36,7 @@ local function AddLog(msg)
     log.TextXAlignment = Enum.TextXAlignment.Left
     log.BackgroundTransparency = 1
     log.Text = msg
-    log.TextColor3 = Color3.fromRGB(200,200,200)
+    log.TextColor3 = Color3.fromRGB(220,220,220)
     log.TextSize = 13
     log.Parent = scroll
     scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
@@ -50,24 +48,36 @@ clearBtn.MouseButton1Click:Connect(function()
     end
 end)
 
---// Hook metamethod (filtered)
-local old
-old = hookmetamethod(game, "__namecall", function(self, ...)
-    local args = {...}
-    local method = getnamecallmethod()
+--// Keywords untuk filter
+local keywords = {"fruit","claim","buy","sell","harvest","item","shop"}
 
-    if (method == "FireServer" or method == "InvokeServer") and typeof(self) == "Instance" then
-        local dump = ""
-        pcall(function()
-            dump = Http:JSONEncode(args)
-        end)
-
-        -- filter hanya kalau ada kata kunci buah / buy / sell
-        if dump:lower():find("apple") or dump:lower():find("banana") or dump:lower():find("fruit")
-        or dump:lower():find("buy") or dump:lower():find("sell") then
-            AddLog("["..method.."] "..self:GetFullName().." | Args: "..dump)
+--// Scanner
+spawn(function()
+    AddLog("🔎 Scanning modules... Tunggu sebentar.")
+    for _,mod in ipairs(game:GetDescendants()) do
+        if mod:IsA("ModuleScript") then
+            local ok, ret = pcall(require, mod)
+            if ok then
+                if type(ret) == "table" then
+                    for k,v in pairs(ret) do
+                        if type(k) == "string" then
+                            for _,kw in ipairs(keywords) do
+                                if string.find(k:lower(), kw) then
+                                    AddLog("[Module] "..mod:GetFullName().." -> "..k)
+                                end
+                            end
+                        end
+                    end
+                elseif type(ret) == "function" then
+                    -- fungsi langsung tanpa table
+                    for _,kw in ipairs(keywords) do
+                        if string.find(mod.Name:lower(), kw) then
+                            AddLog("[FuncMod] "..mod:GetFullName())
+                        end
+                    end
+                end
+            end
         end
     end
-
-    return old(self, ...)
+    AddLog("✅ Scan selesai!")
 end)
