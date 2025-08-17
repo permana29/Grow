@@ -1,8 +1,14 @@
---// Universal Remote Logger
+-- Remote Scanner + Tester
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- GUI
 local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+gui.Name = "RemoteScanner"
+
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 520, 0, 280)
-frame.Position = UDim2.new(0.2,0,0.2,0)
+frame.Size = UDim2.new(0, 400, 0, 300)
+frame.Position = UDim2.new(0.25,0,0.25,0)
 frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 frame.Active = true
 frame.Draggable = true
@@ -10,7 +16,7 @@ frame.Draggable = true
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1,0,0,25)
 title.BackgroundColor3 = Color3.fromRGB(40,40,40)
-title.Text = "📡 Universal Remote Logger"
+title.Text = "🔎 Remote Scanner"
 title.TextColor3 = Color3.fromRGB(0,255,0)
 title.TextSize = 14
 
@@ -23,59 +29,74 @@ scroll.ScrollBarThickness = 6
 local layout = Instance.new("UIListLayout", scroll)
 
 local clearBtn = Instance.new("TextButton", frame)
-clearBtn.Size = UDim2.new(1,0,0,25)
+clearBtn.Size = UDim2.new(0.5,0,0,25)
 clearBtn.Position = UDim2.new(0,0,1,-25)
 clearBtn.Text = "🗑️ Clear Logs"
 clearBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
 clearBtn.TextColor3 = Color3.fromRGB(255,255,255)
 
+local refreshBtn = Instance.new("TextButton", frame)
+refreshBtn.Size = UDim2.new(0.5,0,0,25)
+refreshBtn.Position = UDim2.new(0.5,0,1,-25)
+refreshBtn.Text = "🔄 Rescan"
+refreshBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+refreshBtn.TextColor3 = Color3.fromRGB(255,255,255)
+
 local function AddLog(msg)
-    local log = Instance.new("TextLabel")
-    log.Size = UDim2.new(1,-4,0,18)
+    local log = Instance.new("TextButton")
+    log.Size = UDim2.new(1,-4,0,20)
     log.TextXAlignment = Enum.TextXAlignment.Left
-    log.BackgroundTransparency = 1
+    log.BackgroundColor3 = Color3.fromRGB(35,35,35)
     log.Text = msg
     log.TextColor3 = Color3.fromRGB(220,220,220)
-    log.TextSize = 13
+    log.TextSize = 12
     log.Parent = scroll
+
+    log.MouseButton1Click:Connect(function()
+        setclipboard(msg)
+        warn("Copied remote path: "..msg)
+    end)
+
+    log.MouseButton2Click:Connect(function()
+        local remote = game
+        for part in string.gmatch(msg, "[^%.]+") do
+            remote = remote:FindFirstChild(part)
+            if not remote then break end
+        end
+        if remote then
+            if remote:IsA("RemoteEvent") then
+                remote:FireServer("TestArg")
+                warn("Test FireServer:", remote.Name)
+            elseif remote:IsA("RemoteFunction") then
+                local ok, res = pcall(function()
+                    return remote:InvokeServer("TestArg")
+                end)
+                warn("Test InvokeServer:", remote.Name, ok, res)
+            end
+        end
+    end)
+end
+
+local function ScanRemotes()
+    for _,v in pairs(scroll:GetChildren()) do
+        if v:IsA("TextButton") then v:Destroy() end
+    end
+
+    for _,v in ipairs(game:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            AddLog(v:GetFullName())
+        end
+    end
     scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
 end
 
 clearBtn.MouseButton1Click:Connect(function()
     for _,v in pairs(scroll:GetChildren()) do
-        if v:IsA("TextLabel") then v:Destroy() end
+        if v:IsA("TextButton") then v:Destroy() end
     end
 end)
 
---// Hook __namecall (all methods)
-local old
-old = hookmetamethod(game, "__namecall", function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
+refreshBtn.MouseButton1Click:Connect(ScanRemotes)
 
-    if self:IsA("RemoteEvent") or self:IsA("RemoteFunction") then
-        local argStr = ""
-        for i,v in ipairs(args) do
-            pcall(function()
-                argStr = argStr .. tostring(v) .. (i < #args and ", " or "")
-            end)
-        end
-        AddLog("["..method.."] "..self:GetFullName().." | Args: "..argStr)
-    end
-
-    return old(self, ...)
-end)
-
---// Hook direct :Fire (kadang dipakai)
-for _,remote in ipairs(game:GetDescendants()) do
-    if remote:IsA("RemoteEvent") then
-        local oldFire = remote.Fire
-        remote.Fire = function(r,...)
-            local args = {...}
-            AddLog("[Fire] "..r:GetFullName().." | Args: "..table.concat(args,", "))
-            return oldFire(r,...)
-        end
-    end
-end
-
-AddLog("✅ Universal Remote Logger aktif! Silakan Claim/Buy/Sell untuk lihat hasilnya.")
+-- Start
+ScanRemotes()
