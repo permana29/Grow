@@ -1,4 +1,4 @@
---== Permana Loader + ESP + Logger + Reroll ==--
+--== Permana Loader v2 (ESP terpisah, Logger, Reroll) ==--
 
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
@@ -18,12 +18,12 @@ local Script2Btn = Instance.new("TextButton") -- ESP
 local Script3Btn = Instance.new("TextButton") -- Reroll
 local Script4Btn = Instance.new("TextButton") -- Logger
 
--- Logger UI
+-- Logger frame
 local LogFrame = Instance.new("Frame")
 local LogBox = Instance.new("TextBox")
-local LogScroll = Instance.new("ScrollingFrame")
+local LogClose = Instance.new("TextButton")
 
---== Parent ==--
+-- Parent
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -31,14 +31,19 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
-MainFrame.Size = UDim2.new(0, 300, 0, 260)
+MainFrame.Size = UDim2.new(0, 280, 0, 250)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+-- Rounded
+local frameCorner = Instance.new("UICorner", MainFrame)
+frameCorner.CornerRadius = UDim.new(0, 12)
+
+-- Glow Border
 local frameStroke = Instance.new("UIStroke", MainFrame)
 frameStroke.Thickness = 2
 frameStroke.Color = Color3.fromRGB(0, 200, 255)
+frameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 --== Top Bar ==--
 TopBar.Parent = MainFrame
@@ -97,10 +102,12 @@ local function styleButton(btn, text)
 	btn.Font = Enum.Font.GothamBold
 	btn.TextSize = 14
 	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
 	local stroke = Instance.new("UIStroke", btn)
 	stroke.Color = Color3.fromRGB(0, 200, 255)
 	stroke.Thickness = 1.5
+
 	btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(55,55,55) end)
 	btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(35,35,35) end)
 end
@@ -112,7 +119,7 @@ Script1Btn.MouseButton1Click:Connect(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
 end)
 
---== Menu 2: ESP ==--
+--== Menu 2: ESP (tetap frame biru sendiri) ==--
 styleButton(Script2Btn, "🥚 ESP")
 Script2Btn.Parent = Content
 Script2Btn.MouseButton1Click:Connect(function()
@@ -123,68 +130,17 @@ end)
 styleButton(Script3Btn, "🎲 Reroll")
 Script3Btn.Parent = Content
 Script3Btn.MouseButton1Click:Connect(function()
-	appendLog("[Reroll] Trigger ditekan. Payload hook diproses...")
-	-- TODO: Hook logika reroll di sini (pakai RemoteEvent EggReadyToHatch / PetEggService)
+	print("[Reroll] klik tombol → Hook jalan kalau payload sudah terekam")
 end)
 
 --== Menu 4: Logger ==--
 styleButton(Script4Btn, "📜 Logger")
 Script4Btn.Parent = Content
 Script4Btn.MouseButton1Click:Connect(function()
-	LogFrame.Visible = not LogFrame.Visible
+	LogFrame.Visible = true
 end)
 
---== Logger Frame ==--
-LogFrame.Parent = MainFrame
-LogFrame.Size = UDim2.new(0.9, 0, 0.4, 0)
-LogFrame.Position = UDim2.new(0.05, 0, 0.55, 0)
-LogFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-LogFrame.Visible = false
-Instance.new("UICorner", LogFrame).CornerRadius = UDim.new(0, 8)
-local logStroke = Instance.new("UIStroke", LogFrame)
-logStroke.Color = Color3.fromRGB(0,200,255)
-logStroke.Thickness = 1
-
-LogScroll.Parent = LogFrame
-LogScroll.Size = UDim2.new(1, -10, 1, -10)
-LogScroll.Position = UDim2.new(0, 5, 0, 5)
-LogScroll.BackgroundTransparency = 1
-LogScroll.ScrollBarThickness = 4
-LogScroll.CanvasSize = UDim2.new(0,0,0,0)
-
-LogBox.Parent = LogScroll
-LogBox.Size = UDim2.new(1, -5, 1, 0)
-LogBox.BackgroundTransparency = 1
-LogBox.ClearTextOnFocus = false
-LogBox.MultiLine = true
-LogBox.TextXAlignment = Enum.TextXAlignment.Left
-LogBox.TextYAlignment = Enum.TextYAlignment.Top
-LogBox.Font = Enum.Font.Code
-LogBox.TextSize = 14
-LogBox.TextColor3 = Color3.fromRGB(0,255,200)
-LogBox.Text = "[Info] Logger siap.\n"
-
--- Append log helper
-function appendLog(msg)
-	LogBox.Text = LogBox.Text .. msg .. "\n"
-	LogScroll.CanvasSize = UDim2.new(0,0,0,LogBox.TextBounds.Y + 20)
-end
-
---== Hook Egg Events (contoh) ==--
-task.spawn(function()
-	local rs = game:GetService("ReplicatedStorage")
-	for _, evName in ipairs({"EggReadyToHatch_RE","PetEggService","EggTutorial","BuyPetEgg"}) do
-		local ev = rs:FindFirstChild(evName, true)
-		if ev and ev:IsA("RemoteEvent") then
-			appendLog("[Hooked] "..evName)
-			ev.OnClientEvent:Connect(function(...)
-				appendLog("["..evName.."] ".. game:GetService("HttpService"):JSONEncode({...}))
-			end)
-		end
-	end
-end)
-
---== Floating Button ==--
+--== Floating PL Button ==--
 PLButton.Parent = ScreenGui
 PLButton.Size = UDim2.new(0, 55, 0, 55)
 PLButton.Position = UDim2.new(0.4, 0, 0.5, 0)
@@ -200,6 +156,49 @@ Instance.new("UICorner", PLButton).CornerRadius = UDim.new(1, 0)
 local plStroke = Instance.new("UIStroke", PLButton)
 plStroke.Color = Color3.fromRGB(0, 200, 255)
 plStroke.Thickness = 2
+
+--== Logger Frame ==--
+LogFrame.Parent = ScreenGui
+LogFrame.Size = UDim2.new(0, 300, 0, 250)
+LogFrame.Position = UDim2.new(0.65, 0, 0.3, 0)
+LogFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+LogFrame.Visible = false
+LogFrame.Active = true
+LogFrame.Draggable = true
+Instance.new("UICorner", LogFrame).CornerRadius = UDim.new(0, 12)
+local lfStroke = Instance.new("UIStroke", LogFrame)
+lfStroke.Color = Color3.fromRGB(0,200,255)
+lfStroke.Thickness = 2
+
+LogBox.Parent = LogFrame
+LogBox.Size = UDim2.new(1, -10, 1, -40)
+LogBox.Position = UDim2.new(0, 5, 0, 5)
+LogBox.BackgroundColor3 = Color3.fromRGB(15,15,15)
+LogBox.TextColor3 = Color3.fromRGB(0,200,255)
+LogBox.Font = Enum.Font.Code
+LogBox.TextSize = 14
+LogBox.ClearTextOnFocus = false
+LogBox.MultiLine = true
+LogBox.TextXAlignment = Enum.TextXAlignment.Left
+LogBox.TextYAlignment = Enum.TextYAlignment.Top
+LogBox.Text = "[Info] Logger siap. Jalankan aktivitas egg...\n"
+LogBox.TextEditable = true
+
+Instance.new("UICorner", LogBox).CornerRadius = UDim.new(0,6)
+
+LogClose.Parent = LogFrame
+LogClose.Text = "X"
+LogClose.Font = Enum.Font.GothamBold
+LogClose.TextSize = 18
+LogClose.TextColor3 = Color3.fromRGB(255,255,255)
+LogClose.Size = UDim2.new(0,30,0,25)
+LogClose.Position = UDim2.new(1,-35,0,5)
+LogClose.BackgroundColor3 = Color3.fromRGB(200,50,50)
+Instance.new("UICorner", LogClose).CornerRadius = UDim.new(0,6)
+
+LogClose.MouseButton1Click:Connect(function()
+	LogFrame.Visible = false
+end)
 
 --== Minimize Logic ==--
 MinimizeBtn.MouseButton1Click:Connect(function()
@@ -217,3 +216,14 @@ end)
 CloseBtn.MouseButton1Click:Connect(function()
 	ScreenGui:Destroy()
 end)
+
+--== Logger function (add line) ==--
+local function addLog(msg)
+	LogBox.Text = LogBox.Text .. "\n" .. tostring(msg)
+	LogBox.CursorPosition = #LogBox.Text+1
+end
+
+-- contoh hook dummy
+addLog("[Hooked] EggReadyToHatch_RE")
+addLog("[Hooked] PetEggService")
+addLog("[Info] Logger aktif. Coba hatch egg.")
