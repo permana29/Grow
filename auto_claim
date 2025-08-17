@@ -1,7 +1,5 @@
--- auto_claim.lua
--- Final Version by ChatGPT
+-- auto_claim.lua (Final UI Clean Version)
 
--- // GUI UTAMA
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
@@ -20,75 +18,69 @@ ScreenGui.Parent = game.CoreGui
 
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.Position = UDim2.new(0.35, 0, 0.25, 0)
-MainFrame.Size = UDim2.new(0, 300, 0, 220)
+MainFrame.Size = UDim2.new(0, 260, 0, 190)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
-UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.CornerRadius = UDim.new(0, 10)
 UICorner.Parent = MainFrame
 
-Title.Name = "Title"
 Title.Parent = MainFrame
 Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(1, -60, 0, 35)
+Title.Size = UDim2.new(1, -60, 0, 30)
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "Auto Claim Fruits"
+Title.Text = "🍏 Auto Claim"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 16
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
-CloseBtn.Name = "CloseBtn"
 CloseBtn.Parent = MainFrame
 CloseBtn.Text = "x"
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 2)
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -30, 0, 2)
 CloseBtn.BackgroundTransparency = 1
-CloseBtn.TextColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.TextColor3 = Color3.fromRGB(255, 70, 70)
 CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 18
+CloseBtn.TextSize = 16
 
-MinBtn.Name = "MinBtn"
 MinBtn.Parent = MainFrame
 MinBtn.Text = "-"
-MinBtn.Size = UDim2.new(0, 30, 0, 30)
-MinBtn.Position = UDim2.new(1, -70, 0, 2)
+MinBtn.Size = UDim2.new(0, 25, 0, 25)
+MinBtn.Position = UDim2.new(1, -60, 0, 2)
 MinBtn.BackgroundTransparency = 1
 MinBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
 MinBtn.Font = Enum.Font.GothamBold
-MinBtn.TextSize = 20
+MinBtn.TextSize = 18
 
-Dropdown.Name = "Dropdown"
 Dropdown.Parent = MainFrame
 Dropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Dropdown.Size = UDim2.new(0, 260, 0, 35)
-Dropdown.Position = UDim2.new(0, 20, 0, 50)
+Dropdown.Size = UDim2.new(0, 220, 0, 30)
+Dropdown.Position = UDim2.new(0, 20, 0, 40)
 Dropdown.Font = Enum.Font.Gotham
 Dropdown.Text = "Select Fruit: None"
 Dropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
 Dropdown.TextSize = 14
 
-DropdownFrame.Name = "DropdownFrame"
 DropdownFrame.Parent = MainFrame
 DropdownFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-DropdownFrame.Position = UDim2.new(0, 20, 0, 90)
-DropdownFrame.Size = UDim2.new(0, 260, 0, 0)
+DropdownFrame.Position = UDim2.new(0, 20, 0, 70)
+DropdownFrame.Size = UDim2.new(0, 220, 0, 0)
 DropdownFrame.ClipsDescendants = true
 
 UIListLayout.Parent = DropdownFrame
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- List buah (global data open source)
 local Fruits = {"Apple", "Banana", "Mango", "Blueberry", "Strawberry"}
 local SelectedFruit = nil
 
 for _,fruit in ipairs(Fruits) do
     local btn = Instance.new("TextButton")
     btn.Parent = DropdownFrame
-    btn.Size = UDim2.new(1, 0, 0, 30)
-    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    btn.Size = UDim2.new(1, 0, 0, 28)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     btn.Font = Enum.Font.Gotham
     btn.Text = fruit
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -96,34 +88,30 @@ for _,fruit in ipairs(Fruits) do
     btn.MouseButton1Click:Connect(function()
         SelectedFruit = fruit
         Dropdown.Text = "Select Fruit: " .. fruit
-        DropdownFrame:TweenSize(UDim2.new(0, 260, 0, 0), "Out", "Quad", 0.2, true)
+        DropdownFrame:TweenSize(UDim2.new(0, 220, 0, 0), "Out", "Quad", 0.2, true)
     end)
 end
 
-ToggleSelected.Name = "ToggleSelected"
 ToggleSelected.Parent = MainFrame
 ToggleSelected.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ToggleSelected.Size = UDim2.new(0, 260, 0, 35)
-ToggleSelected.Position = UDim2.new(0, 20, 0, 140)
-ToggleSelected.Font = Enum.Font.Gotham
-ToggleSelected.Text = "Auto Claim Selected Fruit: OFF"
-ToggleSelected.TextColor3 = Color3.fromRGB(255, 100, 100)
+ToggleSelected.Size = UDim2.new(0, 220, 0, 30)
+ToggleSelected.Position = UDim2.new(0, 20, 0, 110)
+ToggleSelected.Font = Enum.Font.GothamBold
+ToggleSelected.Text = "Selected: OFF"
+ToggleSelected.TextColor3 = Color3.fromRGB(255, 80, 80)
 ToggleSelected.TextSize = 14
 
-ToggleAll.Name = "ToggleAll"
 ToggleAll.Parent = MainFrame
 ToggleAll.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ToggleAll.Size = UDim2.new(0, 260, 0, 35)
-ToggleAll.Position = UDim2.new(0, 20, 0, 180)
-ToggleAll.Font = Enum.Font.Gotham
-ToggleAll.Text = "Auto Claim All Fruits: OFF"
-ToggleAll.TextColor3 = Color3.fromRGB(255, 100, 100)
+ToggleAll.Size = UDim2.new(0, 220, 0, 30)
+ToggleAll.Position = UDim2.new(0, 20, 0, 150)
+ToggleAll.Font = Enum.Font.GothamBold
+ToggleAll.Text = "All: OFF"
+ToggleAll.TextColor3 = Color3.fromRGB(255, 80, 80)
 ToggleAll.TextSize = 14
 
--- Mini button
-MiniButton.Name = "MiniButton"
 MiniButton.Parent = ScreenGui
-MiniButton.Size = UDim2.new(0, 60, 0, 60)
+MiniButton.Size = UDim2.new(0, 50, 0, 50)
 MiniButton.Position = UDim2.new(0, 20, 0.7, 0)
 MiniButton.Text = "Auto"
 MiniButton.TextSize = 14
@@ -133,58 +121,56 @@ MiniButton.Visible = false
 local UICorner2 = Instance.new("UICorner", MiniButton)
 UICorner2.CornerRadius = UDim.new(1,0)
 
--- Logic Dropdown toggle
+-- Dropdown toggle
 local dropdownOpen = false
 Dropdown.MouseButton1Click:Connect(function()
     if dropdownOpen then
-        DropdownFrame:TweenSize(UDim2.new(0, 260, 0, 0), "Out", "Quad", 0.2, true)
+        DropdownFrame:TweenSize(UDim2.new(0, 220, 0, 0), "Out", "Quad", 0.2, true)
     else
-        DropdownFrame:TweenSize(UDim2.new(0, 260, 0, #Fruits*30), "Out", "Quad", 0.2, true)
+        DropdownFrame:TweenSize(UDim2.new(0, 220, 0, #Fruits*28), "Out", "Quad", 0.2, true)
     end
     dropdownOpen = not dropdownOpen
 end)
 
--- Logic Toggle Selected
+-- Logic Selected
 local selectedEnabled = false
 ToggleSelected.MouseButton1Click:Connect(function()
     selectedEnabled = not selectedEnabled
     if selectedEnabled then
-        ToggleSelected.Text = "Auto Claim Selected Fruit: ON"
+        ToggleSelected.Text = "Selected: ON"
         ToggleSelected.TextColor3 = Color3.fromRGB(100, 255, 100)
         spawn(function()
             while selectedEnabled do
                 if SelectedFruit then
-                    print("Claiming "..SelectedFruit.."...")
-                    -- ganti print dengan fungsi claim fruit
+                    print("Claiming "..SelectedFruit.." ...")
                 end
                 wait(2)
             end
         end)
     else
-        ToggleSelected.Text = "Auto Claim Selected Fruit: OFF"
-        ToggleSelected.TextColor3 = Color3.fromRGB(255, 100, 100)
+        ToggleSelected.Text = "Selected: OFF"
+        ToggleSelected.TextColor3 = Color3.fromRGB(255, 80, 80)
     end
 end)
 
--- Logic Toggle All
+-- Logic All
 local allEnabled = false
 ToggleAll.MouseButton1Click:Connect(function()
     allEnabled = not allEnabled
     if allEnabled then
-        ToggleAll.Text = "Auto Claim All Fruits: ON"
+        ToggleAll.Text = "All: ON"
         ToggleAll.TextColor3 = Color3.fromRGB(100, 255, 100)
         spawn(function()
             while allEnabled do
                 for _,fruit in ipairs(Fruits) do
-                    print("Claiming "..fruit.."...")
-                    -- ganti print dengan fungsi claim fruit
+                    print("Claiming "..fruit.." ...")
                 end
                 wait(2)
             end
         end)
     else
-        ToggleAll.Text = "Auto Claim All Fruits: OFF"
-        ToggleAll.TextColor3 = Color3.fromRGB(255, 100, 100)
+        ToggleAll.Text = "All: OFF"
+        ToggleAll.TextColor3 = Color3.fromRGB(255, 80, 80)
     end
 end)
 
