@@ -1,7 +1,7 @@
--- Auto Claim GUI (Rayfield Style)
+-- ambil library Rayfield dulu
+local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Rayfield/main/source"))()
 
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
+-- bikin window
 local Window = Rayfield:CreateWindow({
     Name = "🍏 Auto Claim",
     LoadingTitle = "Loading Auto Claim...",
@@ -12,11 +12,11 @@ local Window = Rayfield:CreateWindow({
 })
 
 -- Tab utama
-local MainTab = Window:CreateTab("Main", 4483362458) -- icon id bebas
+local MainTab = Window:CreateTab("Main", 4483362458)
 
 -- Dropdown pilih buah
 local SelectedFruit = "None"
-local FruitDropdown = MainTab:CreateDropdown({
+MainTab:CreateDropdown({
     Name = "Select Fruit",
     Options = {"Apple","Banana","Mango","Strawberry","Grapes","Watermelon"},
     CurrentOption = {"None"},
