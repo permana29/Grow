@@ -253,6 +253,35 @@ Script3Btn.MouseButton1Click:Connect(function()
 	-- coming soon
 end)
 
+-- Menu 4: Log Hatch Events
+local Script4Btn = Instance.new("TextButton")
+styleButton(Script4Btn, "📜 Log Hatch")
+Script4Btn.Parent = Content
+
+Script4Btn.MouseButton1Click:Connect(function()
+    local rs = game:GetService("ReplicatedStorage")
+    -- coba cari semua RemoteEvent / RemoteFunction terkait egg
+    for _, obj in ipairs(rs:GetDescendants()) do
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            if string.find(string.lower(obj.Name), "egg") or string.find(string.lower(obj.Name), "hatch") then
+                print("[Egg Logger] Hooking:", obj.Name)
+
+                if obj:IsA("RemoteEvent") then
+                    obj.OnClientEvent:Connect(function(...)
+                        warn("[Egg Logger][Event] "..obj.Name, ...)
+                    end)
+                elseif obj:IsA("RemoteFunction") then
+                    local old; old = hookfunction(obj.InvokeServer, function(self, ...)
+                        warn("[Egg Logger][Function] "..self.Name, ...)
+                        return old(self, ...)
+                    end)
+                end
+            end
+        end
+    end
+    Script4Btn.Text = "📜 Log Hatch: ON"
+end)
+
 --== Floating PL Button ==--
 PLButton.Parent = ScreenGui
 PLButton.Size = UDim2.new(0, 55, 0, 55)
