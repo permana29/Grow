@@ -1,10 +1,10 @@
--- // Network Hook UI Final // --
+-- // Lightweight Network Hook UI // --
 local UIS = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 
 -- // GUI FRAME
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NetworkHookUI"
+ScreenGui.Name = "NetHookUI"
 ScreenGui.Parent = game:GetService("CoreGui")
 
 local Frame = Instance.new("Frame")
@@ -20,7 +20,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -40, 0, 30)
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "📡 Network Hook"
+Title.Text = "📡 Net Hook (Light)"
 Title.TextColor3 = Color3.fromRGB(0, 255, 0)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 18
@@ -63,7 +63,7 @@ ClearBtn.Parent = Frame
 local function AddLog(remote, method, args)
     local entry = Instance.new("TextButton")
     entry.Size = UDim2.new(1, -5, 0, 20)
-    entry.BackgroundColor3 = (method == "FireServer") and Color3.fromRGB(40, 60, 40) or Color3.fromRGB(60, 40, 40)
+    entry.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     entry.TextColor3 = Color3.fromRGB(255,255,255)
     entry.TextXAlignment = Enum.TextXAlignment.Left
     entry.TextSize = 14
@@ -100,9 +100,7 @@ MinBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- // Hook Remote (3 lapis)
-
--- Lapis 1: __namecall
+-- // Lightweight Hook: only __namecall
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
@@ -115,19 +113,3 @@ mt.__namecall = function(self, ...)
     return oldNamecall(self, ...)
 end
 setreadonly(mt, true)
-
--- Lapis 2: RemoteEvent.FireServer
-local oldFireServer
-oldFireServer = hookfunction(Instance.new("RemoteEvent").FireServer, function(self, ...)
-    local args = {...}
-    AddLog(self, "FireServer", args)
-    return oldFireServer(self, ...)
-end)
-
--- Lapis 3: RemoteFunction.InvokeServer
-local oldInvokeServer
-oldInvokeServer = hookfunction(Instance.new("RemoteFunction").InvokeServer, function(self, ...)
-    local args = {...}
-    AddLog(self, "InvokeServer", args)
-    return oldInvokeServer(self, ...)
-end)
