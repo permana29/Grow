@@ -1,127 +1,446 @@
--- 🟢 Loader UI
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+--== Permana Loader + ESP 710 + Manual Reroll + Copyable Hatch Logger ==--
 
-local Window = OrionLib:MakeWindow({
-    Name = "Permana Loader ⚡",
-    HidePremium = false,
-    SaveConfig = false,
-    ConfigFolder = "PermanaLoader"
-})
+--========== UTIL ==========--
+local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+local LP = Players.LocalPlayer
 
--- 📌 Variabel log
-local HatchLogs = {}
-local lastPayload = nil
-
--- 📌 Menu utama
-local MainTab = Window:MakeTab({
-    Name = "Main",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
--- Script GAG tombol
-MainTab:AddButton({
-    Name = "🚀 Script GAG",
-    Callback = function()
-        print("[Script GAG] aktif")
-    end
-})
-
--- ESP toggle
-MainTab:AddToggle({
-    Name = "🥚 ESP",
-    Default = false,
-    Callback = function(Value)
-        if Value then
-            print("[ESP] Aktif.")
-            -- taruh script ESP kamu di sini
-        else
-            print("[ESP] Nonaktif.")
-        end
-    end
-})
-
--- Reroll (sementara kosong)
-MainTab:AddButton({
-    Name = "🎲 Reroll (sementara kosong)",
-    Callback = function()
-        if lastPayload then
-            print("[Reroll] Payload:", lastPayload)
-        else
-            print("[Reroll] Belum ada payload.")
-        end
-    end
-})
-
--- 🟡 Log Hatch menu
-MainTab:AddToggle({
-    Name = "📜 Log Hatch",
-    Default = false,
-    Callback = function(Value)
-        if Value then
-            print("[Info] Logger siap. Jalankan aktivitas egg, log akan muncul di sini.")
-        else
-            print("[Info] Logger dimatikan.")
-        end
-    end
-})
-
--- 🟡 Window log Hatch scrollable + copyable
-local LogWindow = Instance.new("ScreenGui")
-local Frame = Instance.new("Frame")
-local ScrollingFrame = Instance.new("ScrollingFrame")
-local TextBox = Instance.new("TextBox")
-
-LogWindow.Name = "HatchLogger"
-LogWindow.Parent = game:GetService("CoreGui")
-
-Frame.Parent = LogWindow
-Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Frame.Position = UDim2.new(0.6, 0, 0.3, 0)
-Frame.Size = UDim2.new(0, 350, 0, 250)
-Frame.Active = true
-Frame.Draggable = true
-
-ScrollingFrame.Parent = Frame
-ScrollingFrame.Size = UDim2.new(1, 0, 1, 0)
-ScrollingFrame.CanvasSize = UDim2.new(0, 0, 5, 0)
-ScrollingFrame.ScrollBarThickness = 6
-
-TextBox.Parent = ScrollingFrame
-TextBox.BackgroundTransparency = 1
-TextBox.Size = UDim2.new(1, -10, 1, 0)
-TextBox.Position = UDim2.new(0, 5, 0, 0)
-TextBox.TextXAlignment = Enum.TextXAlignment.Left
-TextBox.TextYAlignment = Enum.TextYAlignment.Top
-TextBox.ClearTextOnFocus = false
-TextBox.MultiLine = true
-TextBox.TextEditable = true
-TextBox.Font = Enum.Font.Code
-TextBox.TextSize = 14
-TextBox.TextColor3 = Color3.fromRGB(0, 255, 0)
-TextBox.Text = "[Info] Logger siap.\n"
-
--- Fungsi tambah log
-local function AddLog(msg)
-    table.insert(HatchLogs, msg)
-    TextBox.Text = table.concat(HatchLogs, "\n")
-    ScrollingFrame.CanvasSize = UDim2.new(0,0,0,TextBox.TextBounds.Y+20)
+local function safe(f, ...)
+    local ok, r = pcall(f, ...)
+    if not ok then warn("[Permana] ".. tostring(r)) end
+    return ok, r
 end
 
--- Contoh hook event
-local function HookEggEvent()
-    -- simulasi payload
-    local payload = "EggHatch_"..math.random(1000,9999)
-    lastPayload = payload
-    AddLog("[✅] Payload berhasil direkam: " .. payload)
+local function hasClipboard() return typeof(setclipboard)=="function" or typeof(toclipboard)=="function" end
+local function doClipboard(str)
+    if typeof(setclipboard)=="function" then setclipboard(str)
+    elseif typeof(toclipboard)=="function" then toclipboard(str) end
 end
 
--- simulasi button test
-MainTab:AddButton({
-    Name = "🎯 Simulasi Egg Hatch",
-    Callback = function()
-        HookEggEvent()
-    end
-})
+--========== GUI ROOT ==========--
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "Permana_Loader"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.CoreGui
 
-OrionLib:Init()
+local MainFrame = Instance.new("Frame")
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.Position = UDim2.new(0.35, 0, 0.28, 0)
+MainFrame.Size = UDim2.new(0, 360, 0, 340)
+MainFrame.Active, MainFrame.Draggable = true, true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+local frameStroke = Instance.new("UIStroke", MainFrame)
+frameStroke.Thickness = 2
+frameStroke.Color = Color3.fromRGB(0, 200, 255)
+frameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+-- TopBar
+local TopBar = Instance.new("Frame")
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TopBar.Size = UDim2.new(1, 0, 0, 36)
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 12)
+
+local Title = Instance.new("TextLabel")
+Title.Parent = TopBar
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.Size = UDim2.new(1, -80, 1, 0)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "⚡ Permana Loader ⚡"
+Title.TextColor3 = Color3.fromRGB(0, 200, 255)
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Parent = TopBar
+MinimizeBtn.Size = UDim2.new(0, 30, 0, 22)
+MinimizeBtn.Position = UDim2.new(1, -65, 0.5, -11)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.new(1,1,1)
+MinimizeBtn.Font = Enum.Font.GothamBold; MinimizeBtn.TextSize = 20
+Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0,6)
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Parent = TopBar
+CloseBtn.Size = UDim2.new(0, 30, 0, 22)
+CloseBtn.Position = UDim2.new(1, -33, 0.5, -11)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.new(1,1,1)
+CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.TextSize = 18
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0,6)
+
+-- Content
+local Content = Instance.new("Frame")
+Content.Parent = MainFrame
+Content.BackgroundTransparency = 1
+Content.Position = UDim2.new(0, 0, 0, 40)
+Content.Size = UDim2.new(1, 0, 0, 150)
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = Content
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function styleButton(btn, text)
+    btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    btn.Size = UDim2.new(0.88, 0, 0, 40)
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.AutoButtonColor = false
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    local stroke = Instance.new("UIStroke", btn)
+    stroke.Color = Color3.fromRGB(0,200,255)
+    stroke.Thickness = 1.5
+    btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(55,55,55) end)
+    btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(35,35,35) end)
+end
+
+-- Buttons
+local Script1Btn = Instance.new("TextButton")
+local Script2Btn = Instance.new("TextButton") -- ESP
+local Script3Btn = Instance.new("TextButton") -- Reroll
+local Script4Btn = Instance.new("TextButton") -- Logger
+
+styleButton(Script1Btn, "🚀 Script GAG")
+styleButton(Script2Btn, "🥚 ESP: OFF")
+styleButton(Script3Btn, "🎲 Manual Reroll")
+styleButton(Script4Btn, "📜 Log Hatch: OFF")
+
+Script1Btn.Parent = Content
+Script2Btn.Parent = Content
+Script3Btn.Parent = Content
+Script4Btn.Parent = Content
+
+-- Floating PL button
+local PLButton = Instance.new("TextButton")
+PLButton.Parent = ScreenGui
+PLButton.Size = UDim2.new(0, 55, 0, 55)
+PLButton.Position = UDim2.new(0.4, 0, 0.5, 0)
+PLButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+PLButton.Text = "P.L"
+PLButton.TextColor3 = Color3.fromRGB(0, 200, 255)
+PLButton.Font = Enum.Font.GothamBold
+PLButton.TextSize = 18
+PLButton.Visible = false
+PLButton.Active = true
+PLButton.Draggable = true
+Instance.new("UICorner", PLButton).CornerRadius = UDim.new(1, 0)
+local plStroke = Instance.new("UIStroke", PLButton)
+plStroke.Color = Color3.fromRGB(0, 200, 255)
+plStroke.Thickness = 2
+
+--========== LOG PANEL (MENU 4) ==========--
+local LogFrame = Instance.new("Frame")
+LogFrame.Parent = MainFrame
+LogFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+LogFrame.Position = UDim2.new(0, 12, 0, 200)
+LogFrame.Size = UDim2.new(1, -24, 1, -212)
+LogFrame.Visible = false
+Instance.new("UICorner", LogFrame).CornerRadius = UDim.new(0, 8)
+local LogStroke = Instance.new("UIStroke", LogFrame)
+LogStroke.Color = Color3.fromRGB(0, 200, 255)
+LogStroke.Thickness = 1
+
+local LogBox = Instance.new("TextBox")
+LogBox.Parent = LogFrame
+LogBox.Size = UDim2.new(1, -10, 1, -46)
+LogBox.Position = UDim2.new(0, 5, 0, 5)
+LogBox.Font = Enum.Font.Code
+LogBox.TextSize = 14
+LogBox.TextXAlignment = Enum.TextXAlignment.Left
+LogBox.TextYAlignment = Enum.TextYAlignment.Top
+LogBox.ClearTextOnFocus = false
+LogBox.MultiLine = true
+LogBox.TextEditable = true
+LogBox.BackgroundTransparency = 1
+LogBox.TextWrapped = false
+LogBox.TextColor3 = Color3.fromRGB(180, 230, 255)
+LogBox.Text = ""
+
+local LogButtons = Instance.new("Frame")
+LogButtons.Parent = LogFrame
+LogButtons.Size = UDim2.new(1, -10, 0, 34)
+LogButtons.Position = UDim2.new(0, 5, 1, -39)
+LogButtons.BackgroundTransparency = 1
+
+local CopyBtn = Instance.new("TextButton")
+CopyBtn.Parent = LogButtons
+CopyBtn.Size = UDim2.new(0.5, -5, 1, 0)
+CopyBtn.Position = UDim2.new(0, 0, 0, 0)
+CopyBtn.Text = hasClipboard() and "Copy All" or "Select & Ctrl+C"
+CopyBtn.Font = Enum.Font.GothamBold
+CopyBtn.TextSize = 14
+CopyBtn.TextColor3 = Color3.new(1,1,1)
+CopyBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+Instance.new("UICorner", CopyBtn).CornerRadius = UDim.new(0,6)
+
+local ClearBtn = Instance.new("TextButton")
+ClearBtn.Parent = LogButtons
+ClearBtn.Size = UDim2.new(0.5, -5, 1, 0)
+ClearBtn.Position = UDim2.new(0.5, 10, 0, 0)
+ClearBtn.Text = "Clear"
+ClearBtn.Font = Enum.Font.GothamBold
+ClearBtn.TextSize = 14
+ClearBtn.TextColor3 = Color3.new(1,1,1)
+ClearBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+Instance.new("UICorner", ClearBtn).CornerRadius = UDim.new(0,6)
+
+local function appendLog(line)
+    LogBox.Text = (LogBox.Text == "" and "" or (LogBox.Text.."\n")) .. line
+    LogBox.CursorPosition = #LogBox.Text + 1
+end
+
+CopyBtn.MouseButton1Click:Connect(function()
+    if hasClipboard() then
+        doClipboard(LogBox.Text)
+        appendLog("[*] Copied to clipboard.")
+    else
+        appendLog("[!] Clipboard API tidak tersedia. Seleksi manual lalu Ctrl+C.")
+    end
+end)
+
+ClearBtn.MouseButton1Click:Connect(function()
+    LogBox.Text = ""
+end)
+
+--========== ESP 710 INTEGRATION (MENU 2) ==========--
+local function getEggOracleGui()
+    for _, pg in ipairs(LP:WaitForChild("PlayerGui"):GetChildren()) do
+        if pg:IsA("ScreenGui") and pg.Name == "EggOracle_Container" then return pg end
+    end
+    for _, cg in ipairs(game.CoreGui:GetChildren()) do
+        if cg:IsA("ScreenGui") and cg.Name == "EggOracle_Container" then return cg end
+    end
+    return nil
+end
+
+local function ensureBlueStroke(tagFrame)
+    if not tagFrame then return end
+    local bg = tagFrame:FindFirstChild("Background"); if not bg then return end
+    local stroke = bg:FindFirstChildOfClass("UIStroke"); if not stroke then return end
+    stroke.Color = Color3.fromRGB(0,200,255)
+    stroke.Changed:Connect(function(prop)
+        if prop=="Color" then stroke.Color = Color3.fromRGB(0,200,255) end
+    end)
+end
+
+local function applyBlueToAllTags(container)
+    if not container then return end
+    for _, f in ipairs(container:GetDescendants()) do
+        if f:IsA("Frame") and f.Name=="Background" and f.Parent and f.Parent:IsA("Frame") then
+            ensureBlueStroke(f.Parent)
+        end
+    end
+    container.DescendantAdded:Connect(function(d)
+        if d:IsA("Frame") and d.Name=="Background" and d.Parent and d.Parent:IsA("Frame") then
+            ensureBlueStroke(d.Parent)
+        end
+    end)
+end
+
+local function hideOracleUI(container)
+    if not container then return end
+    local cp = container:FindFirstChild("ControlPanel"); if cp then cp.Visible = false end
+    local sb = container:FindFirstChild("ShowButton");   if sb then sb.Visible = false end
+end
+
+local function toggleESPViaButton(container, forceState)
+    if not container then return end
+    local panel = container:FindFirstChild("ControlPanel"); if not panel then return end
+    local content = panel:FindFirstChild("Content"); if not content then return end
+    local toggleBtn = content:FindFirstChild("ToggleButton")
+    if not (toggleBtn and toggleBtn:IsA("TextButton")) then return end
+    local function isOn() return string.find(toggleBtn.Text or "", "ON") ~= nil end
+    local function click() safe(function() firesignal(toggleBtn.MouseButton1Click) end) end
+    if forceState == nil then click()
+    else
+        if forceState and not isOn() then click()
+        elseif (forceState==false) and isOn() then click() end
+    end
+end
+
+local ESP_LOADED, ESP_ON = false, false
+
+Script2Btn.MouseButton1Click:Connect(function()
+    local container = getEggOracleGui()
+    if not ESP_LOADED or not container then
+        local ok, err = safe(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()
+        end)
+        if not ok then appendLog("[ESP] Load gagal: ".. tostring(err)) return end
+        task.wait(0.2)
+        container = getEggOracleGui()
+        if not container then appendLog("[ESP] GUI tidak ditemukan sesudah load."); return end
+        hideOracleUI(container)
+        applyBlueToAllTags(container)
+        toggleESPViaButton(container, true)
+        ESP_LOADED, ESP_ON = true, true
+        Script2Btn.Text = "🥚 ESP: ON"
+        appendLog("[ESP] Aktif.")
+    else
+        toggleESPViaButton(container, nil)
+        local panel = container:FindFirstChild("ControlPanel")
+        local content = panel and panel:FindFirstChild("Content")
+        local toggleBtn = content and content:FindFirstChild("ToggleButton")
+        if toggleBtn and toggleBtn:IsA("TextButton") then
+            ESP_ON = string.find(toggleBtn.Text or "", "ON") ~= nil
+            Script2Btn.Text = ESP_ON and "🥚 ESP: ON" or "🥚 ESP: OFF"
+            appendLog("[ESP] ".. (ESP_ON and "ON" or "OFF"))
+        end
+    end
+end)
+
+--========== REROLL (MENU 3) ==========--
+-- Kita rekam payload terakhir dari remote yg relevan via __namecall hook
+local lastPayload = {
+    BuyPetEgg = nil,       -- {remote = Instance, method="InvokeServer"/"FireServer", args={...}}
+    PetEggService = nil,   -- ditangkap apa adanya
+}
+
+-- Namecall hook
+do
+    local gmt = getrawmetatable(game)
+    if setreadonly then setreadonly(gmt, false) end
+    local oldNamecall = gmt.__namecall
+    gmt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod and getnamecallmethod() or ""
+        local args = {...}
+        if typeof(self)=="Instance" and (method=="FireServer" or method=="InvokeServer") then
+            if self.Name == "BuyPetEgg" then
+                lastPayload.BuyPetEgg = {remote=self, method=method, args=args}
+                appendLog(string.format("[Hooked] BuyPetEgg -> %s %s", method, game:GetService("HttpService"):JSONEncode(args)))
+            elseif self.Name == "PetEggService" then
+                lastPayload.PetEggService = {remote=self, method=method, args=args}
+                appendLog(string.format("[Hooked] PetEggService -> %s %s", method, game:GetService("HttpService"):JSONEncode(args)))
+            end
+        end
+        return oldNamecall(self, ...)
+    end)
+    if setreadonly then setreadonly(gmt, true) end
+end
+
+-- Kita juga log event server -> client (ReadyToHatch, Tutorial, dll)
+local function hookServerEvents()
+    local GE = RS:FindFirstChild("GameEvents")
+    if not GE then return end
+    local function hookEvent(ev, name)
+        if ev and ev.OnClientEvent then
+            ev.OnClientEvent:Connect(function(...)
+                local arr = {...}
+                local json = ""
+                safe(function()
+                    json = game:GetService("HttpService"):JSONEncode(arr)
+                end)
+                appendLog(string.format("[Event] %s %s", name, json))
+            end)
+            appendLog(string.format("[Hooked] %s", name))
+        end
+    end
+    hookEvent(GE:FindFirstChild("EggReadyToHatch_RE"), "EggReadyToHatch_RE")
+    hookEvent(GE:FindFirstChild("PetEggService"), "PetEggService")
+    hookEvent(GE:FindFirstChild("EggTutorial"), "EggTutorial")
+end
+hookServerEvents()
+
+-- UI kecil untuk aksi reroll
+local RerollPanel = Instance.new("Frame")
+RerollPanel.Parent = MainFrame
+RerollPanel.BackgroundColor3 = Color3.fromRGB(22,22,22)
+RerollPanel.Position = UDim2.new(0, 12, 0, 200)
+RerollPanel.Size = UDim2.new(1, -24, 1, -212)
+RerollPanel.Visible = false
+Instance.new("UICorner", RerollPanel).CornerRadius = UDim.new(0, 8)
+local rpStroke = Instance.new("UIStroke", RerollPanel)
+rpStroke.Color = Color3.fromRGB(0,200,255); rpStroke.Thickness = 1
+
+local function smallBtn(text, y)
+    local b = Instance.new("TextButton")
+    b.Parent = RerollPanel
+    b.Size = UDim2.new(1, -10, 0, 36)
+    b.Position = UDim2.new(0, 5, 0, y)
+    b.Text = text
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 14
+    b.TextColor3 = Color3.new(1,1,1)
+    b.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+    return b
+end
+
+local BtnReplayBuy = smallBtn("Send Last BuyPetEgg()", 8)
+local BtnReplaySvc = smallBtn("Send Last PetEggService()", 50)
+
+local function replayPayload(info)
+    if not info or not info.remote then appendLog("[Reroll] Belum ada payload terekam."); return end
+    local ok, err = safe(function()
+        if info.method == "InvokeServer" and info.remote.InvokeServer then
+            info.remote:InvokeServer(unpack(info.args))
+        elseif info.method == "FireServer" and info.remote.FireServer then
+            info.remote:FireServer(unpack(info.args))
+        else
+            -- fallback: coba keduanya
+            if info.remote.InvokeServer then info.remote:InvokeServer(unpack(info.args)) end
+            if info.remote.FireServer then info.remote:FireServer(unpack(info.args)) end
+        end
+    end)
+    if ok then
+        appendLog(string.format("[Reroll] Sent %s (%s)", info.remote.Name, info.method))
+    else
+        appendLog("[Reroll] Gagal kirim: ".. tostring(err))
+    end
+end
+
+BtnReplayBuy.MouseButton1Click:Connect(function() replayPayload(lastPayload.BuyPetEgg) end)
+BtnReplaySvc.MouseButton1Click:Connect(function() replayPayload(lastPayload.PetEggService) end)
+
+--========== BUTTON ACTIONS ==========--
+Script1Btn.MouseButton1Click:Connect(function()
+    safe(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
+    end)
+end)
+
+-- Menu 3 toggle panel
+local rerollVisible = false
+Script3Btn.MouseButton1Click:Connect(function()
+    rerollVisible = not rerollVisible
+    RerollPanel.Visible = rerollVisible
+    LogFrame.Visible = false
+end)
+
+-- Menu 4 logger toggle
+local logOn = false
+Script4Btn.MouseButton1Click:Connect(function()
+    logOn = not logOn
+    Script4Btn.Text = logOn and "📜 Log Hatch: ON" or "📜 Log Hatch: OFF"
+    LogFrame.Visible = logOn
+    RerollPanel.Visible = false
+end)
+
+-- Minimize/Restore/Close
+MinimizeBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    PLButton.Visible = true
+end)
+PLButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    PLButton.Visible = false
+end)
+CloseBtn.MouseButton1Click:Connect(function()
+    local container = getEggOracleGui()
+    if container then safe(function() toggleESPViaButton(container, false) end) container:Destroy() end
+    ScreenGui:Destroy()
+end)
+
+-- Info awal
+appendLog("[Hooked] BuyPetEgg")
+appendLog("[Hooked] PetEggService")
+appendLog("[Info] Logger siap. Jalankan aktivitas egg, log akan muncul di sini.")
