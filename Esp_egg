@@ -1,229 +1,710 @@
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local TopBar = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local MinimizeBtn = Instance.new("TextButton")
-local CloseBtn = Instance.new("TextButton")
-local Content = Instance.new("Frame")
-local UIListLayout = Instance.new("UIListLayout")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local jobId = game.JobId
 
--- Floating PL button
-local PLButton = Instance.new("TextButton")
+local executionKey = "EggRandomizer_" .. LocalPlayer.UserId .. "_" .. jobId
 
--- Buttons
-local Script1Btn = Instance.new("TextButton")
-local Script2Btn = Instance.new("TextButton")
-local Script3Btn = Instance.new("TextButton")
-local Script4Btn = Instance.new("TextButton")
+if getgenv()[executionKey] then
+    return
+end
 
--- Parent
-ScreenGui.Parent = game.CoreGui
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+getgenv()[executionKey] = true
 
---== Main Frame ==--
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
-MainFrame.Size = UDim2.new(0, 280, 0, 250)
-MainFrame.Active = true
-MainFrame.Draggable = true
+local EggOracleSystem = {}
+EggOracleSystem.__index = EggOracleSystem
 
--- Rounded
-local frameCorner = Instance.new("UICorner", MainFrame)
-frameCorner.CornerRadius = UDim.new(0, 12)
+local CollectionService = game:GetService("CollectionService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CurrentCamera = workspace.CurrentCamera
 
--- Glow Border
-local frameStroke = Instance.new("UIStroke", MainFrame)
-frameStroke.Thickness = 2
-frameStroke.Color = Color3.fromRGB(0, 200, 255)
-frameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local UI_FONT_BOLD = Enum.Font.FredokaOne
+local UI_FONT_REGULAR = Enum.Font.FredokaOne
+local REROLL_DEBOUNCE_SECONDS = 0.3
 
---== Top Bar ==--
-TopBar.Parent = MainFrame
-TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-TopBar.Size = UDim2.new(1, 0, 0, 35)
+local PALETTE = {
+	Background = Color3.fromRGB(42, 38, 56),
+	Primary = Color3.fromRGB(60, 55, 80),
+	Secondary = Color3.fromRGB(88, 80, 118),
+	Accent = Color3.fromRGB(255, 130, 200),
+	AccentGlow = Color3.fromRGB(255, 180, 230),
+	TextPrimary = Color3.fromRGB(240, 240, 255),
+	TextSecondary = Color3.fromRGB(180, 170, 210),
+	Ready = Color3.fromRGB(255, 220, 100),
+	Disabled = Color3.fromRGB(100, 95, 120),
+	Success = Color3.fromRGB(130, 255, 150),
+	Failure = Color3.fromRGB(255, 120, 120),
+}
 
-local topCorner = Instance.new("UICorner", TopBar)
-topCorner.CornerRadius = UDim.new(0, 12)
+local RARITY_COLORS = {
+	["Common"] = Color3.fromRGB(190, 200, 220),
+	["Uncommon"] = PALETTE.Success,
+	["Rare"] = Color3.fromRGB(100, 180, 255),
+	["Legendary"] = Color3.fromRGB(200, 150, 255),
+	["Mythical"] = PALETTE.Accent,
+	["Divine"] = PALETTE.Ready,
+	["Default"] = PALETTE.TextPrimary
+}
 
-Title.Parent = TopBar
-Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(1, -70, 1, 0)
-Title.Position = UDim2.new(0, 12, 0, 0)
-Title.Font = Enum.Font.GothamBold
-Title.Text = "⚡ Permana Loader ⚡"
-Title.TextColor3 = Color3.fromRGB(0, 200, 255)
-Title.TextSize = 16
-Title.TextXAlignment = Enum.TextXAlignment.Left
+EggOracleSystem.ActiveTags = {}
+EggOracleSystem.MasterPetList = {}
+EggOracleSystem.SimulatedLootTables = {}
+EggOracleSystem.GameInternals = {}
+EggOracleSystem.Gui = {}
+EggOracleSystem.IsEnabled = true
+EggOracleSystem.IsRerolling = false
+EggOracleSystem.AreNamesVisible = true
+EggOracleSystem.IsMinimized = false
 
--- Minimize
-MinimizeBtn.Parent = TopBar
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-MinimizeBtn.Size = UDim2.new(0, 30, 0, 22)
-MinimizeBtn.Position = UDim2.new(1, -65, 0.2, 0)
-MinimizeBtn.Text = "-"
-MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeBtn.Font = Enum.Font.GothamBold
-MinimizeBtn.TextSize = 20
-Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
+function EggOracleSystem:PlaySoundEffect(soundId)
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://" .. soundId
+    sound.Parent = self.Gui.ESPContainer
+    sound:Play()
+    task.delay(3, function()
+        if sound then sound:Destroy() end
+    end)
+end
 
--- Close
-CloseBtn.Parent = TopBar
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseBtn.Size = UDim2.new(0, 30, 0, 22)
-CloseBtn.Position = UDim2.new(1, -33, 0.2, 0)
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 18
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+function EggOracleSystem:AnimateButtonPress(button)
+    local stroke = button:FindFirstChild("UIStroke")
+    local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local pulseTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true)
+    
+    TweenService:Create(button, tweenInfo, { Size = button.Size * 0.95 }):Play()
+    if stroke then
+        TweenService:Create(stroke, pulseTweenInfo, { Thickness = 2.5 }):Play()
+    end
+    
+    task.wait(0.1)
+    
+    TweenService:Create(button, tweenInfo, { Size = button.Size }):Play()
+end
 
---== Content ==--
-Content.Parent = MainFrame
-Content.BackgroundTransparency = 1
-Content.Position = UDim2.new(0, 0, 0, 40)
-Content.Size = UDim2.new(1, 0, 1, -40)
+function EggOracleSystem:AnimateButtonHover(button, isHovering)
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local targetBrightness = isHovering and 0.2 or 0
+    local targetScale = isHovering and 1.05 or 1
+    
+    TweenService:Create(button, tweenInfo, { 
+        ImageColor3 = Color3.new(1 + targetBrightness, 1 + targetBrightness, 1 + targetBrightness),
+        Size = UDim2.fromScale(targetScale, targetScale)
+    }):Play()
+end
 
-UIListLayout.Parent = Content
-UIListLayout.Padding = UDim.new(0, 10)
-UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+function EggOracleSystem:ProcessMasterPetList(petData)
+	for name, data in pairs(petData) do
+		self.MasterPetList[name] = data.Rarity or "Common"
+	end
+end
 
---== Style Buttons ==--
-local function styleButton(btn, text)
-	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-	btn.Size = UDim2.new(0.85, 0, 0, 40)
-	btn.Text = text
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 14
-	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-	local stroke = Instance.new("UIStroke", btn)
-	stroke.Color = Color3.fromRGB(0, 200, 255)
+function EggOracleSystem:ProcessEggLootTables(eggLootData)
+	for eggName, eggData in pairs(eggLootData) do
+		local lootPool = { Pets = {}, TotalWeight = 0 }
+		if eggData.RarityData and eggData.RarityData.Items then
+			for petName, petOdds in pairs(eggData.RarityData.Items) do
+				local weight = petOdds.ItemOdd
+				table.insert(lootPool.Pets, {
+					Name = petName,
+					Rarity = self.MasterPetList[petName] or "Common",
+					Weight = weight
+				})
+				lootPool.TotalWeight = lootPool.TotalWeight + weight
+			end
+		end
+		self.SimulatedLootTables[eggName] = lootPool
+	end
+	self.SimulatedLootTables["Default"] = self.SimulatedLootTables["Common Egg"] or {}
+end
+
+function EggOracleSystem:SelectPetFromPool(lootPool)
+	if not lootPool or not lootPool.Pets or #lootPool.Pets == 0 or lootPool.TotalWeight <= 0 then return nil end
+	local roll = math.random() * lootPool.TotalWeight
+	for _, petInfo in ipairs(lootPool.Pets) do
+		roll = roll - petInfo.Weight
+		if roll <= 0 then
+			return petInfo
+		end
+	end
+	return lootPool.Pets[#lootPool.Pets]
+end
+
+function EggOracleSystem:CreateESPContainer()
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "EggOracle_Container"
+	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	screenGui.ResetOnSpawn = false
+	self.Gui.ESPContainer = screenGui
+end
+
+function EggOracleSystem:CreateTag()
+	local tagFrame = Instance.new("Frame")
+	tagFrame.Size = UDim2.fromOffset(143, 32)
+	tagFrame.AnchorPoint = Vector2.new(0.5, 1)
+	tagFrame.BackgroundTransparency = 1
+	tagFrame.Visible = false
+	local background = Instance.new("Frame")
+	background.Name = "Background"
+	background.Size = UDim2.new(1, 0, 1, 0)
+	background.BackgroundColor3 = PALETTE.Background
+	background.BackgroundTransparency = 0.3
+	background.Parent = tagFrame
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = background
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = PALETTE.Accent
 	stroke.Thickness = 1.5
-	btn.MouseEnter:Connect(function()
-		btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = background
+	local rarityBar = Instance.new("Frame")
+	rarityBar.Name = "RarityBar"
+	rarityBar.Size = UDim2.new(0, 4, 1, -6)
+	rarityBar.Position = UDim2.fromOffset(3, 3)
+	rarityBar.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+	rarityBar.BorderSizePixel = 0
+	rarityBar.Parent = background
+	local rarityBarCorner = Instance.new("UICorner")
+	rarityBarCorner.CornerRadius = UDim.new(0, 2)
+	rarityBarCorner.Parent = rarityBar
+	local eggNameLabel = Instance.new("TextLabel")
+	eggNameLabel.Size = UDim2.new(1, -15, 0.5, 0)
+	eggNameLabel.Position = UDim2.fromOffset(12, 1)
+	eggNameLabel.Font = UI_FONT_BOLD
+	eggNameLabel.TextSize = 11
+	eggNameLabel.TextColor3 = PALETTE.TextPrimary
+	eggNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	eggNameLabel.BackgroundTransparency = 1
+	eggNameLabel.Parent = background
+	local petInfoLabel = Instance.new("TextLabel")
+	petInfoLabel.Size = UDim2.new(1, -15, 0.5, 0)
+	petInfoLabel.Position = UDim2.new(0, 12, 0.5, -1)
+	petInfoLabel.Font = UI_FONT_REGULAR
+	petInfoLabel.TextSize = 10
+	petInfoLabel.TextColor3 = PALETTE.TextSecondary
+	petInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+	petInfoLabel.BackgroundTransparency = 1
+	petInfoLabel.ClipsDescendants = true
+	petInfoLabel.Parent = background
+	return tagFrame, { EggName = eggNameLabel, PetInfo = petInfoLabel, RarityBar = rarityBar, Stroke = stroke }
+end
+
+function EggOracleSystem:CreateControlPanel()
+	local controlPanel = Instance.new("Frame")
+	controlPanel.Name = "ControlPanel"
+	controlPanel.Size = UDim2.fromOffset(215, 158)
+	controlPanel.Position = UDim2.new(0.5, -(215/2), 0, 30)
+	controlPanel.BackgroundColor3 = PALETTE.Background
+	controlPanel.BorderSizePixel = 0
+    controlPanel.AnchorPoint = Vector2.new(0.5, 0)
+	controlPanel.ClipsDescendants = true
+	controlPanel.Active = true
+	controlPanel.Draggable = true
+	self.Gui.ControlPanel = controlPanel
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 12)
+	corner.Parent = controlPanel
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = PALETTE.Accent
+	stroke.Thickness = 1.5
+	stroke.Transparency = 0.5
+	stroke.Parent = controlPanel
+	local header = Instance.new("Frame")
+	header.Name = "Header"
+	header.Size = UDim2.new(1, 0, 0, 45)
+	header.BackgroundTransparency = 1
+	header.Parent = controlPanel
+	local headerPadding = Instance.new("UIPadding")
+	headerPadding.PaddingLeft = UDim.new(0, 10)
+	headerPadding.PaddingRight = UDim.new(0, 10)
+	headerPadding.Parent = header
+	local profileImage = Instance.new("ImageLabel")
+	profileImage.Size = UDim2.fromOffset(30, 30)
+	profileImage.Position = UDim2.new(0, 0, 0.5, -15)
+	profileImage.BackgroundColor3 = PALETTE.Primary
+	profileImage.BackgroundTransparency = 1
+	profileImage.Parent = header
+	local profileCorner = Instance.new("UICorner")
+	profileCorner.CornerRadius = UDim.new(1, 0)
+	profileCorner.Parent = profileImage
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Font = UI_FONT_BOLD
+	titleLabel.Text = "Egg Randomizer"
+	titleLabel.TextColor3 = PALETTE.TextPrimary
+	titleLabel.TextSize = 14
+	titleLabel.Position = UDim2.new(0, 38, 0.5, -16)
+	titleLabel.Size = UDim2.new(0, 120, 0, 14)
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Parent = header
+	local userLabel = Instance.new("TextLabel")
+	userLabel.Font = UI_FONT_REGULAR
+	userLabel.Text = LocalPlayer.DisplayName .. " (@" .. LocalPlayer.Name .. ")"
+	userLabel.TextColor3 = PALETTE.TextSecondary
+	userLabel.TextSize = 9
+	userLabel.Position = UDim2.new(0, 38, 0.5, 2)
+	userLabel.Size = UDim2.new(0, 120, 0, 12)
+	userLabel.TextXAlignment = Enum.TextXAlignment.Left
+	userLabel.BackgroundTransparency = 1
+	userLabel.Parent = header
+	task.spawn(function()
+		local success, content = pcall(function()
+			return Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
+		end)
+		if success and content and profileImage.Parent then
+			profileImage.Image = content
+			profileImage.BackgroundTransparency = 0
+		end
 	end)
-	btn.MouseLeave:Connect(function()
-		btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	local closeButton = Instance.new("TextButton")
+	closeButton.Name = "CloseButton"
+	closeButton.Size = UDim2.fromOffset(18, 18)
+	closeButton.Position = UDim2.new(1, -25, 0.5, -9)
+	closeButton.Font = UI_FONT_BOLD
+	closeButton.Text = "X"
+	closeButton.TextSize = 12
+	closeButton.TextColor3 = PALETTE.TextPrimary
+	closeButton.BackgroundColor3 = PALETTE.Failure
+	closeButton.Parent = header
+	local closeCorner = Instance.new("UICorner")
+	closeCorner.CornerRadius = UDim.new(0, 5)
+	closeCorner.Parent = closeButton
+	local minimizeButton = Instance.new("TextButton")
+	minimizeButton.Name = "MinimizeButton"
+	minimizeButton.Size = UDim2.fromOffset(18, 18)
+	minimizeButton.Position = UDim2.new(1, -47, 0.5, -9)
+	minimizeButton.Font = UI_FONT_BOLD
+	minimizeButton.Text = "-"
+	minimizeButton.TextSize = 16
+	minimizeButton.TextColor3 = PALETTE.TextPrimary
+	minimizeButton.BackgroundColor3 = PALETTE.Accent
+	minimizeButton.Parent = header
+	local minCorner = Instance.new("UICorner")
+	minCorner.CornerRadius = UDim.new(0, 5)
+	minCorner.Parent = minimizeButton
+	local separator = Instance.new("Frame")
+	separator.Size = UDim2.new(1, -20, 0, 1)
+	separator.Position = UDim2.new(0.5, -((215-20)/2), 0, 45)
+	separator.BackgroundColor3 = PALETTE.Primary
+	separator.BorderSizePixel = 0
+	separator.Parent = controlPanel
+	local content = Instance.new("Frame")
+	content.Name = "Content"
+	content.Size = UDim2.new(1, 0, 1, -46)
+	content.Position = UDim2.new(0, 0, 0, 46)
+	content.BackgroundTransparency = 1
+	content.Parent = controlPanel
+	local contentPadding = Instance.new("UIPadding")
+	contentPadding.PaddingTop = UDim.new(0, 8)
+	contentPadding.PaddingBottom = UDim.new(0, 10)
+	contentPadding.PaddingLeft = UDim.new(0, 10)
+	contentPadding.PaddingRight = UDim.new(0, 10)
+	contentPadding.Parent = content
+	local listLayout = Instance.new("UIListLayout")
+	listLayout.Padding = UDim.new(0, 6)
+	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	listLayout.Parent = content
+	local toggleButton = Instance.new("TextButton")
+	toggleButton.Name = "ToggleButton"
+	toggleButton.Size = UDim2.new(1, 0, 0, 22)
+	toggleButton.Font = UI_FONT_BOLD
+	toggleButton.Text = "ESP: ON"
+	toggleButton.TextSize = 14
+	toggleButton.TextColor3 = PALETTE.TextPrimary
+	toggleButton.BackgroundColor3 = PALETTE.Secondary
+	toggleButton.LayoutOrder = 2
+	self.Gui.ToggleButton = toggleButton
+	local tbCorner = Instance.new("UICorner")
+	tbCorner.CornerRadius = UDim.new(0, 6)
+	tbCorner.Parent = toggleButton
+	local tbStroke = Instance.new("UIStroke")
+	tbStroke.Color = PALETTE.Success
+	tbStroke.Thickness = 1
+	self.Gui.ToggleStroke = tbStroke
+	tbStroke.Parent = toggleButton
+	toggleButton.Parent = content
+	local rerollButton = Instance.new("TextButton")
+	rerollButton.Name = "RerollButton"
+	rerollButton.Size = UDim2.new(1, 0, 0, 22)
+	rerollButton.Font = UI_FONT_BOLD
+	rerollButton.Text = "Reroll All"
+	rerollButton.TextSize = 14
+	rerollButton.TextColor3 = PALETTE.TextPrimary
+	rerollButton.BackgroundColor3 = PALETTE.Secondary
+	rerollButton.LayoutOrder = 3
+	rerollButton.ClipsDescendants = true
+	self.Gui.RerollButton = rerollButton
+	local rbCorner = Instance.new("UICorner")
+	rbCorner.CornerRadius = UDim.new(0, 6)
+	rbCorner.Parent = rerollButton
+	local rbStroke = Instance.new("UIStroke")
+	rbStroke.Color = PALETTE.Accent
+	rbStroke.Thickness = 1
+	rbStroke.Parent = rerollButton
+	rerollButton.Parent = content
+	local hideNameButton = Instance.new("TextButton")
+	hideNameButton.Name = "HideNameButton"
+	hideNameButton.Size = UDim2.new(1, 0, 0, 22)
+	hideNameButton.Font = UI_FONT_BOLD
+	hideNameButton.TextSize = 14
+	hideNameButton.TextColor3 = PALETTE.TextPrimary
+	hideNameButton.BackgroundColor3 = PALETTE.Secondary
+	hideNameButton.LayoutOrder = 4
+	self.Gui.HideNameButton = hideNameButton
+	local hnCorner = Instance.new("UICorner")
+	hnCorner.CornerRadius = UDim.new(0, 6)
+	hnCorner.Parent = hideNameButton
+	local hnStroke = Instance.new("UIStroke")
+	self.Gui.HideNameStroke = hnStroke
+	hnStroke.Parent = hideNameButton
+	hideNameButton.Parent = content
+	self.Gui.UserLabel = userLabel
+    if self.AreNamesVisible then
+        hideNameButton.Text = "Hide Name/Username"
+        hnStroke.Color = PALETTE.Accent
+		userLabel.Visible = true
+    else
+        hideNameButton.Text = "Show Name/Username"
+        hnStroke.Color = PALETTE.Failure
+		userLabel.Visible = false
+    end
+	toggleButton.MouseButton1Click:Connect(function() self:ToggleESP() end)
+	rerollButton.MouseButton1Click:Connect(function() self:RerollAll() end)
+	hideNameButton.MouseButton1Click:Connect(function() self:ToggleNameVisibility() end)
+    toggleButton.MouseButton1Down:Connect(function() self:AnimateButtonPress(toggleButton) end)
+    rerollButton.MouseButton1Down:Connect(function() self:AnimateButtonPress(rerollButton) end)
+    hideNameButton.MouseButton1Down:Connect(function() self:AnimateButtonPress(hideNameButton) end)
+	closeButton.MouseButton1Click:Connect(function() self:ClosePanel() end)
+	minimizeButton.MouseButton1Click:Connect(function() self:ToggleMinimizePanel() end)
+	controlPanel.Parent = self.Gui.ESPContainer
+end
+
+function EggOracleSystem:CreateShowButton()
+	local showButton = Instance.new("TextButton")
+	showButton.Name = "ShowButton"
+	showButton.Size = UDim2.fromOffset(180, 30)
+	showButton.Position = UDim2.new(0, -200, 0, 20)
+	showButton.Font = UI_FONT_BOLD
+	showButton.Text = "Show Egg Randomizer"
+	showButton.TextSize = 16
+	showButton.TextColor3 = PALETTE.TextPrimary
+	showButton.BackgroundColor3 = PALETTE.Accent
+	showButton.Visible = false
+	showButton.Parent = self.Gui.ESPContainer
+	local showCorner = Instance.new("UICorner")
+	showCorner.CornerRadius = UDim.new(0, 8)
+	showCorner.Parent = showButton
+	self.Gui.ShowButton = showButton
+	showButton.MouseButton1Click:Connect(function() self:ShowPanel() end)
+end
+
+function EggOracleSystem:ShowRarityNotification(petName, petRarity)
+	local notifFrame = Instance.new("Frame")
+	notifFrame.Name = "RarityNotification"
+	notifFrame.Size = UDim2.fromOffset(350, 70)
+	notifFrame.AnchorPoint = Vector2.new(0.5, 0)
+	notifFrame.Position = UDim2.new(0.5, 0, 0, -80)
+	notifFrame.BackgroundColor3 = PALETTE.Background
+	notifFrame.BorderSizePixel = 0
+	notifFrame.Parent = self.Gui.ESPContainer
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 12)
+	corner.Parent = notifFrame
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Color = RARITY_COLORS[petRarity] or RARITY_COLORS.Default
+	stroke.Parent = notifFrame
+
+	local title = Instance.new("TextLabel")
+	title.Font = UI_FONT_BOLD
+	title.Text = "AMAZING HATCH!"
+	title.TextSize = 18
+	title.TextColor3 = PALETTE.Ready
+	title.Size = UDim2.new(1, 0, 0, 20)
+	title.Position = UDim2.new(0, 0, 0, 10)
+	title.BackgroundTransparency = 1
+	title.Parent = notifFrame
+
+	local petLabel = Instance.new("TextLabel")
+	petLabel.Font = UI_FONT_REGULAR
+	petLabel.Text = "You hatched a " .. petName .. "!"
+	petLabel.TextSize = 16
+	petLabel.TextColor3 = RARITY_COLORS[petRarity] or RARITY_COLORS.Default
+	petLabel.Size = UDim2.new(1, 0, 0, 20)
+	petLabel.Position = UDim2.new(0, 0, 0, 35)
+	petLabel.BackgroundTransparency = 1
+	petLabel.Parent = notifFrame
+	
+	local countdownBar = Instance.new("Frame")
+	countdownBar.Size = UDim2.new(1, 0, 0, 4)
+	countdownBar.Position = UDim2.new(0, 0, 1, -4)
+	countdownBar.BackgroundColor3 = RARITY_COLORS[petRarity] or RARITY_COLORS.Default
+	countdownBar.BorderSizePixel = 0
+	countdownBar.Parent = notifFrame
+
+	local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out)
+	TweenService:Create(notifFrame, tweenInfo, { Position = UDim2.new(0.5, 0, 0, 20) }):Play()
+	TweenService:Create(countdownBar, TweenInfo.new(5, Enum.EasingStyle.Linear), { Size = UDim2.new(0, 0, 0, 4) }):Play()
+
+	task.delay(5, function()
+		if notifFrame and notifFrame.Parent then
+			local outTweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+			TweenService:Create(notifFrame, outTweenInfo, { Position = UDim2.new(0.5, 0, 0, -80) }):Play()
+			task.wait(0.5)
+			notifFrame:Destroy()
+		end
 	end)
 end
 
---== Script Buttons ==--
-styleButton(Script1Btn, "🚀 Script GAG")
-Script1Btn.Parent = Content
-Script1Btn.MouseButton1Click:Connect(function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
-end)
-
-styleButton(Script2Btn, "🥚 ESP Egg")
-Script2Btn.Parent = Content
-Script2Btn.MouseButton1Click:Connect(function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()
-end)
-
-styleButton(Script3Btn, "🎲 Reroll (Next Update)")
-Script3Btn.Parent = Content
-Script3Btn.MouseButton1Click:Connect(function()
-	-- nanti diisi reroll server-side
-end)
-
-styleButton(Script4Btn, "📜 Remote Log")
-Script4Btn.Parent = Content
-
---== Floating PL Button ==--
-PLButton.Parent = ScreenGui
-PLButton.Size = UDim2.new(0, 55, 0, 55)
-PLButton.Position = UDim2.new(0.4, 0, 0.5, 0)
-PLButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-PLButton.Text = "P.L"
-PLButton.TextColor3 = Color3.fromRGB(0, 200, 255)
-PLButton.Font = Enum.Font.GothamBold
-PLButton.TextSize = 18
-PLButton.Visible = false
-PLButton.Active = true
-PLButton.Draggable = true
-Instance.new("UICorner", PLButton).CornerRadius = UDim.new(1, 0)
-local plStroke = Instance.new("UIStroke", PLButton)
-plStroke.Color = Color3.fromRGB(0, 200, 255)
-plStroke.Thickness = 2
-
---== Minimize / Restore / Close ==--
-MinimizeBtn.MouseButton1Click:Connect(function()
-	MainFrame.Visible = false
-	PLButton.Visible = true
-end)
-PLButton.MouseButton1Click:Connect(function()
-	MainFrame.Visible = true
-	PLButton.Visible = false
-end)
-CloseBtn.MouseButton1Click:Connect(function()
-	ScreenGui:Destroy()
-end)
-
---== Logger Menu 4 ==--
-local LogFrame = Instance.new("Frame")
-LogFrame.Parent = ScreenGui
-LogFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-LogFrame.Size = UDim2.new(0, 380, 0, 160)
-LogFrame.Position = UDim2.new(0.35, 0, 0.65, 0)
-LogFrame.Visible = false
-LogFrame.Active = true
-LogFrame.Draggable = true
-Instance.new("UICorner", LogFrame).CornerRadius = UDim.new(0, 8)
-local stroke = Instance.new("UIStroke", LogFrame)
-stroke.Color = Color3.fromRGB(0,200,255)
-stroke.Thickness = 1.5
-
-local Scrolling = Instance.new("ScrollingFrame", LogFrame)
-Scrolling.Size = UDim2.new(1, -6, 1, -6)
-Scrolling.Position = UDim2.new(0,3,0,3)
-Scrolling.CanvasSize = UDim2.new(0,0,0,0)
-Scrolling.ScrollBarThickness = 4
-Scrolling.BackgroundTransparency = 1
-local UIList = Instance.new("UIListLayout", Scrolling)
-UIList.SortOrder = Enum.SortOrder.LayoutOrder
-
-local function addLog(txt)
-	local lbl = Instance.new("TextLabel")
-	lbl.Parent = Scrolling
-	lbl.BackgroundTransparency = 1
-	lbl.Font = Enum.Font.Code
-	lbl.TextColor3 = Color3.fromRGB(200,200,200)
-	lbl.TextXAlignment = Enum.TextXAlignment.Left
-	lbl.TextSize = 14
-	lbl.Text = txt
-	lbl.Size = UDim2.new(1, -6, 0, 18)
-	Scrolling.CanvasSize = UDim2.new(0,0,0,UIList.AbsoluteContentSize.Y+10)
+function EggOracleSystem:ClosePanel()
+	local panel = self.Gui.ControlPanel
+	local showButton = self.Gui.ShowButton
+	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+	TweenService:Create(panel, tweenInfo, { Position = UDim2.new(0.5, 0, -0.5, 0) }):Play()
+	task.wait(0.3)
+	panel.Visible = false
+	showButton.Visible = true
+	TweenService:Create(showButton, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = UDim2.new(0, 20, 0, 20) }):Play()
 end
 
-Script4Btn.MouseButton1Click:Connect(function()
-	LogFrame.Visible = not LogFrame.Visible
-end)
+function EggOracleSystem:ShowPanel()
+	local panel = self.Gui.ControlPanel
+	local showButton = self.Gui.ShowButton
+	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+	TweenService:Create(showButton, tweenInfo, { Position = UDim2.new(0, -200, 0, 20) }):Play()
+	task.wait(0.3)
+	showButton.Visible = false
+	panel.Visible = true
+	TweenService:Create(panel, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = UDim2.new(0.5, -(215/2), 0, 30) }):Play()
+end
 
--- Hook Remotes
-for _, v in ipairs(game:GetDescendants()) do
-	if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-		if string.find(v.Name:lower(), "egg") or string.find(v.Name:lower(), "hatch") then
-			local name = v:GetFullName()
-			if v:IsA("RemoteEvent") then
-				v.OnClientEvent:Connect(function(...)
-					pcall(function()
-						addLog("[EVENT] "..name.." -> "..game:GetService("HttpService"):JSONEncode({...}))
-					end)
-				end)
-			end
-			if v:IsA("RemoteFunction") then
-				local old = v.OnClientInvoke
-				v.OnClientInvoke = function(...)
-					pcall(function()
-						addLog("[INVOKE] "..name.." -> "..game:GetService("HttpService"):JSONEncode({...}))
-					end)
-					if old then
-						return old(...)
-					end
-				end
-			end
+function EggOracleSystem:ToggleMinimizePanel()
+	self.IsMinimized = not self.IsMinimized
+	local panel = self.Gui.ControlPanel
+	local content = panel:FindFirstChild("Content")
+	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	if self.IsMinimized then
+		TweenService:Create(content, tweenInfo, { CanvasPosition = Vector2.new(0, 100) }):Play()
+		TweenService:Create(panel, tweenInfo, { Size = UDim2.fromOffset(215, 45) }):Play()
+	else
+		TweenService:Create(content, tweenInfo, { CanvasPosition = Vector2.new(0, 0) }):Play()
+		TweenService:Create(panel, tweenInfo, { Size = UDim2.fromOffset(215, 158) }):Play()
+	end
+end
+
+function EggOracleSystem:UpdateTagToReadyState(objectId)
+	local data = self.ActiveTags[objectId]
+	if not data then return end
+	local labels = data.Labels
+	local petName = data.RealPetName
+	local petRarity = self.MasterPetList[petName] or "Default"
+	local rarityColor = RARITY_COLORS[petRarity] or RARITY_COLORS.Default
+	if labels and labels.EggName then labels.EggName.Text = "Ready to Hatch!" end
+	if labels and labels.PetInfo then
+		labels.PetInfo.Text = petName
+		labels.PetInfo.TextColor3 = rarityColor
+	end
+	if labels and labels.Stroke then
+		labels.Stroke.Color = PALETTE.Ready
+	end
+	if labels and labels.RarityBar then
+		TweenService:Create(labels.RarityBar, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { BackgroundColor3 = rarityColor }):Play()
+	end
+end
+
+function EggOracleSystem:MarkAsReadyToHatch(objectId, petName)
+	local data = self.ActiveTags[objectId]
+	if not data or data.State == "Ready" then return end
+	data.State = "Ready"
+	data.RealPetName = petName
+	self:UpdateTagToReadyState(objectId)
+    self:PlaySoundEffect("1084944765")
+	local petRarity = self.MasterPetList[petName] or "Default"
+	if petRarity == "Legendary" or petRarity == "Divine" then
+		self:ShowRarityNotification(petName, petRarity)
+	end
+end
+
+function EggOracleSystem:RerollPet(objectId)
+	local data = self.ActiveTags[objectId]
+	if not data or not data.LootPool or data.State == "Ready" then return end
+	local labels = data.Labels
+	local selectedPet = self:SelectPetFromPool(data.LootPool)
+	if not selectedPet then
+		if labels and labels.PetInfo then labels.PetInfo.Text = "Simulation Error" end
+		return
+	end
+	local rarityColor = RARITY_COLORS[selectedPet.Rarity] or RARITY_COLORS.Default
+	
+	local petInfoLabel = labels.PetInfo
+	local flipTweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	
+	TweenService:Create(petInfoLabel, flipTweenInfo, { Size = UDim2.new(1, -15, 0, 0) }):Play()
+	task.wait(0.15)
+	petInfoLabel.Text = selectedPet.Name
+	petInfoLabel.TextColor3 = rarityColor
+	TweenService:Create(petInfoLabel, flipTweenInfo, { Size = UDim2.new(1, -15, 0.5, 0) }):Play()
+	
+	if labels and labels.RarityBar then
+		TweenService:Create(labels.RarityBar, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { BackgroundColor3 = rarityColor }):Play()
+	end
+end
+
+function EggOracleSystem:RerollAll()
+	if self.IsRerolling then return end
+	self.IsRerolling = true
+    self:PlaySoundEffect("9117572441")
+	for objectId, data in pairs(self.ActiveTags) do
+        if data.State ~= "Ready" then
+		    self:RerollPet(objectId)
+        end
+	end
+	task.delay(REROLL_DEBOUNCE_SECONDS, function()
+		self.IsRerolling = false
+	end)
+end
+
+function EggOracleSystem:ToggleESP()
+	self.IsEnabled = not self.IsEnabled
+    self:PlaySoundEffect(self.IsEnabled and "9117572441" or "9117572127")
+	for _, data in pairs(self.ActiveTags) do
+		if data.Tag then data.Tag.Visible = self.IsEnabled end
+	end
+	local button = self.Gui.ToggleButton
+	local stroke = self.Gui.ToggleStroke
+	if self.IsEnabled then
+		if button then button.Text = "ESP: ON" end
+		if stroke then stroke.Color = PALETTE.Success end
+	else
+		if button then button.Text = "ESP: OFF" end
+		if stroke then stroke.Color = PALETTE.Failure end
+	end
+end
+
+function EggOracleSystem:ToggleNameVisibility()
+	self.AreNamesVisible = not self.AreNamesVisible
+	local userLabel = self.Gui.UserLabel
+	local hideNameButton = self.Gui.HideNameButton
+	local hideNameStroke = self.Gui.HideNameStroke
+	if userLabel then userLabel.Visible = self.AreNamesVisible end
+	if hideNameButton and hideNameStroke then
+		if self.AreNamesVisible then
+			hideNameButton.Text = "Hide Name/Username"
+			hideNameStroke.Color = PALETTE.Accent
+		else
+			hideNameButton.Text = "Show Name/Username"
+			hideNameStroke.Color = PALETTE.Failure
 		end
 	end
 end
+
+function EggOracleSystem:OnRender()
+	if not self.IsEnabled then return end
+	for objectId, data in pairs(self.ActiveTags) do
+		local object = data.Instance
+		local tagFrame = data.Tag
+		if not object or not object.Parent or not object:IsDescendantOf(workspace) then
+			self:Untrack(objectId)
+			continue
+		end
+		local objectPosition = object:GetPivot().Position
+		local position, onScreen = CurrentCamera:WorldToViewportPoint(objectPosition)
+		if onScreen then
+			if tagFrame then
+				tagFrame.Position = UDim2.fromOffset(position.X, position.Y - 40)
+				tagFrame.Visible = true
+			end
+		else
+			if tagFrame then tagFrame.Visible = false end
+		end
+	end
+end
+
+function EggOracleSystem:Track(object)
+	if object:GetAttribute("OWNER") ~= LocalPlayer.Name then return end
+	local objectId = object:GetAttribute("OBJECT_UUID")
+	if not objectId or self.ActiveTags[objectId] then return end
+	local eggName = object:GetAttribute("EggName") or "Unknown Egg"
+	local tagFrame, labels = self:CreateTag()
+	if labels and labels.EggName then labels.EggName.Text = eggName end
+	local data = {
+		Tag = tagFrame, Labels = labels, Instance = object,
+		State = "Simulating", RealPetName = nil,
+		LootPool = self.SimulatedLootTables[eggName] or self.SimulatedLootTables["Default"],
+	}
+	self.ActiveTags[objectId] = data
+	local realPetName = self.GameInternals.EggPets and self.GameInternals.EggPets[objectId]
+	if realPetName then
+		self:MarkAsReadyToHatch(objectId, realPetName)
+	else
+		self:RerollPet(objectId)
+	end
+	if tagFrame then
+        tagFrame.Parent = self.Gui.ESPContainer
+        local background = tagFrame:FindFirstChild("Background")
+        background.BackgroundTransparency = 1
+        labels.Stroke.Transparency = 1
+        labels.EggName.TextTransparency = 1
+        labels.PetInfo.TextTransparency = 1
+        local tweenInfo = TweenInfo.new(0.3)
+        TweenService:Create(background, tweenInfo, { BackgroundTransparency = 0.3 }):Play()
+        TweenService:Create(labels.Stroke, tweenInfo, { Transparency = 0 }):Play()
+        TweenService:Create(labels.EggName, tweenInfo, { TextTransparency = 0 }):Play()
+        TweenService:Create(labels.PetInfo, tweenInfo, { TextTransparency = 0 }):Play()
+    end
+end
+
+function EggOracleSystem:Untrack(object)
+	local objectId = typeof(object) == "Instance" and object:GetAttribute("OBJECT_UUID") or object
+	if not objectId or not self.ActiveTags[objectId] then return end
+	local data = self.ActiveTags[objectId]
+	if data.Tag then data.Tag:Destroy() end
+	self.ActiveTags[objectId] = nil
+end
+
+function EggOracleSystem:Initialize()
+	task.spawn(function()
+		local success, conn = pcall(function()
+			return getconnections(ReplicatedStorage.GameEvents.PetEggService.OnClientEvent)
+		end)
+		if not success or not conn[1] then return end
+		local hatchFunction = getupvalue(getupvalue(conn[1].Function, 1), 2)
+		self.GameInternals.EggPets = getupvalue(hatchFunction, 2)
+		
+		local success2, conn2 = pcall(function()
+			return getconnections(ReplicatedStorage.GameEvents.EggReadyToHatch_RE.OnClientEvent)
+		end)
+		if not success2 or not conn2[1] then return end
+		local old; old = hookfunction(conn2[1].Function, newcclosure(function(_, objectId, petName)
+			self:MarkAsReadyToHatch(objectId, petName)
+			return old(_, objectId, petName)
+		end))
+	end)
+    
+    local PetRegistry = require(ReplicatedStorage.Data.PetRegistry.PetList)
+    local EggData = require(ReplicatedStorage.Data.PetRegistry.PetEggs)
+
+	self:ProcessMasterPetList(PetRegistry)
+	self:ProcessEggLootTables(EggData)
+	self:CreateESPContainer()
+	self:CreateControlPanel()
+	self:CreateShowButton()
+	if self.Gui.ESPContainer then self.Gui.ESPContainer.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+	CollectionService:GetInstanceAddedSignal("PetEggServer"):Connect(function(instance) self:Track(instance) end)
+	CollectionService:GetInstanceRemovedSignal("PetEggServer"):Connect(function(instance) self:Untrack(instance) end)
+	for _, instance in pairs(CollectionService:GetTagged("PetEggServer")) do
+		self:Track(instance)
+	end
+	RunService.PreRender:Connect(function() self:OnRender() end)
+end
+
+coroutine.wrap(function()
+	if not LocalPlayer or not LocalPlayer.Character then
+		Players.LocalPlayer.CharacterAdded:Wait()
+	end
+	EggOracleSystem:Initialize()
+end)()
