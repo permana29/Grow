@@ -1,4 +1,4 @@
---// Hook Explorer + Data Decoder (Final Stable Version)
+--// Hook Explorer + Data Decoder (Final Stable + Search + Copy)
 
 -- Services
 local RS = game:GetService("ReplicatedStorage")
@@ -11,7 +11,7 @@ local function CreateWindow(title)
     ScreenGui.Parent = game.CoreGui
 
     local Main = Instance.new("Frame")
-    Main.Size = UDim2.new(0, 500, 0, 350)
+    Main.Size = UDim2.new(0, 500, 0, 380)
     Main.Position = UDim2.new(0.25, 0, 0.2, 0)
     Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
     Main.BorderSizePixel = 0
@@ -91,9 +91,8 @@ DataButton.TextColor3 = Color3.new(1,1,1)
 DataButton.Parent = Tabs
 
 -- Pages
-local RemotePage = Instance.new("ScrollingFrame")
+local RemotePage = Instance.new("Frame")
 RemotePage.Size = UDim2.new(1,0,1,0)
-RemotePage.CanvasSize = UDim2.new(0,0,0,0)
 RemotePage.BackgroundTransparency = 1
 RemotePage.Visible = true
 RemotePage.Parent = Content
@@ -129,6 +128,34 @@ Clear.Parent = ControlFrame
 
 ControlFrame.Visible = false
 
+-- Remote Scanner UI
+local SearchBox = Instance.new("TextBox")
+SearchBox.Size = UDim2.new(1, -100, 0, 25)
+SearchBox.Position = UDim2.new(0,5,0,5)
+SearchBox.PlaceholderText = "Search Remote..."
+SearchBox.Text = ""
+SearchBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
+SearchBox.TextColor3 = Color3.new(1,1,1)
+SearchBox.Parent = RemotePage
+
+local CopyBtn = Instance.new("TextButton")
+CopyBtn.Size = UDim2.new(0,90,0,25)
+CopyBtn.Position = UDim2.new(1,-95,0,5)
+CopyBtn.Text = "Copy Selected"
+CopyBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+CopyBtn.TextColor3 = Color3.new(1,1,1)
+CopyBtn.Parent = RemotePage
+
+local RemoteList = Instance.new("ScrollingFrame")
+RemoteList.Size = UDim2.new(1, -10, 1, -35)
+RemoteList.Position = UDim2.new(0,5,0,35)
+RemoteList.CanvasSize = UDim2.new(0,0,0,0)
+RemoteList.BackgroundTransparency = 1
+RemoteList.Parent = RemotePage
+
+local SelectedRemote = nil
+local AllRemotes = {}
+
 -- Switch tabs
 RemoteButton.MouseButton1Click:Connect(function()
     RemotePage.Visible = true
@@ -158,37 +185,60 @@ Minimize.MouseButton1Click:Connect(function()
     else
         Content.Visible = true
         Tabs.Visible = true
-        Main.Size = UDim2.new(0,500,0,350)
+        Main.Size = UDim2.new(0,500,0,380)
     end
 end)
 
 ----------------------------------------------------------------
 -- Remote Scanner Tab
 ----------------------------------------------------------------
-local function ScanRemotes()
-    RemotePage:ClearAllChildren()
+local function RenderRemotes(filter)
+    RemoteList:ClearAllChildren()
     local y = 0
-    local function addRemote(obj)
-        local btn = Instance.new("TextLabel")
-        btn.Size = UDim2.new(1,0,0,20)
-        btn.Position = UDim2.new(0,0,0,y)
-        btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
-        btn.TextColor3 = Color3.new(1,1,1)
-        btn.Text = tostring(obj:GetFullName())
-        btn.TextSize = 14
-        btn.TextXAlignment = Enum.TextXAlignment.Left
-        btn.Parent = RemotePage
-        y = y + 22
-    end
+    for _,obj in ipairs(AllRemotes) do
+        if not filter or string.find(string.lower(obj:GetFullName()), string.lower(filter)) then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1,0,0,20)
+            btn.Position = UDim2.new(0,0,0,y)
+            btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+            btn.TextColor3 = Color3.new(1,1,1)
+            btn.TextXAlignment = Enum.TextXAlignment.Left
+            btn.TextSize = 14
+            btn.Text = tostring(obj:GetFullName())
+            btn.Parent = RemoteList
+            y = y + 22
 
-    for _,desc in ipairs(RS:GetDescendants()) do
-        if desc:IsA("RemoteEvent") or desc:IsA("RemoteFunction") then
-            addRemote(desc)
+            btn.MouseButton1Click:Connect(function()
+                SelectedRemote = obj
+                btn.BackgroundColor3 = Color3.fromRGB(80,80,120)
+            end)
         end
     end
-    RemotePage.CanvasSize = UDim2.new(0,0,0,y)
+    RemoteList.CanvasSize = UDim2.new(0,0,0,y)
+end
+
+local function ScanRemotes()
+    AllRemotes = {}
+    for _,desc in ipairs(RS:GetDescendants()) do
+        if desc:IsA("RemoteEvent") or desc:IsA("RemoteFunction") then
+            table.insert(AllRemotes, desc)
+        end
+    end
+    RenderRemotes()
 end
 ScanRemotes()
+
+SearchBox.Changed:Connect(function(prop)
+    if prop == "Text" then
+        RenderRemotes(SearchBox.Text)
+    end
+end)
+
+CopyBtn.MouseButton1Click:Connect(function()
+    if SelectedRemote then
+        setclipboard(SelectedRemote:GetFullName())
+    end
+end)
 
 ----------------------------------------------------------------
 -- Data Decoder Tab
