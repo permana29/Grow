@@ -1,114 +1,179 @@
--- ===============================
--- Loader Permana v2 Final Fix ESP
--- Desain asli tetap sama, Menu 2 ESP ON lengkap
--- ===============================
+-- Permana Loader v3
+-- Desain lebih modern dengan rounded, glow, gradient
+-- By ChatGPT x Permana
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local RunService = game:GetService("RunService")
-
--- ===============================
--- Loader ScreenGui
--- ===============================
-local Loader = Instance.new("ScreenGui")
-Loader.Name = "PermanaV2Loader"
-Loader.Parent = PlayerGui
-
+local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 300, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.Parent = Loader
+local TopBar = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local MinimizeBtn = Instance.new("TextButton")
+local CloseBtn = Instance.new("TextButton")
+local Content = Instance.new("Frame")
+local UIListLayout = Instance.new("UIListLayout")
 
--- Menu Buttons (sesuai desain asli)
-local function CreateMenuButton(text, positionY)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 280, 0, 50)
-    btn.Position = UDim2.new(0, 10, 0, positionY)
-    btn.Text = text
-    btn.Parent = MainFrame
-    return btn
+-- Floating PL button
+local PLButton = Instance.new("TextButton")
+
+-- Buttons
+local Script1Btn = Instance.new("TextButton")
+local Script2Btn = Instance.new("TextButton")
+local Script3Btn = Instance.new("TextButton")
+
+-- Parent
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+--== Main Frame ==--
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
+MainFrame.Size = UDim2.new(0, 280, 0, 210)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+-- Rounded
+local frameCorner = Instance.new("UICorner", MainFrame)
+frameCorner.CornerRadius = UDim.new(0, 12)
+
+-- Glow Border
+local frameStroke = Instance.new("UIStroke", MainFrame)
+frameStroke.Thickness = 2
+frameStroke.Color = Color3.fromRGB(0, 200, 255)
+frameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+--== Top Bar ==--
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+
+local topCorner = Instance.new("UICorner", TopBar)
+topCorner.CornerRadius = UDim.new(0, 12)
+
+Title.Parent = TopBar
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, -70, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "⚡ Permana Loader ⚡"
+Title.TextColor3 = Color3.fromRGB(0, 200, 255)
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Minimize
+MinimizeBtn.Parent = TopBar
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+MinimizeBtn.Size = UDim2.new(0, 30, 0, 22)
+MinimizeBtn.Position = UDim2.new(1, -65, 0.2, 0)
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextSize = 20
+
+Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
+
+-- Close
+CloseBtn.Parent = TopBar
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.Size = UDim2.new(0, 30, 0, 22)
+CloseBtn.Position = UDim2.new(1, -33, 0.2, 0)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 18
+
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+
+--== Content ==--
+Content.Parent = MainFrame
+Content.BackgroundTransparency = 1
+Content.Position = UDim2.new(0, 0, 0, 40)
+Content.Size = UDim2.new(1, 0, 1, -40)
+
+UIListLayout.Parent = Content
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+--== Style Buttons ==--
+local function styleButton(btn, text)
+	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	btn.Size = UDim2.new(0.85, 0, 0, 40)
+	btn.Text = text
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 14
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+
+	local stroke = Instance.new("UIStroke", btn)
+	stroke.Color = Color3.fromRGB(0, 200, 255)
+	stroke.Thickness = 1.5
+
+	-- Hover efek
+	btn.MouseEnter:Connect(function()
+		btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+	end)
+	btn.MouseLeave:Connect(function()
+		btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	end)
 end
 
-local Menu1Button = CreateMenuButton("Menu 1", 20)
-local Menu2Button = CreateMenuButton("Menu 2 - ESP ON", 80)
-local Menu3Button = CreateMenuButton("Menu 3", 140)
-local Menu4Button = CreateMenuButton("Menu 4", 200)
+-- Script GAG
+styleButton(Script1Btn, "🚀 Script GAG")
+Script1Btn.Parent = Content
+Script1Btn.MouseButton1Click:Connect(function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
 
--- ===============================
--- Menu 2 - ESP ON
--- ===============================
-
-local ESPEnabled = false
-local ESPObjects = {}
-
--- Fungsi utama ESP ON (persis seperti file 710 baris ESP asli)
-local function ESP_On()
-    if ESPEnabled then return end
-    ESPEnabled = true
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            -- Highlight ESP
-            local highlight = Instance.new("Highlight")
-            highlight.Name = "ESPHighlight"
-            highlight.Adornee = player.Character
-            highlight.FillColor = Color3.fromRGB(0, 255, 0)
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            highlight.Parent = workspace
-            table.insert(ESPObjects, highlight)
-
-            -- Tambahan ESP box/text sesuai logika asli
-            -- Contoh minimal: BillboardGui dengan nama pemain
-            local billboard = Instance.new("BillboardGui")
-            billboard.Name = "ESPBillboard"
-            billboard.Adornee = player.Character:FindFirstChild("Head")
-            billboard.Size = UDim2.new(0, 100, 0, 50)
-            billboard.StudsOffset = Vector3.new(0, 2, 0)
-            billboard.AlwaysOnTop = true
-            billboard.Parent = workspace
-
-            local textLabel = Instance.new("TextLabel")
-            textLabel.Size = UDim2.new(1,0,1,0)
-            textLabel.BackgroundTransparency = 1
-            textLabel.TextColor3 = Color3.fromRGB(0,255,0)
-            textLabel.TextStrokeTransparency = 0
-            textLabel.TextScaled = true
-            textLabel.Text = player.Name
-            textLabel.Parent = billboard
-
-            table.insert(ESPObjects, billboard)
-        end
-    end
-
-    print("ESP ON aktif")
-end
-
-local function ESP_Off()
-    if not ESPEnabled then return end
-    ESPEnabled = false
-
-    for _, obj in pairs(ESPObjects) do
-        if obj and obj.Parent then
-            obj:Destroy()
-        end
-    end
-    ESPObjects = {}
-    print("ESP OFF nonaktif")
-end
-
--- Toggle ESP ON/OFF melalui Menu 2
-Menu2Button.MouseButton1Click:Connect(function()
-    if ESPEnabled then
-        ESP_Off()
-    else
-        ESP_On()
-    end
 end)
 
--- ===============================
--- Loader siap
--- ===============================
-print("Loader Permana v2 final siap. Menu 2 ESP ON lengkap sudah terintegrasi.")
+-- Menu 2
+styleButton(Script2Btn, "🥚 ESP")
+Script2Btn.Parent = Content
+Script2Btn.MouseButton1Click:Connect(function()
+	-- isi scriptmu di sini
+     loadstring(game:HttpGet("https://raw.githubusercontent.com/DupeNew/loader/refs/heads/main/EggRandomizer"))()
+
+end)
+
+-- Menu 3
+styleButton(Script3Btn, "📂 Next Update")
+Script3Btn.Parent = Content
+Script3Btn.MouseButton1Click:Connect(function()
+	-- isi scriptmu di sini
+end)
+
+--== Floating PL Button ==--
+PLButton.Parent = ScreenGui
+PLButton.Size = UDim2.new(0, 55, 0, 55)
+PLButton.Position = UDim2.new(0.4, 0, 0.5, 0)
+PLButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+PLButton.Text = "P.L"
+PLButton.TextColor3 = Color3.fromRGB(0, 200, 255)
+PLButton.Font = Enum.Font.GothamBold
+PLButton.TextSize = 18
+PLButton.Visible = false
+PLButton.Active = true
+PLButton.Draggable = true
+
+Instance.new("UICorner", PLButton).CornerRadius = UDim.new(1, 0)
+
+local plStroke = Instance.new("UIStroke", PLButton)
+plStroke.Color = Color3.fromRGB(0, 200, 255)
+plStroke.Thickness = 2
+
+--== Minimize Logic ==--
+MinimizeBtn.MouseButton1Click:Connect(function()
+	MainFrame.Visible = false
+	PLButton.Visible = true
+end)
+
+--== Restore Logic ==--
+PLButton.MouseButton1Click:Connect(function()
+	MainFrame.Visible = true
+	PLButton.Visible = false
+end)
+
+--== Close Logic ==--
+CloseBtn.MouseButton1Click:Connect(function()
+	ScreenGui:Destroy()
+end)
