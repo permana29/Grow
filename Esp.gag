@@ -1,11 +1,4 @@
---== Permana Loader + Integrasi ESP 710 + Reroll Manual + Remote Log ==--
-
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local CollectionService = game:GetService("CollectionService")
-local HttpService = game:GetService("HttpService")
-
-local LP = Players.LocalPlayer
+--== Permana Loader (Fix Run + ESP 710 Integrasi) ==--
 
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
@@ -22,31 +15,27 @@ local PLButton = Instance.new("TextButton")
 -- Buttons
 local Script1Btn = Instance.new("TextButton")
 local Script2Btn = Instance.new("TextButton") -- ESP
-local Script3Btn = Instance.new("TextButton") -- Reroll manual (server attempt)
-local Script4Btn = Instance.new("TextButton") -- Remote Log
+local Script3Btn = Instance.new("TextButton")
+local Script4Btn = Instance.new("TextButton")
 
 -- Parent
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Name = "PermanaLoader_UI"
 
 --== Main Frame ==--
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
-MainFrame.Size = UDim2.new(0, 280, 0, 300)
+MainFrame.Size = UDim2.new(0, 280, 0, 250)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
--- Rounded
 local frameCorner = Instance.new("UICorner", MainFrame)
 frameCorner.CornerRadius = UDim.new(0, 12)
 
--- Glow Border
 local frameStroke = Instance.new("UIStroke", MainFrame)
 frameStroke.Thickness = 2
 frameStroke.Color = Color3.fromRGB(0, 200, 255)
-frameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 --== Top Bar ==--
 TopBar.Parent = MainFrame
@@ -99,7 +88,7 @@ UIListLayout.Padding = UDim.new(0, 10)
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
---== Utilities ==--
+--== Style Buttons ==--
 local function styleButton(btn, text)
 	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 	btn.Size = UDim2.new(0.85, 0, 0, 40)
@@ -107,17 +96,29 @@ local function styleButton(btn, text)
 	btn.Font = Enum.Font.GothamBold
 	btn.TextSize = 14
 	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
 	local stroke = Instance.new("UIStroke", btn)
 	stroke.Color = Color3.fromRGB(0, 200, 255)
 	stroke.Thickness = 1.5
+
 	btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(55,55,55) end)
 	btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(35,35,35) end)
 end
 
--- helper untuk cari GUI & tombol dari script 710
+-- Script 1
+styleButton(Script1Btn, "🚀 Script GAG")
+Script1Btn.Parent = Content
+Script1Btn.MouseButton1Click:Connect(function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
+end)
+
+--== ESP 710 ==--
+styleButton(Script2Btn, "🥚 ESP")
+Script2Btn.Parent = Content
+
 local function getEggOracleGui()
-	for _, pg in ipairs(LP:WaitForChild("PlayerGui"):GetChildren()) do
+	for _, pg in ipairs(game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"):GetChildren()) do
 		if pg:IsA("ScreenGui") and pg.Name == "EggOracle_Container" then
 			return pg
 		end
@@ -127,401 +128,73 @@ local function getEggOracleGui()
 			return cg
 		end
 	end
-	return nil
 end
 
--- pastikan border biru
-local function ensureBlueStroke(tagFrame)
-	if not tagFrame then return end
-	local bg = tagFrame:FindFirstChild("Background")
-	if not bg then return end
-	local stroke = bg:FindFirstChildOfClass("UIStroke")
-	if not stroke then return end
-	stroke.Color = Color3.fromRGB(0,200,255)
-	stroke.Changed:Connect(function(prop)
-		if prop=="Color" then
-			stroke.Color = Color3.fromRGB(0,200,255)
-		end
-	end)
-end
-
-local function applyBlueToAllTags(container)
-	if not container then return end
-	for _, f in ipairs(container:GetDescendants()) do
-		if f:IsA("Frame") and f.Name == "Background" and f.Parent and f.Parent:IsA("Frame") then
-			ensureBlueStroke(f.Parent)
-		end
-	end
-	container.DescendantAdded:Connect(function(d)
-		if d:IsA("Frame") and d.Name == "Background" and d.Parent and d.Parent:IsA("Frame") then
-			ensureBlueStroke(d.Parent)
-		end
-		-- auto-hide UI bawaan bila kebentuk lagi
-		if d:IsA("Frame") and d.Name == "ControlPanel" then d.Visible = false end
-		if d:IsA("TextButton") and d.Name == "ShowButton" then d.Visible = false end
-	end)
-end
-
--- toggle ESP via tombol asli skrip 710
-local function toggleESPViaButton(container, forceState)
-	if not container then return end
-	local panel = container:FindFirstChild("ControlPanel")
-	local content = panel and panel:FindFirstChild("Content")
-	local toggleBtn = content and content:FindFirstChild("ToggleButton")
-	if not (toggleBtn and toggleBtn:IsA("TextButton")) then return end
-	local function isOn() return string.find(toggleBtn.Text or "", "ON") ~= nil end
-	if forceState == nil then
-		pcall(function() firesignal(toggleBtn.MouseButton1Click) end)
-	else
-		if forceState and not isOn() then pcall(function() firesignal(toggleBtn.MouseButton1Click) end) end
-		if (forceState == false) and isOn() then pcall(function() firesignal(toggleBtn.MouseButton1Click) end) end
+local function safeClick(btn)
+	if not btn then return end
+	local ok = pcall(function() firesignal(btn.MouseButton1Click) end)
+	if not ok then
+		game:GetService("VirtualInputManager"):SendMouseButtonEvent(0,0,0,true,game,0)
+		game:GetService("VirtualInputManager"):SendMouseButtonEvent(0,0,0,false,game,0)
 	end
 end
 
--- sembunyikan UI bawaan 710
-local function hideOracleUI(container)
-	if not container then return end
-	local cp = container:FindFirstChild("ControlPanel")
-	if cp then cp.Visible = false end
-	local sb = container:FindFirstChild("ShowButton")
-	if sb then sb.Visible = false end
-end
+local ESP_LOADED, ESP_ON = false, false
 
---== BUTTON 1: Script GAG ==--
-styleButton(Script1Btn, "🚀 Script GAG")
-Script1Btn.Parent = Content
-Script1Btn.MouseButton1Click:Connect(function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
-end)
-
---== BUTTON 2: ESP 710 Integrasi (tanpa UI dia) ==--
-styleButton(Script2Btn, "🥚 ESP")
-Script2Btn.Parent = Content
-
-local ESP_LOADED = false
-local ESP_ON = false
 Script2Btn.MouseButton1Click:Connect(function()
-	local container = getEggOracleGui()
-	if not ESP_LOADED or not container then
+	if not ESP_LOADED then
 		local ok, err = pcall(function()
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()
 		end)
-		if not ok then
-			warn("Gagal load ESP 710: ".. tostring(err))
-			return
-		end
-		container = getEggOracleGui()
-		if not container then
-			warn("ESP 710 tidak membuat GUI container. Klik lagi.")
-			return
-		end
-		hideOracleUI(container)
-		applyBlueToAllTags(container)
-		-- double check ON
-		toggleESPViaButton(container, true)
-		task.delay(0.25, function()
-			toggleESPViaButton(container, true)
+		if not ok then warn("Gagal load ESP 710:", err) return end
+
+		task.spawn(function()
+			local gui
+			repeat
+				gui = getEggOracleGui()
+				task.wait(0.2)
+			until gui
+
+			local panel = gui:WaitForChild("ControlPanel", 5)
+			if panel then
+				panel.Visible = false
+			end
+			local showBtn = gui:FindFirstChild("ShowButton")
+			if showBtn then showBtn.Visible = false end
+
+			-- aktifkan ESP awal
+			local toggle = panel and panel:FindFirstChild("Content") and panel.Content:FindFirstChild("ToggleButton")
+			if toggle then safeClick(toggle) end
+			ESP_ON = true
+			Script2Btn.Text = "🥚 ESP: ON"
 		end)
-		ESP_LOADED, ESP_ON = true, true
-		Script2Btn.Text = "🥚 ESP: ON"
+
+		ESP_LOADED = true
 	else
-		toggleESPViaButton(container, nil)
-		local panel = container:FindFirstChild("ControlPanel")
-		local content = panel and panel:FindFirstChild("Content")
-		local toggleBtn = content and content:FindFirstChild("ToggleButton")
-		if toggleBtn and toggleBtn:IsA("TextButton") then
-			ESP_ON = string.find(toggleBtn.Text or "", "ON") ~= nil
+		local gui = getEggOracleGui()
+		if not gui then return end
+		local toggle = gui:FindFirstChild("ControlPanel") and gui.ControlPanel:FindFirstChild("Content") and gui.ControlPanel.Content:FindFirstChild("ToggleButton")
+		if toggle then
+			safeClick(toggle)
+			ESP_ON = not ESP_ON
 			Script2Btn.Text = ESP_ON and "🥚 ESP: ON" or "🥚 ESP: OFF"
 		end
-		hideOracleUI(container) -- jaga2 UI dia muncul
 	end
 end)
 
---== BUTTON 3: Reroll Manual (server attempt) ==--
-styleButton(Script3Btn, "🎲 Reroll Manual")
+--== Menu 3: Manual Reroll (coming soon) ==--
+styleButton(Script3Btn, "🎲 Manual Reroll")
 Script3Btn.Parent = Content
-
--- Reroll Panel
-local RerollFrame = Instance.new("Frame")
-RerollFrame.Parent = ScreenGui
-RerollFrame.BackgroundColor3 = Color3.fromRGB(22,22,22)
-RerollFrame.Size = UDim2.new(0, 360, 0, 230)
-RerollFrame.Position = UDim2.new(0.35, 0, 0.58, 0)
-RerollFrame.Visible = false
-RerollFrame.Active = true
-RerollFrame.Draggable = true
-Instance.new("UICorner", RerollFrame).CornerRadius = UDim.new(0,8)
-local rrStroke = Instance.new("UIStroke", RerollFrame)
-rrStroke.Color = Color3.fromRGB(0,200,255)
-rrStroke.Thickness = 1.5
-
-local rrTitle = Instance.new("TextLabel", RerollFrame)
-rrTitle.BackgroundTransparency = 1
-rrTitle.Size = UDim2.new(1, -10, 0, 24)
-rrTitle.Position = UDim2.new(0, 8, 0, 8)
-rrTitle.Font = Enum.Font.GothamBold
-rrTitle.TextSize = 16
-rrTitle.TextXAlignment = Enum.TextXAlignment.Left
-rrTitle.TextColor3 = Color3.fromRGB(0,200,255)
-rrTitle.Text = "🎲 Reroll Manual (Server Attempt)"
-
-local RefreshBtn = Instance.new("TextButton", RerollFrame)
-RefreshBtn.Size = UDim2.new(0, 80, 0, 24)
-RefreshBtn.Position = UDim2.new(1, -88, 0, 8)
-RefreshBtn.Text = "Refresh"
-RefreshBtn.Font = Enum.Font.GothamBold
-RefreshBtn.TextSize = 14
-RefreshBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-RefreshBtn.TextColor3 = Color3.fromRGB(255,255,255)
-Instance.new("UICorner", RefreshBtn).CornerRadius = UDim.new(0,6)
-local rbst = Instance.new("UIStroke", RefreshBtn) rbst.Color = Color3.fromRGB(0,200,255)
-
-local List = Instance.new("ScrollingFrame", RerollFrame)
-List.Position = UDim2.new(0, 8, 0, 40)
-List.Size = UDim2.new(1, -16, 1, -48)
-List.BackgroundTransparency = 1
-List.ScrollBarThickness = 4
-List.CanvasSize = UDim2.new(0,0,0,0)
-local ListLayout = Instance.new("UIListLayout", List)
-ListLayout.Padding = UDim.new(0,6)
-
--- simple logger label (bottom)
-local RRNote = Instance.new("TextLabel", RerollFrame)
-RRNote.BackgroundTransparency = 1
-RRNote.Size = UDim2.new(1, -16, 0, 16)
-RRNote.Position = UDim2.new(0, 8, 1, -20)
-RRNote.Font = Enum.Font.Code
-RRNote.TextSize = 12
-RRNote.TextXAlignment = Enum.TextXAlignment.Left
-RRNote.TextColor3 = Color3.fromRGB(200,200,200)
-RRNote.Text = "Log: -"
-
--- kumpulin egg milik player
-local function getOwnedEggs()
-	local eggs = {}
-	for _, inst in ipairs(CollectionService:GetTagged("PetEggServer")) do
-		if inst and inst:GetAttribute("OWNER") == LP.Name then
-			local uuid = inst:GetAttribute("OBJECT_UUID")
-			local eggName = inst:GetAttribute("EggName") or "Unknown Egg"
-			table.insert(eggs, {Instance=inst, UUID=uuid, Name=eggName})
-		end
-	end
-	return eggs
-end
-
--- cari kandidat remote untuk reroll
-local function findRerollRemotes()
-	local candidates = {}
-	local function consider(obj)
-		local n = obj.Name:lower()
-		if (n:find("reroll") or n:find("re_roll") or n:find("roll")) and (n:find("egg") or n:find("hatch")) then
-			table.insert(candidates, obj)
-		end
-	end
-	for _, d in ipairs(ReplicatedStorage:GetDescendants()) do
-		if d:IsA("RemoteEvent") or d:IsA("RemoteFunction") then
-			consider(d)
-		end
-	end
-	-- beberapa nama umum tambahan
-	local path1 = ReplicatedStorage:FindFirstChild("GameEvents")
-	if path1 then
-		for _, d in ipairs(path1:GetDescendants()) do
-			if d:IsA("RemoteEvent") or d:IsA("RemoteFunction") then
-				consider(d)
-			end
-		end
-	end
-	return candidates
-end
-
--- kirim percobaan reroll ke server (best-effort, aman bila server nolak)
-local function tryServerReroll(uuid)
-	if not uuid then return false, "UUID kosong" end
-	local remotes = findRerollRemotes()
-	if #remotes == 0 then
-		return false, "Tidak ada remote 'reroll' terdeteksi"
-	end
-	-- coba beberapa pola payload umum
-	local payloads = {
-		uuid,
-		{uuid},
-		{ObjectId = uuid},
-		{OBJECT_UUID = uuid},
-		{EggId = uuid},
-		{Cmd = "Reroll", ObjectId = uuid},
-		{Action = "Reroll", ObjectId = uuid},
-	}
-	for _, r in ipairs(remotes) do
-		for _, pay in ipairs(payloads) do
-			local ok, res
-			if r:IsA("RemoteEvent") then
-				ok, res = pcall(function() r:FireServer(pay) end)
-			else
-				ok, res = pcall(function() return r:InvokeServer(pay) end)
-			end
-			if ok then
-				return true, ("OK via %s -> %s"):format(r:GetFullName(), typeof(pay)=="table" and HttpService:JSONEncode(pay) or tostring(pay))
-			end
-		end
-	end
-	return false, "Semua percobaan ditolak server"
-end
-
--- render list item
-local function makeEggRow(info)
-	local row = Instance.new("Frame")
-	row.Size = UDim2.new(1, 0, 0, 36)
-	row.BackgroundColor3 = Color3.fromRGB(30,30,30)
-	row.Parent = List
-	Instance.new("UICorner", row).CornerRadius = UDim.new(0,6)
-	local st = Instance.new("UIStroke", row) st.Color = Color3.fromRGB(60,60,60)
-
-	local name = Instance.new("TextLabel", row)
-	name.BackgroundTransparency = 1
-	name.Position = UDim2.new(0, 8, 0, 4)
-	name.Size = UDim2.new(1, -180, 0, 14)
-	name.Font = Enum.Font.GothamBold
-	name.TextSize = 13
-	name.TextXAlignment = Enum.TextXAlignment.Left
-	name.TextColor3 = Color3.fromRGB(255,255,255)
-	name.Text = string.format("%s", info.Name or "Egg")
-
-	local uuidLbl = Instance.new("TextLabel", row)
-	uuidLbl.BackgroundTransparency = 1
-	uuidLbl.Position = UDim2.new(0, 8, 0, 18)
-	uuidLbl.Size = UDim2.new(1, -180, 0, 14)
-	uuidLbl.Font = Enum.Font.Code
-	uuidLbl.TextSize = 12
-	uuidLbl.TextXAlignment = Enum.TextXAlignment.Left
-	uuidLbl.TextColor3 = Color3.fromRGB(180,180,180)
-	uuidLbl.Text = string.sub(tostring(info.UUID or "?"),1,20)
-
-	local r1 = Instance.new("TextButton", row)
-	r1.Size = UDim2.new(0, 70, 0, 26)
-	r1.Position = UDim2.new(1, -150, 0.5, -13)
-	r1.Text = "Reroll 1x"
-	r1.Font = Enum.Font.Gotham
-	r1.TextSize = 13
-	r1.BackgroundColor3 = Color3.fromRGB(40,40,40)
-	r1.TextColor3 = Color3.fromRGB(255,255,255)
-	Instance.new("UICorner", r1).CornerRadius = UDim.new(0,6)
-	local r1st = Instance.new("UIStroke", r1) r1st.Color = Color3.fromRGB(0,200,255)
-
-	local r10 = Instance.new("TextButton", row)
-	r10.Size = UDim2.new(0, 70, 0, 26)
-	r10.Position = UDim2.new(1, -74, 0.5, -13)
-	r10.Text = "Reroll x10"
-	r10.Font = Enum.Font.Gotham
-	r10.TextSize = 13
-	r10.BackgroundColor3 = Color3.fromRGB(40,40,40)
-	r10.TextColor3 = Color3.fromRGB(255,255,255)
-	Instance.new("UICorner", r10).CornerRadius = UDim.new(0,6)
-	local r10st = Instance.new("UIStroke", r10) r10st.Color = Color3.fromRGB(0,200,255)
-
-	local busy = false
-	local function doTry(times)
-		if busy then return end
-		busy = true
-		for i=1,times do
-			local ok, msg = tryServerReroll(info.UUID)
-			RRNote.Text = "Log: "..(ok and ("✓ "..msg) or ("✗ "..msg))
-			task.wait(0.15)
-		end
-		busy = false
-	end
-	r1.MouseButton1Click:Connect(function() doTry(1) end)
-	r10.MouseButton1Click:Connect(function() doTry(10) end)
-end
-
-local function refreshEggList()
-	for _, c in ipairs(List:GetChildren()) do
-		if c:IsA("Frame") then c:Destroy() end
-	end
-	for _, e in ipairs(getOwnedEggs()) do
-		makeEggRow(e)
-	end
-	List.CanvasSize = UDim2.new(0,0,0,ListLayout.AbsoluteContentSize.Y+10)
-end
-
-RefreshBtn.MouseButton1Click:Connect(refreshEggList)
-
 Script3Btn.MouseButton1Click:Connect(function()
-	RerollFrame.Visible = not RerollFrame.Visible
-	if RerollFrame.Visible then refreshEggList() end
+	warn("Manual Reroll fitur masih dalam pengembangan.")
 end)
 
---== BUTTON 4: Remote Log ==--
-styleButton(Script4Btn, "📜 Remote Log")
+--== Menu 4: Server Hatch Sync (coming soon) ==--
+styleButton(Script4Btn, "🔗 Hatch Sync")
 Script4Btn.Parent = Content
-
--- Log Frame
-local LogFrame = Instance.new("Frame")
-LogFrame.Parent = ScreenGui
-LogFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-LogFrame.Size = UDim2.new(0, 420, 0, 220)
-LogFrame.Position = UDim2.new(0.35, 0, 0.58, 0)
-LogFrame.Visible = false
-LogFrame.Active = true
-LogFrame.Draggable = true
-Instance.new("UICorner", LogFrame).CornerRadius = UDim.new(0, 8)
-local logStroke = Instance.new("UIStroke", LogFrame)
-logStroke.Color = Color3.fromRGB(0,200,255)
-logStroke.Thickness = 1.5
-
-local Scrolling = Instance.new("ScrollingFrame", LogFrame)
-Scrolling.Size = UDim2.new(1, -6, 1, -6)
-Scrolling.Position = UDim2.new(0,3,0,3)
-Scrolling.CanvasSize = UDim2.new(0,0,0,0)
-Scrolling.ScrollBarThickness = 4
-Scrolling.BackgroundTransparency = 1
-local UIList = Instance.new("UIListLayout", Scrolling)
-UIList.SortOrder = Enum.SortOrder.LayoutOrder
-
-local function addLog(txt)
-	local lbl = Instance.new("TextLabel")
-	lbl.Parent = Scrolling
-	lbl.BackgroundTransparency = 1
-	lbl.Font = Enum.Font.Code
-	lbl.TextColor3 = Color3.fromRGB(200,200,200)
-	lbl.TextXAlignment = Enum.TextXAlignment.Left
-	lbl.TextWrapped = true
-	lbl.TextSize = 13
-	lbl.Text = txt
-	lbl.Size = UDim2.new(1, -6, 0, 18)
-	Scrolling.CanvasSize = UDim2.new(0,0,0,UIList.AbsoluteContentSize.Y+10)
-end
-
 Script4Btn.MouseButton1Click:Connect(function()
-	LogFrame.Visible = not LogFrame.Visible
+	warn("Hatch Sync server side coming soon.")
 end)
-
--- auto-hook remotes terkait egg/hatch
-do
-	for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
-		if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-			local name = v:GetFullName()
-			local l = name:lower()
-			if l:find("egg") or l:find("hatch") or l:find("pet") then
-				if v:IsA("RemoteEvent") then
-					v.OnClientEvent:Connect(function(...)
-						pcall(function()
-							addLog("[EVENT] "..name.." -> "..HttpService:JSONEncode({...}))
-						end)
-					end)
-				else
-					local old = v.OnClientInvoke
-					v.OnClientInvoke = function(...)
-						pcall(function()
-							addLog("[INVOKE] "..name.." -> "..HttpService:JSONEncode({...}))
-						end)
-						if old then return old(...) end
-					end
-				end
-			end
-		end
-	end
-end
 
 --== Floating PL Button ==--
 PLButton.Parent = ScreenGui
@@ -536,9 +209,6 @@ PLButton.Visible = false
 PLButton.Active = true
 PLButton.Draggable = true
 Instance.new("UICorner", PLButton).CornerRadius = UDim.new(1, 0)
-local plStroke = Instance.new("UIStroke", PLButton)
-plStroke.Color = Color3.fromRGB(0, 200, 255)
-plStroke.Thickness = 2
 
 --== Minimize Logic ==--
 MinimizeBtn.MouseButton1Click:Connect(function()
@@ -554,11 +224,7 @@ end)
 
 --== Close Logic ==--
 CloseBtn.MouseButton1Click:Connect(function()
-	-- coba OFF-kan ESP & hapus GUI bawaan 710 kalau ada
-	local container = getEggOracleGui()
-	if container then
-		pcall(function() toggleESPViaButton(container, false) end)
-		container:Destroy()
-	end
+	local gui = getEggOracleGui()
+	if gui then gui:Destroy() end
 	ScreenGui:Destroy()
 end)
