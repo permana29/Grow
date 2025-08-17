@@ -1,4 +1,4 @@
---// Net Hook Lite
+--// Net Hook Super Lite
 local gui = Instance.new("ScreenGui", game.CoreGui)
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0, 320, 0, 200)
@@ -10,7 +10,7 @@ frame.Draggable = true
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1,0,0,25)
 title.BackgroundColor3 = Color3.fromRGB(50,50,50)
-title.Text = "Net Hook Lite"
+title.Text = "Net Hook (Safe)"
 title.TextColor3 = Color3.fromRGB(0,255,0)
 title.TextSize = 14
 
@@ -47,19 +47,24 @@ clearBtn.MouseButton1Click:Connect(function()
     end
 end)
 
---// Light Hook
-local old
-old = hookmetamethod(game, "__namecall", function(self, ...)
-    local args = {...}
-    local m = getnamecallmethod()
-
-    -- Filter biar ga berat
-    if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) 
-    and tostring(self.Parent):match("ReplicatedStorage") then
-        pcall(function()
-            AddLog("["..m.."] "..self.Name)
-        end)
+--// Safe Hook dengan rate limit
+local last = 0
+local function SafeLog(remote, method, args)
+    if tick() - last < 0.3 then return end -- biar ga spam
+    last = tick()
+    local text = "["..method.."] "..remote.Name
+    if args and #args > 0 then
+        local ok, dump = pcall(function() return game:GetService("HttpService"):JSONEncode(args) end)
+        if ok then text = text.." | Args: "..dump end
     end
+    AddLog(text)
+end
 
-    return old(self, ...)
-end)
+--// Wrap semua RemoteEvent & RemoteFunction di ReplicatedStorage
+for _,obj in pairs(game.ReplicatedStorage:GetDescendants()) do
+    if obj:IsA("RemoteEvent") then
+        obj.OnClientEvent:Connect(function(...) SafeLog(obj, "OnClientEvent", {...}) end)
+    elseif obj:IsA("RemoteFunction") then
+        obj.OnClientInvoke = function(...) SafeLog(obj, "OnClientInvoke", {...}) end
+    end
+end
