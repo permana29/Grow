@@ -1,152 +1,194 @@
---== Auto Claim GUI ==--
+-- auto_claim.lua
+-- UI Blackhub Style untuk Auto Claim Fruits
 
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local TopBar = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local MinimizeBtn = Instance.new("TextButton")
-local CloseBtn = Instance.new("TextButton")
-local Content = Instance.new("Frame")
-local UIListLayout = Instance.new("UIListLayout")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
--- Floating Auto button
-local AutoBtn = Instance.new("TextButton")
+-- GLOBAL LIST FRUITS (dummy list, bisa kamu isi dengan data global fruit id)
+_G.GlobalFruitList = {"Apple","Banana","Grape","Orange","Mango"}
 
--- Parent
-ScreenGui.Parent = game.CoreGui
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+--== ScreenGui ==--
+local gui = Instance.new("ScreenGui")
+gui.Name = "AutoClaimGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
 --== Main Frame ==--
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.Position = UDim2.new(0.4, 0, 0.35, 0)
-MainFrame.Size = UDim2.new(0, 250, 0, 180)
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 320, 0, 220)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -110)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+MainFrame.Parent = gui
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.Visible = true
 
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
-local frameStroke = Instance.new("UIStroke", MainFrame)
-frameStroke.Thickness = 2
-frameStroke.Color = Color3.fromRGB(0, 200, 255)
 
---== Top Bar ==--
-TopBar.Parent = MainFrame
-TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-TopBar.Size = UDim2.new(1, 0, 0, 32)
-Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 12)
+--== Topbar ==--
+local TopBar = Instance.new("Frame", MainFrame)
+TopBar.Size = UDim2.new(1,0,0,32)
+TopBar.BackgroundColor3 = Color3.fromRGB(35,35,35)
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0,12)
 
-Title.Parent = TopBar
-Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(1, -65, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
+local Title = Instance.new("TextLabel", TopBar)
+Title.Size = UDim2.new(1, -60, 1, 0)
+Title.Position = UDim2.new(0,10,0,0)
+Title.Text = "Auto Claim Fruits"
+Title.TextColor3 = Color3.fromRGB(255,255,255)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "🍎 Auto Claim"
-Title.TextColor3 = Color3.fromRGB(0, 200, 255)
-Title.TextSize = 15
+Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
 
--- Minimize
-MinimizeBtn.Parent = TopBar
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-MinimizeBtn.Size = UDim2.new(0, 28, 0, 20)
-MinimizeBtn.Position = UDim2.new(1, -60, 0.2, 0)
-MinimizeBtn.Text = "-"
-MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeBtn.Font = Enum.Font.GothamBold
-MinimizeBtn.TextSize = 18
-Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
+--== Close/Minimize Buttons ==--
+local MinBtn = Instance.new("TextButton", TopBar)
+MinBtn.Size = UDim2.new(0,30,0,30)
+MinBtn.Position = UDim2.new(1,-60,0,0)
+MinBtn.Text = "-"
+MinBtn.TextColor3 = Color3.fromRGB(255,255,255)
+MinBtn.BackgroundTransparency = 1
 
--- Close
-CloseBtn.Parent = TopBar
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseBtn.Size = UDim2.new(0, 28, 0, 20)
-CloseBtn.Position = UDim2.new(1, -30, 0.2, 0)
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 16
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+local CloseBtn = Instance.new("TextButton", TopBar)
+CloseBtn.Size = UDim2.new(0,30,0,30)
+CloseBtn.Position = UDim2.new(1,-30,0,0)
+CloseBtn.Text = "x"
+CloseBtn.TextColor3 = Color3.fromRGB(255,255,255)
+CloseBtn.BackgroundTransparency = 1
 
---== Content ==--
-Content.Parent = MainFrame
+--== Content Area ==--
+local Content = Instance.new("Frame", MainFrame)
+Content.Position = UDim2.new(0,0,0,36)
+Content.Size = UDim2.new(1,0,1,-36)
 Content.BackgroundTransparency = 1
-Content.Position = UDim2.new(0, 0, 0, 36)
-Content.Size = UDim2.new(1, 0, 1, -36)
 
-UIListLayout.Parent = Content
-UIListLayout.Padding = UDim.new(0, 8)
-UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+--== Dropdown Buah ==--
+local DropFrame = Instance.new("Frame", Content)
+DropFrame.Size = UDim2.new(0.9,0,0,40)
+DropFrame.Position = UDim2.new(0.05,0,0,10)
+DropFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+Instance.new("UICorner", DropFrame).CornerRadius = UDim.new(0,8)
 
---== Floating Auto Button ==--
-AutoBtn.Parent = ScreenGui
-AutoBtn.Size = UDim2.new(0, 45, 0, 45)
-AutoBtn.Position = UDim2.new(0.45, 0, 0.5, 0)
-AutoBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-AutoBtn.Text = "Auto"
-AutoBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
-AutoBtn.Font = Enum.Font.GothamBold
-AutoBtn.TextSize = 14
-AutoBtn.Visible = false
-AutoBtn.Active = true
-AutoBtn.Draggable = true
-Instance.new("UICorner", AutoBtn).CornerRadius = UDim.new(1, 0)
-local plStroke = Instance.new("UIStroke", AutoBtn)
-plStroke.Color = Color3.fromRGB(0, 200, 255)
-plStroke.Thickness = 2
+local DropLabel = Instance.new("TextLabel", DropFrame)
+DropLabel.Size = UDim2.new(1,-30,1,0)
+DropLabel.Position = UDim2.new(0,10,0,0)
+DropLabel.Text = "Select Fruit: Apple"
+DropLabel.TextColor3 = Color3.fromRGB(255,255,255)
+DropLabel.Font = Enum.Font.Gotham
+DropLabel.TextSize = 14
+DropLabel.BackgroundTransparency = 1
+DropLabel.TextXAlignment = Enum.TextXAlignment.Left
 
---== Minimize Logic ==--
-MinimizeBtn.MouseButton1Click:Connect(function()
-	MainFrame.Visible = false
-	AutoBtn.Visible = true
-end)
+local Arrow = Instance.new("TextButton", DropFrame)
+Arrow.Size = UDim2.new(0,30,1,0)
+Arrow.Position = UDim2.new(1,-30,0,0)
+Arrow.Text = "▼"
+Arrow.TextColor3 = Color3.fromRGB(200,200,200)
+Arrow.Font = Enum.Font.Gotham
+Arrow.TextSize = 14
+Arrow.BackgroundTransparency = 1
 
---== Restore Logic ==--
-AutoBtn.MouseButton1Click:Connect(function()
-	MainFrame.Visible = true
-	AutoBtn.Visible = false
-end)
+local DropList = Instance.new("Frame", Content)
+DropList.Size = UDim2.new(0.9,0,0, (#_G.GlobalFruitList*28))
+DropList.Position = UDim2.new(0.05,0,0,55)
+DropList.BackgroundColor3 = Color3.fromRGB(30,30,30)
+DropList.Visible = false
+Instance.new("UICorner", DropList).CornerRadius = UDim.new(0,8)
 
---== Close Logic ==--
-CloseBtn.MouseButton1Click:Connect(function()
-	ScreenGui:Destroy()
-end)
+local UIListLayout = Instance.new("UIListLayout", DropList)
+UIListLayout.Padding = UDim.new(0,2)
 
---== Functional Buttons ==--
-local function createButton(txt)
-	local btn = Instance.new("TextButton")
-	btn.Parent = Content
-	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-	btn.Size = UDim2.new(0.85, 0, 0, 32)
-	btn.Text = txt
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 14
-	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-	local stroke = Instance.new("UIStroke", btn)
-	stroke.Color = Color3.fromRGB(0, 200, 255)
-	stroke.Thickness = 1.2
-	btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(55,55,55) end)
-	btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(35,35,35) end)
-	return btn
+for _,fruit in ipairs(_G.GlobalFruitList) do
+    local btn = Instance.new("TextButton", DropList)
+    btn.Size = UDim2.new(1,0,0,26)
+    btn.Text = fruit
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.BackgroundTransparency = 1
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 14
+    btn.MouseButton1Click:Connect(function()
+        DropLabel.Text = "Select Fruit: " .. fruit
+        DropList.Visible = false
+        _G.SelectedFruit = fruit
+    end)
 end
 
--- Button Auto Claim All
-local autoAll = createButton("🌱 Auto Claim Semua: OFF")
-local autoAllEnabled = false
-autoAll.MouseButton1Click:Connect(function()
-	autoAllEnabled = not autoAllEnabled
-	autoAll.Text = autoAllEnabled and "🌱 Auto Claim Semua: ON" or "🌱 Auto Claim Semua: OFF"
-	-- TODO: logika auto claim semua buah
+Arrow.MouseButton1Click:Connect(function()
+    DropList.Visible = not DropList.Visible
 end)
 
--- Button Auto Claim Selected
-local autoSelected = createButton("🍓 Auto Claim Buah Terpilih: OFF")
-local autoSelEnabled = false
-autoSelected.MouseButton1Click:Connect(function()
-	autoSelEnabled = not autoSelEnabled
-	autoSelected.Text = autoSelEnabled and "🍓 Auto Claim Buah Terpilih: ON" or "🍓 Auto Claim Buah Terpilih: OFF"
-	-- TODO: logika auto claim buah tertentu
+--== Toggle Template ==--
+local function createToggle(parent, text, orderY)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(0.9,0,0,36)
+    frame.Position = UDim2.new(0.05,0,0,orderY)
+    frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1,-50,1,0)
+    label.Position = UDim2.new(0,10,0,0)
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 14
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0,40,0,20)
+    btn.Position = UDim2.new(1,-50,0.5,-10)
+    btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+    btn.Text = ""
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(1,0)
+
+    local knob = Instance.new("Frame", btn)
+    knob.Size = UDim2.new(0,18,0,18)
+    knob.Position = UDim2.new(0,1,0.5,-9)
+    knob.BackgroundColor3 = Color3.fromRGB(180,180,180)
+    knob.BorderSizePixel = 0
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1,0)
+
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        if state then
+            btn.BackgroundColor3 = Color3.fromRGB(0,170,255)
+            knob.Position = UDim2.new(1,-19,0.5,-9)
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+            knob.Position = UDim2.new(0,1,0.5,-9)
+        end
+        print(text.." = "..tostring(state))
+    end)
+
+    return frame
+end
+
+-- Toggles
+local T1 = createToggle(Content, "Auto Claim Selected Fruit", 100)
+local T2 = createToggle(Content, "Auto Claim All Fruits", 140)
+
+--== Minimize ==--
+local MiniBtn = Instance.new("TextButton", gui)
+MiniBtn.Size = UDim2.new(0,60,0,30)
+MiniBtn.Position = UDim2.new(0,10,0.5,-15)
+MiniBtn.Text = "Auto"
+MiniBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+MiniBtn.TextColor3 = Color3.fromRGB(255,255,255)
+MiniBtn.Visible = false
+Instance.new("UICorner", MiniBtn).CornerRadius = UDim.new(0,8)
+
+MinBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    MiniBtn.Visible = true
 end)
 
--- TODO: Dropdown pilih buah bisa ditambah di sini (masih placeholder)
+MiniBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    MiniBtn.Visible = false
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
