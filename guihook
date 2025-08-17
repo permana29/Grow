@@ -1,4 +1,4 @@
--- Remote Scanner + Tester
+-- Remote Scanner + Tester (Final)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
@@ -20,8 +20,18 @@ title.Text = "🔎 Remote Scanner"
 title.TextColor3 = Color3.fromRGB(0,255,0)
 title.TextSize = 14
 
+-- Minimize button
+local minimizeBtn = Instance.new("TextButton", frame)
+minimizeBtn.Size = UDim2.new(0,25,0,25)
+minimizeBtn.Position = UDim2.new(1,-25,0,0)
+minimizeBtn.Text = "-"
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+minimizeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+
+local minimized = false
+
 local scroll = Instance.new("ScrollingFrame", frame)
-scroll.Size = UDim2.new(1,0,1,-50)
+scroll.Size = UDim2.new(1,0,1,-75)
 scroll.Position = UDim2.new(0,0,0,25)
 scroll.CanvasSize = UDim2.new(0,0,0,0)
 scroll.ScrollBarThickness = 6
@@ -29,18 +39,28 @@ scroll.ScrollBarThickness = 6
 local layout = Instance.new("UIListLayout", scroll)
 
 local clearBtn = Instance.new("TextButton", frame)
-clearBtn.Size = UDim2.new(0.5,0,0,25)
+clearBtn.Size = UDim2.new(0.33,0,0,25)
 clearBtn.Position = UDim2.new(0,0,1,-25)
-clearBtn.Text = "🗑️ Clear Logs"
+clearBtn.Text = "🗑️ Clear"
 clearBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
 clearBtn.TextColor3 = Color3.fromRGB(255,255,255)
 
 local refreshBtn = Instance.new("TextButton", frame)
-refreshBtn.Size = UDim2.new(0.5,0,0,25)
-refreshBtn.Position = UDim2.new(0.5,0,1,-25)
+refreshBtn.Size = UDim2.new(0.34,0,0,25)
+refreshBtn.Position = UDim2.new(0.33,0,1,-25)
 refreshBtn.Text = "🔄 Rescan"
 refreshBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
 refreshBtn.TextColor3 = Color3.fromRGB(255,255,255)
+
+local copyAllBtn = Instance.new("TextButton", frame)
+copyAllBtn.Size = UDim2.new(0.33,0,0,25)
+copyAllBtn.Position = UDim2.new(0.67,0,1,-25)
+copyAllBtn.Text = "📋 Copy All"
+copyAllBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+copyAllBtn.TextColor3 = Color3.fromRGB(255,255,255)
+
+-- Log function
+local remotesList = {}
 
 local function AddLog(msg)
     local log = Instance.new("TextButton")
@@ -52,11 +72,15 @@ local function AddLog(msg)
     log.TextSize = 12
     log.Parent = scroll
 
+    table.insert(remotesList, msg)
+
+    -- Copy path
     log.MouseButton1Click:Connect(function()
         setclipboard(msg)
         warn("Copied remote path: "..msg)
     end)
 
+    -- Test remote
     log.MouseButton2Click:Connect(function()
         local remote = game
         for part in string.gmatch(msg, "[^%.]+") do
@@ -77,10 +101,12 @@ local function AddLog(msg)
     end)
 end
 
+-- Scanner
 local function ScanRemotes()
     for _,v in pairs(scroll:GetChildren()) do
         if v:IsA("TextButton") then v:Destroy() end
     end
+    table.clear(remotesList)
 
     for _,v in ipairs(game:GetDescendants()) do
         if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
@@ -90,13 +116,41 @@ local function ScanRemotes()
     scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
 end
 
+-- Buttons
 clearBtn.MouseButton1Click:Connect(function()
     for _,v in pairs(scroll:GetChildren()) do
         if v:IsA("TextButton") then v:Destroy() end
     end
+    table.clear(remotesList)
 end)
 
 refreshBtn.MouseButton1Click:Connect(ScanRemotes)
+
+copyAllBtn.MouseButton1Click:Connect(function()
+    if #remotesList > 0 then
+        setclipboard(table.concat(remotesList, "\n"))
+        warn("Copied all remotes to clipboard.")
+    end
+end)
+
+minimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        scroll.Visible = false
+        clearBtn.Visible = false
+        refreshBtn.Visible = false
+        copyAllBtn.Visible = false
+        frame.Size = UDim2.new(0,200,0,25)
+        minimizeBtn.Text = "+"
+    else
+        scroll.Visible = true
+        clearBtn.Visible = true
+        refreshBtn.Visible = true
+        copyAllBtn.Visible = true
+        frame.Size = UDim2.new(0,400,0,300)
+        minimizeBtn.Text = "-"
+    end
+end)
 
 -- Start
 ScanRemotes()
