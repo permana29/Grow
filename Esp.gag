@@ -246,7 +246,7 @@ Script2Btn.MouseButton1Click:Connect(function()
 	end
 end)
 
--
+
 -- Menu 3
 styleButton(Script3Btn, "🍎 Auto Claim")
 Script3Btn.Parent = Content
