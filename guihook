@@ -1,0 +1,114 @@
+-- // Network Hook UI by Permana // --
+
+local UIS = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+
+-- // GUI FRAME
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 350, 0, 220)
+Frame.Position = UDim2.new(0.3, 0, 0.3, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -40, 0, 30)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "📡 Network Hook"
+Title.TextColor3 = Color3.fromRGB(0, 255, 0)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 18
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Frame
+
+-- Minimize button
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -35, 0, 0)
+MinBtn.Text = "-"
+MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MinBtn.TextColor3 = Color3.fromRGB(255,255,255)
+MinBtn.Parent = Frame
+
+-- Log box
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Size = UDim2.new(1, -20, 1, -70)
+ScrollingFrame.Position = UDim2.new(0, 10, 0, 40)
+ScrollingFrame.CanvasSize = UDim2.new(0,0,0,0)
+ScrollingFrame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+ScrollingFrame.BorderSizePixel = 0
+ScrollingFrame.ScrollBarThickness = 6
+ScrollingFrame.Parent = Frame
+
+local UIList = Instance.new("UIListLayout")
+UIList.Parent = ScrollingFrame
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Clear button
+local ClearBtn = Instance.new("TextButton")
+ClearBtn.Size = UDim2.new(1, -20, 0, 25)
+ClearBtn.Position = UDim2.new(0, 10, 1, -30)
+ClearBtn.Text = "🗑️ Clear Logs"
+ClearBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+ClearBtn.TextColor3 = Color3.fromRGB(255,255,255)
+ClearBtn.Parent = Frame
+
+-- // Functions
+local function AddLog(remote, method, args)
+    local entry = Instance.new("TextButton")
+    entry.Size = UDim2.new(1, -5, 0, 20)
+    entry.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    entry.TextColor3 = Color3.fromRGB(255,255,255)
+    entry.TextXAlignment = Enum.TextXAlignment.Left
+    entry.TextSize = 14
+    entry.Text = "["..method.."] "..remote.Name
+    entry.Parent = ScrollingFrame
+
+    entry.MouseButton1Click:Connect(function()
+        setclipboard(HttpService:JSONEncode(args))
+    end)
+
+    ScrollingFrame.CanvasSize = UDim2.new(0,0,0,UIList.AbsoluteContentSize.Y+10)
+end
+
+ClearBtn.MouseButton1Click:Connect(function()
+    for _, child in ipairs(ScrollingFrame:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+    ScrollingFrame.CanvasSize = UDim2.new()
+end)
+
+local minimized = false
+MinBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        ScrollingFrame.Visible = false
+        ClearBtn.Visible = false
+        Frame.Size = UDim2.new(0, 350, 0, 40)
+        MinBtn.Text = "+"
+    else
+        ScrollingFrame.Visible = true
+        ClearBtn.Visible = true
+        Frame.Size = UDim2.new(0, 350, 0, 220)
+        MinBtn.Text = "-"
+    end
+end)
+
+-- // Hook Remote
+local OldNamecall
+OldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+
+    if not checkcaller() and (method == "FireServer" or method == "InvokeServer") then
+        AddLog(self, method, args)
+    end
+
+    return OldNamecall(self, ...)
+end)
