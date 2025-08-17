@@ -129,8 +129,45 @@ styleButton(Script2Btn, "🥚 ESP")
 Script2Btn.Parent = Content
 Script2Btn.MouseButton1Click:Connect(function()
 	-- isi scriptmu di sini
-     loadstring(game:HttpGet("https://raw.githubusercontent.com/DupeNew/loader/refs/heads/main/EggRandomizer"))()
+     -- Menu 2: ESP Egg dari script kamu
+Script2Btn.MouseButton1Click:Connect(function()
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local jobId = game.JobId  
 
+    local executionKey = "EggRandomizer_" .. LocalPlayer.UserId .. "_" .. jobId  
+    if getgenv()[executionKey] then     
+        return 
+    end  
+
+    getgenv()[executionKey] = true  
+
+    local EggOracleSystem = {}  
+    EggOracleSystem.__index = EggOracleSystem  
+
+    local CollectionService = game:GetService("CollectionService")
+    local RunService = game:GetService("RunService")  
+
+    function EggOracleSystem:HighlightEgg(egg)  
+        if egg:FindFirstChild("SelectionBox") then return end  
+        local box = Instance.new("SelectionBox")  
+        box.Adornee = egg  
+        box.LineThickness = 0.05  
+        box.Color3 = Color3.fromRGB(0, 255, 255)  
+        box.Parent = egg  
+    end  
+
+    function EggOracleSystem:Initialize()  
+        for _, egg in ipairs(CollectionService:GetTagged("Egg")) do  
+            self:HighlightEgg(egg)  
+        end  
+        CollectionService:GetInstanceAddedSignal("Egg"):Connect(function(egg)  
+            self:HighlightEgg(egg)  
+        end)  
+    end  
+
+    EggOracleSystem:Initialize()
+end)
 end)
 
 -- Menu 3
