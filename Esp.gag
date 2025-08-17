@@ -1,4 +1,4 @@
--- Permana Loader v3
+-- Permana Loader v1
 
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
@@ -120,18 +120,21 @@ end
 styleButton(Script1Btn, "🚀 Script GAG")
 Script1Btn.Parent = Content
 Script1Btn.MouseButton1Click:Connect(function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/Liriosha/GAGAPI/main/GAGAPI.lua"))()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
+
 end)
 
 -- Menu 2
-styleButton(Script2Btn, "📂 Menu 2 Loader")
+styleButton(Script2Btn, "🥚 ESP")
 Script2Btn.Parent = Content
 Script2Btn.MouseButton1Click:Connect(function()
 	-- isi scriptmu di sini
+     loadstring(game:HttpGet("https://raw.githubusercontent.com/DupeNew/loader/refs/heads/main/EggRandomizer"))()
+
 end)
 
 -- Menu 3
-styleButton(Script3Btn, "📂 Menu 3 Loader")
+styleButton(Script3Btn, "📂 Next Update")
 Script3Btn.Parent = Content
 Script3Btn.MouseButton1Click:Connect(function()
 	-- isi scriptmu di sini
