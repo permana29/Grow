@@ -1,114 +1,234 @@
---// ⚡ Permana Loader ⚡
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-local Window = OrionLib:MakeWindow({
-    Name = "⚡ Permana Loader ⚡",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "PermanaLoader"
-})
+--== Permana Loader + Integrasi ESP 710 + Menu 3 Reroll ==--
 
---// Logger
-local logBox = nil
-local logs = {}
-local function appendLog(txt)
-    table.insert(logs, txt)
-    if logBox then
-        logBox:Set(logs)
-    end
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local TopBar = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local MinimizeBtn = Instance.new("TextButton")
+local CloseBtn = Instance.new("TextButton")
+local Content = Instance.new("Frame")
+local UIListLayout = Instance.new("UIListLayout")
+
+-- Floating PL button
+local PLButton = Instance.new("TextButton")
+
+-- Buttons
+local Script1Btn = Instance.new("TextButton")
+local Script2Btn = Instance.new("TextButton") -- ESP
+local Script3Btn = Instance.new("TextButton") -- Reroll
+local Script4Btn = Instance.new("TextButton") -- Kosong (next update)
+
+-- Parent
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+--== Main Frame ==--
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
+MainFrame.Size = UDim2.new(0, 280, 0, 250)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+-- Rounded
+local frameCorner = Instance.new("UICorner", MainFrame)
+frameCorner.CornerRadius = UDim.new(0, 12)
+
+-- Glow Border
+local frameStroke = Instance.new("UIStroke", MainFrame)
+frameStroke.Thickness = 2
+frameStroke.Color = Color3.fromRGB(0, 200, 255)
+frameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+--== Top Bar ==--
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+
+local topCorner = Instance.new("UICorner", TopBar)
+topCorner.CornerRadius = UDim.new(0, 12)
+
+Title.Parent = TopBar
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, -70, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "⚡ Permana Loader ⚡"
+Title.TextColor3 = Color3.fromRGB(0, 200, 255)
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Minimize
+MinimizeBtn.Parent = TopBar
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+MinimizeBtn.Size = UDim2.new(0, 30, 0, 22)
+MinimizeBtn.Position = UDim2.new(1, -65, 0.2, 0)
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextSize = 20
+Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
+
+-- Close
+CloseBtn.Parent = TopBar
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.Size = UDim2.new(0, 30, 0, 22)
+CloseBtn.Position = UDim2.new(1, -33, 0.2, 0)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 18
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+
+--== Content ==--
+Content.Parent = MainFrame
+Content.BackgroundTransparency = 1
+Content.Position = UDim2.new(0, 0, 0, 40)
+Content.Size = UDim2.new(1, 0, 1, -40)
+
+UIListLayout.Parent = Content
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+--== Style Buttons ==--
+local function styleButton(btn, text)
+	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	btn.Size = UDim2.new(0.85, 0, 0, 40)
+	btn.Text = text
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 14
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+
+	local stroke = Instance.new("UIStroke", btn)
+	stroke.Color = Color3.fromRGB(0, 200, 255)
+	stroke.Thickness = 1.5
+
+	btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(55,55,55) end)
+	btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(35,35,35) end)
 end
 
---// Tab Utama
-local main = Window:MakeTab({
-    Name = "Main",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
--- MENU 1 : Script GAG
-main:AddButton({
-    Name = "🚀 Script GAG",
-    Callback = function()
-        appendLog("[GAG] Script dijalankan.")
-        -- isi script GAG asli kamu di sini
-    end
-})
-
--- MENU 2 : ESP
-local espEnabled = false
-local function refreshESP()
-    appendLog("[ESP] Refreshing display...")
-    for i,v in pairs(workspace:GetChildren()) do
-        if v:IsA("Model") and v:FindFirstChild("Egg") then
-            appendLog("[ESP] Egg ditemukan: " .. v.Name)
-        end
-    end
-end
-
-main:AddToggle({
-    Name = "🥚 ESP:ON",
-    Default = false,
-    Callback = function(val)
-        espEnabled = val
-        if espEnabled then
-            appendLog("[ESP] Aktif.")
-            refreshESP()
-        else
-            appendLog("[ESP] Nonaktif.")
-        end
-    end
-})
-
--- MENU 3 : Reroll Egg
-local lastEggPayload = nil
-
--- Hook hatch event untuk simpan payload
-local old; old = hookfunction(game.ReplicatedStorage.PetEggService.InvokeServer, function(self, action, data)
-    if action == "HatchEgg" then
-        lastEggPayload = data
-        appendLog("[ESP] Payload terekam untuk reroll.")
-    end
-    return old(self, action, data)
+-- Script 1 (GAG)
+styleButton(Script1Btn, "🚀 Script GAG")
+Script1Btn.Parent = Content
+Script1Btn.MouseButton1Click:Connect(function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
 end)
 
-local function rerollEgg()
-    if lastEggPayload then
-        appendLog("[Reroll] Mengirim ulang payload...")
-        game.ReplicatedStorage.PetEggService:InvokeServer("HatchEgg", lastEggPayload)
-        task.wait(0.5)
-        refreshESP()
-        appendLog("[Reroll] ✅ Berhasil.")
-    else
-        appendLog("[Reroll] Belum ada payload terekam.")
-    end
+--== ESP 710 Integrasi (menu 2) ==
+styleButton(Script2Btn, "🥚 ESP")
+Script2Btn.Parent = Content
+
+-- helper cari GUI bawaan ESP
+local function getEggOracleGui()
+	for _, pg in ipairs(game.Players.LocalPlayer:WaitForChild("PlayerGui"):GetChildren()) do
+		if pg:IsA("ScreenGui") and pg.Name == "EggOracle_Container" then
+			return pg
+		end
+	end
+	for _, cg in ipairs(game.CoreGui:GetChildren()) do
+		if cg:IsA("ScreenGui") and cg.Name == "EggOracle_Container" then
+			return cg
+		end
+	end
+	return nil
 end
 
-main:AddButton({
-    Name = "🔄 Reroll Egg",
-    Callback = function()
-        rerollEgg()
-    end
-})
+-- Toggle ESP via tombol asli
+local function toggleESP(container, forceState)
+	if not container then return end
+	local panel = container:FindFirstChild("ControlPanel")
+	local content = panel and panel:FindFirstChild("Content")
+	local btn = content and content:FindFirstChild("ToggleButton")
+	if not btn or not btn:IsA("TextButton") then return end
 
--- MENU 4 : kosong dulu
--- main:AddButton({Name = "Coming Soon", Callback = function() end})
+	local function isOn() return btn.Text:find("ON") ~= nil end
 
---// Log UI
-logBox = main:AddLabel("Log akan tampil di sini...")
+	if forceState == nil then
+		firesignal(btn.MouseButton1Click)
+	else
+		if forceState and not isOn() then
+			firesignal(btn.MouseButton1Click)
+		elseif (forceState == false) and isOn() then
+			firesignal(btn.MouseButton1Click)
+		end
+	end
+end
 
-main:AddButton({
-    Name = "📋 Copy All Logs",
-    Callback = function()
-        setclipboard(table.concat(logs, "\n"))
-        appendLog("[LOG] Semua log dicopy.")
-    end
-})
+-- Hide UI bawaan
+local function hideOracleUI(container)
+	if not container then return end
+	if container:FindFirstChild("ControlPanel") then container.ControlPanel.Visible = false end
+	if container:FindFirstChild("ShowButton") then container.ShowButton.Visible = false end
+end
 
-main:AddButton({
-    Name = "🧹 Clear Logs",
-    Callback = function()
-        logs = {}
-        logBox:Set({"[LOG] Dibersihkan."})
-    end
-})
+local ESP_LOADED = false
+local ESP_ON = false
 
-OrionLib:Init()
+Script2Btn.MouseButton1Click:Connect(function()
+	local container = getEggOracleGui()
+	if not ESP_LOADED or not container then
+		local ok, err = pcall(function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()
+		end)
+		if not ok then warn("Gagal load ESP: "..tostring(err)) return end
+
+		container = getEggOracleGui()
+		if not container then return end
+		hideOracleUI(container)
+		toggleESP(container, true)
+		ESP_LOADED, ESP_ON = true, true
+		Script2Btn.Text = "🥚 ESP: ON"
+	else
+		toggleESP(container, nil)
+		local btn = container.ControlPanel.Content.ToggleButton
+		ESP_ON = btn.Text:find("ON") ~= nil
+		Script2Btn.Text = ESP_ON and "🥚 ESP: ON" or "🥚 ESP: OFF"
+	end
+end)
+
+--== Script 3 (Reroll Egg) ==
+styleButton(Script3Btn, "🎲 Reroll Egg")
+Script3Btn.Parent = Content
+Script3Btn.MouseButton1Click:Connect(function()
+	-- Jalankan reroll
+	local ok, err = pcall(function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/RerollEgg"))()
+	end)
+	if not ok then
+		warn("Reroll gagal: " .. tostring(err))
+		return
+	end
+
+	-- Refresh ESP supaya hasil baru muncul
+	task.delay(1, function()
+		local container = getEggOracleGui()
+		if container then
+			toggleESP(container, false)
+			task.wait(0.5)
+			toggleESP(container, true)
+		end
+	end)
+end)
+
+--== Script 4 (Kosong) ==
+styleButton(Script4Btn, "📂 Next Update")
+Script4Btn.Parent = Content
+Script4Btn.MouseButton1Click:Connect(function()
+	-- belum ada isi
+end)
+
+--== Floating PL Button ==--
+PLButton.Parent = ScreenGui
+PLButton.Size = UDim2.new(0, 55, 0, 55)
+PLButton.Position = UDim2.new(0.4, 0, 0.5, 0)
+PLButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+PLButton.Text = "P.L"
+PLButton.TextColor3 = Color3.fromRGB(0, 200, 255)
+PLButton.Font = Enum.Font.GothamBold
+PLButton.TextSize = 18
+PLButton.Visible = false
+PLButton.Active = true
+PLButton.Draggable = true
