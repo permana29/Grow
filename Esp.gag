@@ -246,11 +246,31 @@ Script2Btn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Menu 3
-styleButton(Script3Btn, "📂 Next Update")
+-- Menu 3: Auto Claim
+styleButton(Script3Btn, "🍎 Auto Claim Fruits")
 Script3Btn.Parent = Content
+
+-- Container panel khusus auto_claim (awalnya hidden)
+local AutoClaimFrame = Instance.new("Frame")
+AutoClaimFrame.Name = "AutoClaimFrame"
+AutoClaimFrame.Parent = Content
+AutoClaimFrame.Size = UDim2.new(0.95, 0, 0, 120)
+AutoClaimFrame.BackgroundColor3 = Color3.fromRGB(35,35,35)
+AutoClaimFrame.Visible = false
+Instance.new("UICorner", AutoClaimFrame).CornerRadius = UDim.new(0,8)
+
+-- Load auto_claim.lua ke container ini
+local function loadAutoClaim()
+    local fn = loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/auto_claim"))()
+    if typeof(fn) == "function" then
+        fn(AutoClaimFrame)  -- isi GUI ke container
+    end
+end
+loadAutoClaim()
+
+-- tombol menu 3 jadi toggle tampil/hidden panel auto claim
 Script3Btn.MouseButton1Click:Connect(function()
-	-- coming soon
+    AutoClaimFrame.Visible = not AutoClaimFrame.Visible
 end)
 
 --== Floating PL Button ==--
