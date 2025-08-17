@@ -1,35 +1,70 @@
--- Remote Scanner (Final Version - Always show all + Auto Update)
-
+-- Remote Explorer + Spy (Final Combo with Minimize & Close)
 local CoreGui = game:GetService("CoreGui")
 
 -- GUI
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 420, 0, 320)
-Frame.Position = UDim2.new(0.5, -210, 0.5, -160)
+Frame.Size = UDim2.new(0, 500, 0, 350)
+Frame.Position = UDim2.new(0.5, -250, 0.5, -175)
 Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Frame.Active = true
 Frame.Draggable = true
 
 local Title = Instance.new("TextLabel", Frame)
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "🔍 Remote Scanner"
+Title.Size = UDim2.new(1, -60, 0, 30)
+Title.Text = "⚡ Remote Explorer + Spy"
 Title.TextColor3 = Color3.fromRGB(0,255,0)
 Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 20
+Title.TextXAlignment = Enum.TextXAlignment.Left
 
+-- Minimize & Close Buttons
+local MinBtn = Instance.new("TextButton", Frame)
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -60, 0, 0)
+MinBtn.Text = "-"
+MinBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+MinBtn.TextColor3 = Color3.new(1,1,1)
+
+local CloseBtn = Instance.new("TextButton", Frame)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -30, 0, 0)
+CloseBtn.Text = "X"
+CloseBtn.BackgroundColor3 = Color3.fromRGB(120,40,40)
+CloseBtn.TextColor3 = Color3.new(1,1,1)
+
+-- Tab Buttons
+local TabFrame = Instance.new("Frame", Frame)
+TabFrame.Size = UDim2.new(1, 0, 0, 25)
+TabFrame.Position = UDim2.new(0, 0, 0, 30)
+TabFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+local ExplorerBtn = Instance.new("TextButton", TabFrame)
+ExplorerBtn.Size = UDim2.new(0.5, 0, 1, 0)
+ExplorerBtn.Text = "Explorer"
+ExplorerBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+ExplorerBtn.TextColor3 = Color3.new(1,1,1)
+
+local SpyBtn = Instance.new("TextButton", TabFrame)
+SpyBtn.Size = UDim2.new(0.5, 0, 1, 0)
+SpyBtn.Position = UDim2.new(0.5, 0, 0, 0)
+SpyBtn.Text = "Spy"
+SpyBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+SpyBtn.TextColor3 = Color3.new(1,1,1)
+
+-- Search bar
 local Search = Instance.new("TextBox", Frame)
 Search.PlaceholderText = "Search..."
 Search.Size = UDim2.new(1, -10, 0, 25)
-Search.Position = UDim2.new(0, 5, 0, 35)
+Search.Position = UDim2.new(0, 5, 0, 60)
 Search.BackgroundColor3 = Color3.fromRGB(40,40,40)
 Search.TextColor3 = Color3.new(1,1,1)
 
--- Scroll List
+-- Scroll area
 local Scroll = Instance.new("ScrollingFrame", Frame)
-Scroll.Size = UDim2.new(1, -10, 1, -100)
-Scroll.Position = UDim2.new(0, 5, 0, 65)
+Scroll.Size = UDim2.new(1, -10, 1, -120)
+Scroll.Position = UDim2.new(0, 5, 0, 90)
 Scroll.BackgroundColor3 = Color3.fromRGB(25,25,25)
 Scroll.BorderSizePixel = 0
 Scroll.CanvasSize = UDim2.new(0,0,0,0)
@@ -38,7 +73,6 @@ Scroll.ScrollBarThickness = 6
 local UIList = Instance.new("UIListLayout", Scroll)
 UIList.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Buttons
 local BtnFrame = Instance.new("Frame", Frame)
 BtnFrame.Size = UDim2.new(1, -10, 0, 30)
 BtnFrame.Position = UDim2.new(0, 5, 1, -35)
@@ -58,19 +92,18 @@ local ClearBtn = MakeBtn("Clear", 0)
 local RescanBtn = MakeBtn("Rescan", 0.33)
 local CopyBtn = MakeBtn("Copy All", 0.66)
 
--- Data
+-- Data store
 local Logs = {}
+local Mode = "Explorer" -- default tab
 
 local function UpdateCanvas()
     Scroll.CanvasSize = UDim2.new(0,0,0,UIList.AbsoluteContentSize.Y)
 end
 UIList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateCanvas)
 
--- Add to list
 local function AddLog(text)
     if Logs[text] then return end
     Logs[text] = true
-
     local Line = Instance.new("TextLabel", Scroll)
     Line.Size = UDim2.new(1, -5, 0, 20)
     Line.Text = text
@@ -79,19 +112,15 @@ local function AddLog(text)
     Line.TextXAlignment = Enum.TextXAlignment.Left
 end
 
--- Rescan
-local function Rescan()
-    Scroll:ClearAllChildren()
-    UIList.Parent = Scroll
-    Logs = {}
-    for _, obj in ipairs(game:GetDescendants()) do
-        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-            AddLog(obj:GetFullName())
+-- Search Filter
+Search:GetPropertyChangedSignal("Text"):Connect(function()
+    local keyword = string.lower(Search.Text)
+    for _, line in ipairs(Scroll:GetChildren()) do
+        if line:IsA("TextLabel") then
+            line.Visible = (keyword == "" or string.find(string.lower(line.Text), keyword))
         end
     end
-end
-
-RescanBtn.MouseButton1Click:Connect(Rescan)
+end)
 
 -- Clear
 ClearBtn.MouseButton1Click:Connect(function()
@@ -100,7 +129,7 @@ ClearBtn.MouseButton1Click:Connect(function()
     Logs = {}
 end)
 
--- Copy All
+-- Copy
 CopyBtn.MouseButton1Click:Connect(function()
     local all = {}
     for txt, _ in pairs(Logs) do
@@ -111,26 +140,74 @@ CopyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Auto update realtime
-game.DescendantAdded:Connect(function(obj)
-    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-        AddLog(obj:GetFullName())
-    end
-end)
-
--- Search filter
-Search:GetPropertyChangedSignal("Text"):Connect(function()
-    local keyword = string.lower(Search.Text)
-    for _, line in ipairs(Scroll:GetChildren()) do
-        if line:IsA("TextLabel") then
-            if keyword == "" or string.find(string.lower(line.Text), keyword) then
-                line.Visible = true
-            else
-                line.Visible = false
-            end
+-- Explorer Mode (list semua Remote yang ada di game)
+local function ExplorerScan()
+    ClearBtn.MouseButton1Click:Fire()
+    for _, obj in ipairs(game:GetDescendants()) do
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            AddLog(obj:GetFullName())
         end
     end
+end
+
+-- Tab switch
+ExplorerBtn.MouseButton1Click:Connect(function()
+    Mode = "Explorer"
+    ExplorerBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    SpyBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    ClearBtn.MouseButton1Click:Fire()
+    ExplorerScan()
 end)
 
--- First run
-Rescan()
+SpyBtn.MouseButton1Click:Connect(function()
+    Mode = "Spy"
+    SpyBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    ExplorerBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    ClearBtn.MouseButton1Click:Fire()
+end)
+
+-- Rescan button (untuk Explorer mode)
+RescanBtn.MouseButton1Click:Connect(function()
+    if Mode == "Explorer" then
+        ExplorerScan()
+    end
+end)
+
+-- Hook Spy Mode
+local mt = getrawmetatable(game)
+local old = mt.__namecall
+setreadonly(mt, false)
+
+mt.__namecall = newcclosure(function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
+    if Mode == "Spy" and (method == "FireServer" or method == "InvokeServer") then
+        local ok, str = pcall(function()
+            return self:GetFullName()
+        end)
+        if ok then
+            AddLog(str .. " ("..method..")")
+        end
+    end
+    return old(self, ...)
+end)
+
+setreadonly(mt, true)
+
+-- Auto start in Explorer
+ExplorerScan()
+
+-- Close & Minimize
+local Minimized = false
+MinBtn.MouseButton1Click:Connect(function()
+    Minimized = not Minimized
+    Scroll.Visible = not Minimized
+    BtnFrame.Visible = not Minimized
+    Search.Visible = not Minimized
+    TabFrame.Visible = not Minimized
+    Frame.Size = Minimized and UDim2.new(0, 500, 0, 30) or UDim2.new(0, 500, 0, 350)
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
