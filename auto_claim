@@ -1,4 +1,4 @@
--- auto_claim.lua (Final UI Clean Version)
+-- Auto Claim Fruits (Fixed Clean Version)
 
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
@@ -55,6 +55,7 @@ MinBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
 MinBtn.Font = Enum.Font.GothamBold
 MinBtn.TextSize = 18
 
+-- Dropdown Button
 Dropdown.Parent = MainFrame
 Dropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 Dropdown.Size = UDim2.new(0, 220, 0, 30)
@@ -64,17 +65,21 @@ Dropdown.Text = "Select Fruit: None"
 Dropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
 Dropdown.TextSize = 14
 
+-- Dropdown List
 DropdownFrame.Parent = MainFrame
 DropdownFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 DropdownFrame.Position = UDim2.new(0, 20, 0, 70)
 DropdownFrame.Size = UDim2.new(0, 220, 0, 0)
 DropdownFrame.ClipsDescendants = true
+DropdownFrame.Visible = false
 
 UIListLayout.Parent = DropdownFrame
+UIListLayout.Padding = UDim.new(0, 2)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local Fruits = {"Apple", "Banana", "Mango", "Blueberry", "Strawberry"}
 local SelectedFruit = nil
+local dropdownOpen = false
 
 for _,fruit in ipairs(Fruits) do
     local btn = Instance.new("TextButton")
@@ -89,9 +94,24 @@ for _,fruit in ipairs(Fruits) do
         SelectedFruit = fruit
         Dropdown.Text = "Select Fruit: " .. fruit
         DropdownFrame:TweenSize(UDim2.new(0, 220, 0, 0), "Out", "Quad", 0.2, true)
+        DropdownFrame.Visible = false
+        dropdownOpen = false
     end)
 end
 
+Dropdown.MouseButton1Click:Connect(function()
+    if dropdownOpen then
+        DropdownFrame:TweenSize(UDim2.new(0, 220, 0, 0), "Out", "Quad", 0.2, true)
+        wait(0.2)
+        DropdownFrame.Visible = false
+    else
+        DropdownFrame.Visible = true
+        DropdownFrame:TweenSize(UDim2.new(0, 220, 0, #Fruits*30), "Out", "Quad", 0.2, true)
+    end
+    dropdownOpen = not dropdownOpen
+end)
+
+-- Toggle Selected
 ToggleSelected.Parent = MainFrame
 ToggleSelected.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 ToggleSelected.Size = UDim2.new(0, 220, 0, 30)
@@ -101,38 +121,6 @@ ToggleSelected.Text = "Selected: OFF"
 ToggleSelected.TextColor3 = Color3.fromRGB(255, 80, 80)
 ToggleSelected.TextSize = 14
 
-ToggleAll.Parent = MainFrame
-ToggleAll.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ToggleAll.Size = UDim2.new(0, 220, 0, 30)
-ToggleAll.Position = UDim2.new(0, 20, 0, 150)
-ToggleAll.Font = Enum.Font.GothamBold
-ToggleAll.Text = "All: OFF"
-ToggleAll.TextColor3 = Color3.fromRGB(255, 80, 80)
-ToggleAll.TextSize = 14
-
-MiniButton.Parent = ScreenGui
-MiniButton.Size = UDim2.new(0, 50, 0, 50)
-MiniButton.Position = UDim2.new(0, 20, 0.7, 0)
-MiniButton.Text = "Auto"
-MiniButton.TextSize = 14
-MiniButton.TextColor3 = Color3.fromRGB(255,255,255)
-MiniButton.BackgroundColor3 = Color3.fromRGB(40,40,40)
-MiniButton.Visible = false
-local UICorner2 = Instance.new("UICorner", MiniButton)
-UICorner2.CornerRadius = UDim.new(1,0)
-
--- Dropdown toggle
-local dropdownOpen = false
-Dropdown.MouseButton1Click:Connect(function()
-    if dropdownOpen then
-        DropdownFrame:TweenSize(UDim2.new(0, 220, 0, 0), "Out", "Quad", 0.2, true)
-    else
-        DropdownFrame:TweenSize(UDim2.new(0, 220, 0, #Fruits*28), "Out", "Quad", 0.2, true)
-    end
-    dropdownOpen = not dropdownOpen
-end)
-
--- Logic Selected
 local selectedEnabled = false
 ToggleSelected.MouseButton1Click:Connect(function()
     selectedEnabled = not selectedEnabled
@@ -153,7 +141,16 @@ ToggleSelected.MouseButton1Click:Connect(function()
     end
 end)
 
--- Logic All
+-- Toggle All
+ToggleAll.Parent = MainFrame
+ToggleAll.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ToggleAll.Size = UDim2.new(0, 220, 0, 30)
+ToggleAll.Position = UDim2.new(0, 20, 0, 150)
+ToggleAll.Font = Enum.Font.GothamBold
+ToggleAll.Text = "All: OFF"
+ToggleAll.TextColor3 = Color3.fromRGB(255, 80, 80)
+ToggleAll.TextSize = 14
+
 local allEnabled = false
 ToggleAll.MouseButton1Click:Connect(function()
     allEnabled = not allEnabled
@@ -175,6 +172,17 @@ ToggleAll.MouseButton1Click:Connect(function()
 end)
 
 -- Minimize / Close
+MiniButton.Parent = ScreenGui
+MiniButton.Size = UDim2.new(0, 50, 0, 50)
+MiniButton.Position = UDim2.new(0, 20, 0.7, 0)
+MiniButton.Text = "Auto"
+MiniButton.TextSize = 14
+MiniButton.TextColor3 = Color3.fromRGB(255,255,255)
+MiniButton.BackgroundColor3 = Color3.fromRGB(40,40,40)
+MiniButton.Visible = false
+local UICorner2 = Instance.new("UICorner", MiniButton)
+UICorner2.CornerRadius = UDim.new(1,0)
+
 MinBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
     MiniButton.Visible = true
