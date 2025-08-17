@@ -1,128 +1,114 @@
---== Permana Loader + Integrasi ESP 710 Tanpa Menu Kedua ==--
+--== Permana Loader + Integrasi ESP 710 + Auto Reroll (Menu 3) ==--
 
+-- UI dasar loader
 local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local TopBar = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local MinimizeBtn = Instance.new("TextButton")
-local CloseBtn = Instance.new("TextButton")
-local Content = Instance.new("Frame")
+local MainFrame  = Instance.new("Frame")
+local TopBar     = Instance.new("Frame")
+local Title      = Instance.new("TextLabel")
+local MinimizeBtn= Instance.new("TextButton")
+local CloseBtn   = Instance.new("TextButton")
+local Content    = Instance.new("Frame")
 local UIListLayout = Instance.new("UIListLayout")
 
--- Floating PL button
-local PLButton = Instance.new("TextButton")
+local PLButton   = Instance.new("TextButton")
 
--- Buttons
 local Script1Btn = Instance.new("TextButton")
 local Script2Btn = Instance.new("TextButton") -- ESP
-local Script3Btn = Instance.new("TextButton")
+local Script3Btn = Instance.new("TextButton") -- Auto Reroll
 
--- Parent
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
---== Main Frame ==--
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
-MainFrame.Size = UDim2.new(0, 280, 0, 210)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+MainFrame.Position = UDim2.new(0.35,0,0.3,0)
+MainFrame.Size = UDim2.new(0,280,0,230)
 MainFrame.Active = true
 MainFrame.Draggable = true
-
--- Rounded
-local frameCorner = Instance.new("UICorner", MainFrame)
-frameCorner.CornerRadius = UDim.new(0, 12)
-
--- Glow Border
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0,12)
 local frameStroke = Instance.new("UIStroke", MainFrame)
 frameStroke.Thickness = 2
-frameStroke.Color = Color3.fromRGB(0, 200, 255)
+frameStroke.Color = Color3.fromRGB(0,200,255)
 frameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
---== Top Bar ==--
 TopBar.Parent = MainFrame
-TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-TopBar.Size = UDim2.new(1, 0, 0, 35)
-
-local topCorner = Instance.new("UICorner", TopBar)
-topCorner.CornerRadius = UDim.new(0, 12)
+TopBar.BackgroundColor3 = Color3.fromRGB(40,40,40)
+TopBar.Size = UDim2.new(1,0,0,35)
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0,12)
 
 Title.Parent = TopBar
 Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(1, -70, 1, 0)
-Title.Position = UDim2.new(0, 12, 0, 0)
+Title.Size = UDim2.new(1,-70,1,0)
+Title.Position = UDim2.new(0,12,0,0)
 Title.Font = Enum.Font.GothamBold
 Title.Text = "⚡ Permana Loader ⚡"
-Title.TextColor3 = Color3.fromRGB(0, 200, 255)
+Title.TextColor3 = Color3.fromRGB(0,200,255)
 Title.TextSize = 16
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
--- Minimize
 MinimizeBtn.Parent = TopBar
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-MinimizeBtn.Size = UDim2.new(0, 30, 0, 22)
-MinimizeBtn.Position = UDim2.new(1, -65, 0.2, 0)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+MinimizeBtn.Size = UDim2.new(0,30,0,22)
+MinimizeBtn.Position = UDim2.new(1,-65,0.2,0)
 MinimizeBtn.Text = "-"
-MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.TextColor3 = Color3.fromRGB(255,255,255)
 MinimizeBtn.Font = Enum.Font.GothamBold
 MinimizeBtn.TextSize = 20
-Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0,6)
 
--- Close
 CloseBtn.Parent = TopBar
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseBtn.Size = UDim2.new(0, 30, 0, 22)
-CloseBtn.Position = UDim2.new(1, -33, 0.2, 0)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+CloseBtn.Size = UDim2.new(0,30,0,22)
+CloseBtn.Position = UDim2.new(1,-33,0.2,0)
 CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextColor3 = Color3.fromRGB(255,255,255)
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 18
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0,6)
 
---== Content ==--
 Content.Parent = MainFrame
 Content.BackgroundTransparency = 1
-Content.Position = UDim2.new(0, 0, 0, 40)
-Content.Size = UDim2.new(1, 0, 1, -40)
+Content.Position = UDim2.new(0,0,0,40)
+Content.Size = UDim2.new(1,0,1,-40)
 
 UIListLayout.Parent = Content
-UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.Padding = UDim.new(0,10)
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
---== Style Buttons ==--
 local function styleButton(btn, text)
-	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-	btn.Size = UDim2.new(0.85, 0, 0, 40)
+	btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+	btn.Size = UDim2.new(0.85,0,0,40)
 	btn.Text = text
 	btn.Font = Enum.Font.GothamBold
 	btn.TextSize = 14
-	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-
+	btn.TextColor3 = Color3.fromRGB(255,255,255)
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
 	local stroke = Instance.new("UIStroke", btn)
-	stroke.Color = Color3.fromRGB(0, 200, 255)
+	stroke.Color = Color3.fromRGB(0,200,255)
 	stroke.Thickness = 1.5
-
 	btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(55,55,55) end)
 	btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(35,35,35) end)
 end
 
--- Script 1 (GAG)
-styleButton(Script1Btn, "🚀 Script GAG")
+-- Script 1
+styleButton(Script1Btn,"🚀 Script GAG")
 Script1Btn.Parent = Content
 Script1Btn.MouseButton1Click:Connect(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
 end)
 
--- == ESP 710 Integrasi (tanpa menu dia) ==
-styleButton(Script2Btn, "🥚 ESP")
+-- ====== Integrasi ESP 710 ======
+styleButton(Script2Btn,"🥚 ESP")
 Script2Btn.Parent = Content
 
--- helper untuk cari GUI & tombol dari script 710
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+-- cari GUI bawaan EggOracle
 local function getEggOracleGui()
-	for _, pg in ipairs(game.Players.LocalPlayer:WaitForChild("PlayerGui"):GetChildren()) do
+	for _, pg in ipairs(LocalPlayer:WaitForChild("PlayerGui"):GetChildren()) do
 		if pg:IsA("ScreenGui") and pg.Name == "EggOracle_Container" then
 			return pg
 		end
@@ -135,8 +121,8 @@ local function getEggOracleGui()
 	return nil
 end
 
+-- paksa border biru
 local function ensureBlueStroke(tagFrame)
-	-- paksa border biru dan jaga kalau diubah script aslinya
 	if not tagFrame then return end
 	local bg = tagFrame:FindFirstChild("Background")
 	if not bg then return end
@@ -157,7 +143,6 @@ local function applyBlueToAllTags(container)
 			ensureBlueStroke(f.Parent)
 		end
 	end
-	-- kalau ada tag baru dibuat setelahnya:
 	container.DescendantAdded:Connect(function(d)
 		if d:IsA("Frame") and d.Name == "Background" and d.Parent and d.Parent:IsA("Frame") then
 			ensureBlueStroke(d.Parent)
@@ -165,8 +150,7 @@ local function applyBlueToAllTags(container)
 	end)
 end
 
--- Simulate toggle via firesignal pada tombol bawaan skrip
-local function toggleESPViaButton(container, forceState) -- forceState: true=ON, false=OFF, nil=toggle
+local function toggleESPViaButton(container, forceState) -- true=ON, false=OFF, nil=toggle
 	if not container then return end
 	local panel = container:FindFirstChild("ControlPanel")
 	if not panel then return end
@@ -174,11 +158,7 @@ local function toggleESPViaButton(container, forceState) -- forceState: true=ON,
 	if not content then return end
 	local toggleBtn = content:FindFirstChild("ToggleButton")
 	if not toggleBtn or not toggleBtn:IsA("TextButton") then return end
-
-	local function isOn()
-		return string.find(toggleBtn.Text or "", "ON") ~= nil
-	end
-
+	local function isOn() return string.find(toggleBtn.Text or "", "ON") ~= nil end
 	if forceState == nil then
 		pcall(function() firesignal(toggleBtn.MouseButton1Click) end)
 	else
@@ -190,7 +170,6 @@ local function toggleESPViaButton(container, forceState) -- forceState: true=ON,
 	end
 end
 
--- Hide penuh UI bawaan script 710 (tanpa ganggu logic ESP-nya)
 local function hideOracleUI(container)
 	if not container then return end
 	local cp = container:FindFirstChild("ControlPanel")
@@ -199,43 +178,24 @@ local function hideOracleUI(container)
 	if sb then sb.Visible = false end
 end
 
-local ESP_LOADED = false
-local ESP_ON = false
+local ESP_LOADED, ESP_ON = false, false
 
 Script2Btn.MouseButton1Click:Connect(function()
 	local container = getEggOracleGui()
-
 	if not ESP_LOADED or not container then
-		-- Load skrip 710 baris (tetap versi asli supaya fitur sama persis)
 		local ok, err = pcall(function()
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()
 		end)
-		if not ok then
-			warn("Gagal load ESP 710: ".. tostring(err))
-			return
-		end
-
-		-- tunggu GUI-nya kebentuk
+		if not ok then warn("Gagal load ESP 710: "..tostring(err)); return end
 		container = getEggOracleGui()
-		if not container then
-			warn("ESP 710 tidak membuat GUI container. Coba klik lagi.")
-			return
-		end
-
-		-- sembunyikan UI bawaan
+		if not container then warn("ESP 710 tidak membuat GUI container."); return end
 		hideOracleUI(container)
-
-		-- pastikan border tag biru
 		applyBlueToAllTags(container)
-
-		-- nyalakan ESP (kalau belum ON)
 		toggleESPViaButton(container, true)
 		ESP_LOADED, ESP_ON = true, true
 		Script2Btn.Text = "🥚 ESP: ON"
 	else
-		-- toggle ON/OFF
 		toggleESPViaButton(container, nil)
-		-- cek status text tombol bawaan untuk sync label loader
 		local panel = container:FindFirstChild("ControlPanel")
 		local content = panel and panel:FindFirstChild("Content")
 		local toggleBtn = content and content:FindFirstChild("ToggleButton")
@@ -246,49 +206,166 @@ Script2Btn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Menu 3
-styleButton(Script3Btn, "📂 Next Update")
+-- ====== Menu 3: Auto Reroll ======
+styleButton(Script3Btn,"♻️ Auto Reroll: OFF")
 Script3Btn.Parent = Content
-Script3Btn.MouseButton1Click:Connect(function()
-	-- coming soon
+
+local AutoReroll = false
+local hatchConn -- connection ke EggReadyToHatch_RE
+local rerollRemotes = {}
+local desiredKeep = { Legendary=true, Mythical=true, Divine=true } -- yg TIDAK di-reroll
+
+-- Muat PetRegistry untuk baca rarity
+local PetRegistry = nil
+pcall(function()
+	PetRegistry = require(ReplicatedStorage.Data.PetRegistry.PetList)
 end)
 
---== Floating PL Button ==--
+-- cari remote yang namanya mengandung "Reroll"
+local function refreshRerollRemotes()
+	table.clear(rerollRemotes)
+	for _,desc in ipairs(ReplicatedStorage:GetDescendants()) do
+		if desc:IsA("RemoteFunction") or desc:IsA("RemoteEvent") then
+			local n = string.lower(desc.Name)
+			if string.find(n,"reroll") then
+				table.insert(rerollRemotes, desc)
+			end
+		end
+	end
+end
+refreshRerollRemotes()
+
+-- helper panggil reroll ke server
+local function tryServerReroll(objectId)
+	for _, r in ipairs(rerollRemotes) do
+		if r:IsA("RemoteFunction") then
+			local ok = pcall(function() r:InvokeServer(objectId) end)
+			if ok then return true end
+		elseif r:IsA("RemoteEvent") then
+			local ok = pcall(function() r:FireServer(objectId) end)
+			if ok then return true end
+		end
+	end
+	return false
+end
+
+-- fallback: tekan tombol Reroll bawaan UI script 710
+local function pressNativeReroll()
+	local container = getEggOracleGui()
+	if not container then return false end
+	local panel = container:FindFirstChild("ControlPanel")
+	if not panel then return false end
+	local content = panel:FindFirstChild("Content")
+	if not content then return false end
+	local btn = content:FindFirstChild("RerollButton")
+	if btn and btn:IsA("TextButton") then
+		pcall(function() firesignal(btn.MouseButton1Click) end)
+		return true
+	end
+	return false
+end
+
+-- aktifkan / matikan AutoReroll
+local function setAutoReroll(state)
+	AutoReroll = state
+	Script3Btn.Text = AutoReroll and "♻️ Auto Reroll: ON" or "♻️ Auto Reroll: OFF"
+
+	-- putuskan hookup lama
+	if hatchConn then
+		pcall(function() hatchConn:Disconnect() end)
+		hatchConn = nil
+	end
+
+	if not AutoReroll then return end
+
+	-- konek ke event hatch server (sesuai 710 script)
+	local ok, EggReady = pcall(function()
+		return ReplicatedStorage.GameEvents.EggReadyToHatch_RE.OnClientEvent
+	end)
+	if not ok or not EggReady then
+		warn("Tidak menemukan GameEvents.EggReadyToHatch_RE.OnClientEvent")
+		return
+	end
+
+	hatchConn = EggReady:Connect(function(objectId, petName)
+		-- dapat objectId & petName dari server (sesuai hook di 710)
+		-- baca rarity
+		local rarity = "Common"
+		if PetRegistry and PetRegistry[petName] and PetRegistry[petName].Rarity then
+			rarity = tostring(PetRegistry[petName].Rarity)
+		end
+
+		-- kalau bukan target keep → coba reroll ke server
+		if not desiredKeep[rarity] then
+			refreshRerollRemotes()
+			local okServer = tryServerReroll(objectId)
+			if not okServer then
+				-- fallback ke tombol bawaan (simulasi) biar minimal sama
+				pressNativeReroll()
+			end
+		else
+			-- rare/legend → biarkan (tidak reroll)
+		end
+	end)
+end
+
+Script3Btn.MouseButton1Click:Connect(function()
+	-- pastikan ESP 710 sudah diload (karena kita rely ke GameEvents yang sama)
+	if not ESP_LOADED then
+		-- load dulu biar hook & data siap
+		local ok, err = pcall(function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()
+		end)
+		if not ok then warn("Gagal load ESP 710 sebelum AutoReroll: "..tostring(err)) return end
+		local container = getEggOracleGui()
+		if container then
+			hideOracleUI(container)
+			applyBlueToAllTags(container)
+			toggleESPViaButton(container, true)
+			ESP_LOADED, ESP_ON = true, true
+			Script2Btn.Text = "🥚 ESP: ON"
+		end
+	end
+
+	setAutoReroll(not AutoReroll)
+end)
+
+-- Floating PL Button
 PLButton.Parent = ScreenGui
-PLButton.Size = UDim2.new(0, 55, 0, 55)
-PLButton.Position = UDim2.new(0.4, 0, 0.5, 0)
-PLButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+PLButton.Size = UDim2.new(0,55,0,55)
+PLButton.Position = UDim2.new(0.4,0,0.5,0)
+PLButton.BackgroundColor3 = Color3.fromRGB(30,30,30)
 PLButton.Text = "P.L"
-PLButton.TextColor3 = Color3.fromRGB(0, 200, 255)
+PLButton.TextColor3 = Color3.fromRGB(0,200,255)
 PLButton.Font = Enum.Font.GothamBold
 PLButton.TextSize = 18
 PLButton.Visible = false
 PLButton.Active = true
 PLButton.Draggable = true
-Instance.new("UICorner", PLButton).CornerRadius = UDim.new(1, 0)
+Instance.new("UICorner", PLButton).CornerRadius = UDim.new(1,0)
 local plStroke = Instance.new("UIStroke", PLButton)
-plStroke.Color = Color3.fromRGB(0, 200, 255)
+plStroke.Color = Color3.fromRGB(0,200,255)
 plStroke.Thickness = 2
 
---== Minimize Logic ==--
+-- Minimize / Restore
 MinimizeBtn.MouseButton1Click:Connect(function()
 	MainFrame.Visible = false
 	PLButton.Visible = true
 end)
-
---== Restore Logic ==--
 PLButton.MouseButton1Click:Connect(function()
 	MainFrame.Visible = true
 	PLButton.Visible = false
 end)
 
---== Close Logic ==--
+-- Close: matikan ESP & AutoReroll, bersihkan GUI 710
 CloseBtn.MouseButton1Click:Connect(function()
-	-- coba OFF-kan ESP & hapus GUI bawaan 710 kalau ada
-	local container = getEggOracleGui()
-	if container then
-		pcall(function() toggleESPViaButton(container, false) end)
-		container:Destroy()
-	end
+	pcall(function()
+		setAutoReroll(false)
+		local container = getEggOracleGui()
+		if container then
+			toggleESPViaButton(container, false)
+			container:Destroy()
+		end
+	end)
 	ScreenGui:Destroy()
 end)
