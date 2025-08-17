@@ -1,4 +1,4 @@
--- Permana Loader (PL)
+-- Permana Loader v2 Final Fix
 if game.CoreGui:FindFirstChild("PermanaLoader") then
     game.CoreGui.PermanaLoader:Destroy()
 end
@@ -104,31 +104,24 @@ end
 
 -- Menu Buttons
 local Script1Btn = CreateButton("Load Script 1 (GAG)")
-local Script2Btn = CreateButton("Load Script 2")
-local Script3Btn = CreateButton("Load Script 3")
+local Script2Btn = CreateButton("ESP Egg")
+local Script3Btn = CreateButton("Menu 3 (Kosong)")
 
 -- Minimized Box
-local MiniFrame = Instance.new("Frame")
+local MiniFrame = Instance.new("TextButton")
 MiniFrame.Size = UDim2.new(0, 60, 0, 30)
 MiniFrame.Position = UDim2.new(0.05, 0, 0.05, 0)
 MiniFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MiniFrame.Text = "PL"
+MiniFrame.TextColor3 = Color3.fromRGB(0, 200, 255)
+MiniFrame.Font = Enum.Font.GothamBold
+MiniFrame.TextSize = 18
 MiniFrame.Visible = false
-MiniFrame.Active = true
-MiniFrame.Draggable = true
 MiniFrame.Parent = ScreenGui
 
 local MiniCorner = Instance.new("UICorner")
 MiniCorner.CornerRadius = UDim.new(0, 6)
 MiniCorner.Parent = MiniFrame
-
-local MiniLabel = Instance.new("TextLabel")
-MiniLabel.Size = UDim2.new(1, 0, 1, 0)
-MiniLabel.BackgroundTransparency = 1
-MiniLabel.Text = "PL"
-MiniLabel.Font = Enum.Font.GothamBold
-MiniLabel.TextSize = 18
-MiniLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-MiniLabel.Parent = MiniFrame
 
 -- Functions
 CloseBtn.MouseButton1Click:Connect(function()
@@ -140,67 +133,69 @@ MinBtn.MouseButton1Click:Connect(function()
     MiniFrame.Visible = true
 end)
 
-MiniFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        MainFrame.Visible = true
-        MiniFrame.Visible = false
-    end
+MiniFrame.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    MiniFrame.Visible = false
 end)
 
--- Egg ESP
-local EggESP = {}
-local EggData = {
-    ["Common Egg"] = {Color = Color3.fromRGB(85, 255, 127), Tier = "Common"},
-    ["Uncommon Egg"] = {Color = Color3.fromRGB(223, 201, 34), Tier = "Uncommon"},
-    ["Rare Egg"] = {Color = Color3.fromRGB(255, 47, 47), Tier = "Rare"},
-    ["Mythic Egg"] = {Color = Color3.fromRGB(211, 79, 255), Tier = "Mythic"}
+-- Button Functions
+Script1Btn.MouseButton1Click:Connect(function()
+    loadstring(game:HttpGet("https://your_gag_script_link_here"))()
+end)
+
+-- ===== ESP Egg =====
+local ESPFolder = Instance.new("Folder")
+ESPFolder.Name = "ESP_Eggs"
+ESPFolder.Parent = game.CoreGui
+
+local CollectionService = game:GetService("CollectionService")
+local RunService = game:GetService("RunService")
+local ESPEnabled = false
+
+local EggColors = {
+    Common = Color3.fromRGB(85, 255, 127),
+    Uncommon = Color3.fromRGB(223, 201, 34),
+    Rare = Color3.fromRGB(255, 47, 47),
+    Mythic = Color3.fromRGB(211, 79, 255)
 }
 
-local function CreateESP(eggName, position)
+local function CreateESP(egg)
+    if ESPFolder:FindFirstChild(egg.Name) then return end
     local billboard = Instance.new("BillboardGui")
-    billboard.Adornee = position
-    billboard.Size = UDim2.new(0, 100, 0, 50)
-    billboard.StudsOffset = Vector3.new(0, 3, 0)
-    billboard.Parent = ScreenGui
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = EggData[eggName].Color
-    frame.BackgroundTransparency = 0.5
-    frame.Parent = billboard
+    billboard.Name = egg.Name
+    billboard.Adornee = egg
+    billboard.Size = UDim2.new(0,100,0,50)
+    billboard.StudsOffset = Vector3.new(0,2,0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = ESPFolder
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
+    label.Size = UDim2.new(1,0,1,0)
     label.BackgroundTransparency = 1
-    label.Text = eggName
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.TextSize = 14
+    label.TextColor3 = EggColors[egg:GetAttribute("Tier")] or Color3.fromRGB(255,255,255)
     label.TextStrokeTransparency = 0.8
-    label.Parent = frame
-
-    table.insert(EggESP, billboard)
+    label.Text = egg.Name
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 14
+    label.Parent = billboard
 end
 
 local function RemoveESP()
-    for _, esp in ipairs(EggESP) do
-        esp:Destroy()
-    end
-    EggESP = {}
-end
-
-local function ToggleESP()
-    if #EggESP == 0 then
-        for _, egg in pairs(EggData) do
-            local eggPart = workspace:FindFirstChild(egg.Tier)
-            if eggPart then
-                CreateESP(egg.Tier, eggPart)
-            end
-        end
-    else
-        RemoveESP()
+    for _, v in pairs(ESPFolder:GetChildren()) do
+        v:Destroy()
     end
 end
 
 Script2Btn.MouseButton1Click:Connect(function()
-    ToggleESP()
+    ESPEnabled = not ESPEnabled
+    if ESPEnabled then
+        RunService:BindToRenderStep("ESP_Eggs", 1, function()
+            for _, egg in pairs(CollectionService:GetTagged("Egg")) do
+                CreateESP(egg)
+            end
+        end)
+    else
+        RunService:UnbindFromRenderStep("ESP_Eggs")
+        RemoveESP()
+    end
 end)
