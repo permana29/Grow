@@ -1,68 +1,67 @@
-return function(Tab)
+return function(Parent)
 
-    -- global data buah
-    _G.GlobalFruitList = {
-        "Apple",
-        "Banana",
-        "Orange",
-        "Mango",
-        "Grape"
-    }
-
-    _G.AutoClaimAll = false
-    _G.AutoClaimSelected = false
-    _G.SelectedFruit = nil
+    -- contoh data buah
+    local fruits = {"Apple","Banana","Orange","Mango","Grape"}
+    local autoAll, autoSelect, selectedFruit = false, false, nil
 
     -- fungsi claim
-    function ClaimFruit(fruitName)
-        print("Claimed:", fruitName)
-        -- contoh: game:GetService("ReplicatedStorage").Events.ClaimFruit:FireServer(fruitName)
+    local function claimFruit(name)
+        print("Claimed:", name)
+        -- game:GetService("ReplicatedStorage").Events.ClaimFruit:FireServer(name)
     end
 
-    -- loop auto all
+    -- loop auto claim all
     task.spawn(function()
         while task.wait(1) do
-            if _G.AutoClaimAll then
-                for _, fruit in ipairs(_G.GlobalFruitList) do
-                    ClaimFruit(fruit)
-                end
+            if autoAll then
+                for _,f in ipairs(fruits) do claimFruit(f) end
             end
         end
     end)
 
-    -- loop auto selected
+    -- loop auto claim selected
     task.spawn(function()
         while task.wait(1) do
-            if _G.AutoClaimSelected and _G.SelectedFruit ~= nil then
-                ClaimFruit(_G.SelectedFruit)
+            if autoSelect and selectedFruit then
+                claimFruit(selectedFruit)
             end
         end
     end)
 
-    -- GUI: masuk ke Tab (Menu 3 loader)
-    Tab:AddToggle({
-        Name = "Auto Claim Semua Buah",
-        Default = false,
-        Callback = function(Value)
-            _G.AutoClaimAll = Value
-        end    
-    })
+    -- UI di dalam Parent
+    local uiList = Instance.new("UIListLayout", Parent)
+    uiList.Padding = UDim.new(0,6)
+    uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-    Tab:AddDropdown({
-        Name = "Pilih Buah",
-        Default = "Apple",
-        Options = _G.GlobalFruitList,
-        Callback = function(Value)
-            _G.SelectedFruit = Value
-        end    
-    })
+    -- Toggle All
+    local allBtn = Instance.new("TextButton")
+    allBtn.Size = UDim2.new(0.9,0,0,30)
+    allBtn.Text = "Auto Claim Semua: OFF"
+    allBtn.Parent = Parent
+    allBtn.MouseButton1Click:Connect(function()
+        autoAll = not autoAll
+        allBtn.Text = "Auto Claim Semua: " .. (autoAll and "ON" or "OFF")
+    end)
 
-    Tab:AddToggle({
-        Name = "Auto Claim Buah Pilihan",
-        Default = false,
-        Callback = function(Value)
-            _G.AutoClaimSelected = Value
-        end    
-    })
+    -- Dropdown (sederhana pakai cycle tombol)
+    local dropBtn = Instance.new("TextButton")
+    dropBtn.Size = UDim2.new(0.9,0,0,30)
+    dropBtn.Text = "Pilih Buah: -"
+    dropBtn.Parent = Parent
+    local idx = 1
+    dropBtn.MouseButton1Click:Connect(function()
+        idx = (idx % #fruits) + 1
+        selectedFruit = fruits[idx]
+        dropBtn.Text = "Pilih Buah: " .. selectedFruit
+    end)
 
+    -- Toggle Selected
+    local selBtn = Instance.new("TextButton")
+    selBtn.Size = UDim2.new(0.9,0,0,30)
+    selBtn.Text = "Auto Claim Pilihan: OFF"
+    selBtn.Parent = Parent
+    selBtn.MouseButton1Click:Connect(function()
+        autoSelect = not autoSelect
+        selBtn.Text = "Auto Claim Pilihan: " .. (autoSelect and "ON" or "OFF")
+    end)
 end
