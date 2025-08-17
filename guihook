@@ -1,63 +1,64 @@
---// Net Hook Scanner All Events
--- Buat GUI kecil log
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 350, 0, 220)
-Frame.Position = UDim2.new(0.7, 0, 0.2, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Frame.Active = true
-Frame.Draggable = true
+--// Net Hook Lite
+local gui = Instance.new("ScreenGui", game.CoreGui)
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 320, 0, 200)
+frame.Position = UDim2.new(0.65, 0, 0.25, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.Active = true
+frame.Draggable = true
 
-local Title = Instance.new("TextLabel", Frame)
-Title.Size = UDim2.new(1, 0, 0, 25)
-Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Title.Text = "Net Hook Scanner"
-Title.TextColor3 = Color3.fromRGB(0, 255, 0)
-Title.TextSize = 14
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,25)
+title.BackgroundColor3 = Color3.fromRGB(50,50,50)
+title.Text = "Net Hook Lite"
+title.TextColor3 = Color3.fromRGB(0,255,0)
+title.TextSize = 14
 
-local ScrollingFrame = Instance.new("ScrollingFrame", Frame)
-ScrollingFrame.Size = UDim2.new(1, 0, 1, -50)
-ScrollingFrame.Position = UDim2.new(0, 0, 0, 25)
-ScrollingFrame.CanvasSize = UDim2.new(0,0,0,0)
-ScrollingFrame.ScrollBarThickness = 6
+local scroll = Instance.new("ScrollingFrame", frame)
+scroll.Size = UDim2.new(1,0,1,-50)
+scroll.Position = UDim2.new(0,0,0,25)
+scroll.CanvasSize = UDim2.new(0,0,0,0)
+scroll.ScrollBarThickness = 6
 
-local UIListLayout = Instance.new("UIListLayout", ScrollingFrame)
+local layout = Instance.new("UIListLayout", scroll)
 
-local ClearBtn = Instance.new("TextButton", Frame)
-ClearBtn.Size = UDim2.new(1, 0, 0, 25)
-ClearBtn.Position = UDim2.new(0,0,1,-25)
-ClearBtn.Text = "🗑️ Clear Logs"
-ClearBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-ClearBtn.TextColor3 = Color3.fromRGB(255,255,255)
+local clearBtn = Instance.new("TextButton", frame)
+clearBtn.Size = UDim2.new(1,0,0,25)
+clearBtn.Position = UDim2.new(0,0,1,-25)
+clearBtn.Text = "🗑️ Clear Logs"
+clearBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+clearBtn.TextColor3 = Color3.fromRGB(255,255,255)
 
 local function AddLog(msg)
-    local Log = Instance.new("TextLabel")
-    Log.Size = UDim2.new(1, -4, 0, 18)
-    Log.TextXAlignment = Enum.TextXAlignment.Left
-    Log.BackgroundTransparency = 1
-    Log.Text = msg
-    Log.TextColor3 = Color3.fromRGB(200,200,200)
-    Log.TextSize = 13
-    Log.Parent = ScrollingFrame
-    ScrollingFrame.CanvasSize = UDim2.new(0,0,0,UIListLayout.AbsoluteContentSize.Y)
+    local log = Instance.new("TextLabel")
+    log.Size = UDim2.new(1,-4,0,18)
+    log.TextXAlignment = Enum.TextXAlignment.Left
+    log.BackgroundTransparency = 1
+    log.Text = msg
+    log.TextColor3 = Color3.fromRGB(200,200,200)
+    log.TextSize = 13
+    log.Parent = scroll
+    scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
 end
 
-ClearBtn.MouseButton1Click:Connect(function()
-    for _,v in pairs(ScrollingFrame:GetChildren()) do
+clearBtn.MouseButton1Click:Connect(function()
+    for _,v in pairs(scroll:GetChildren()) do
         if v:IsA("TextLabel") then v:Destroy() end
     end
 end)
 
---// HOOK SEMUA CALL
+--// Light Hook
 local old
 old = hookmetamethod(game, "__namecall", function(self, ...)
     local args = {...}
     local m = getnamecallmethod()
 
-    if typeof(self) == "Instance" then
-        if self:IsA("RemoteEvent") or self:IsA("RemoteFunction") or self:IsA("BindableEvent") or self:IsA("BindableFunction") then
-            AddLog("["..m.."] "..self:GetFullName())
-        end
+    -- Filter biar ga berat
+    if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) 
+    and tostring(self.Parent):match("ReplicatedStorage") then
+        pcall(function()
+            AddLog("["..m.."] "..self.Name)
+        end)
     end
 
     return old(self, ...)
