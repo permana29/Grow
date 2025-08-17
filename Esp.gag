@@ -248,10 +248,10 @@ end)
 
 
 -- Menu 3
-styleButton(Script3Btn, "🍎 Auto Claim")
+styleButton(Script3Btn, " wait for update")
 Script3Btn.Parent = Content
 Script3Btn.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/auto_claim"))()
+    -- isi script load
 end)
 
 --== Floating PL Button ==--
