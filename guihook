@@ -1,4 +1,4 @@
--- Remote Explorer Final Version
+-- Remote Explorer Final Scroll Fix
 
 -- buat ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
@@ -58,6 +58,11 @@ LogFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 -- Layout otomatis
 local UIList = Instance.new("UIListLayout", LogFrame)
 UIList.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- 🔥 Update CanvasSize supaya scroll jalan
+UIList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    LogFrame.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y + 10)
+end)
 
 -- Tombol bawah
 local RescanBtn = Instance.new("TextButton", MainFrame)
