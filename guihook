@@ -1,8 +1,7 @@
---// Grow a Garden Hook Logger GUI
--- GUI
+--// Universal Remote Logger
 local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 500, 0, 280)
+frame.Size = UDim2.new(0, 520, 0, 280)
 frame.Position = UDim2.new(0.2,0,0.2,0)
 frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 frame.Active = true
@@ -11,7 +10,7 @@ frame.Draggable = true
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1,0,0,25)
 title.BackgroundColor3 = Color3.fromRGB(40,40,40)
-title.Text = "📡 Hook Logger - Grow a Garden"
+title.Text = "📡 Universal Remote Logger"
 title.TextColor3 = Color3.fromRGB(0,255,0)
 title.TextSize = 14
 
@@ -48,14 +47,13 @@ clearBtn.MouseButton1Click:Connect(function()
     end
 end)
 
---// Hook
+--// Hook __namecall (all methods)
 local old
 old = hookmetamethod(game, "__namecall", function(self, ...)
     local method = getnamecallmethod()
     local args = {...}
 
-    -- deteksi hanya RemoteEvent/RemoteFunction
-    if (method == "FireServer" or method == "InvokeServer") and self:IsDescendantOf(game.ReplicatedStorage) then
+    if self:IsA("RemoteEvent") or self:IsA("RemoteFunction") then
         local argStr = ""
         for i,v in ipairs(args) do
             pcall(function()
@@ -68,4 +66,16 @@ old = hookmetamethod(game, "__namecall", function(self, ...)
     return old(self, ...)
 end)
 
-AddLog("✅ Hook Logger aktif! Silakan Claim / Buy / Sell buah untuk lihat hasilnya.")
+--// Hook direct :Fire (kadang dipakai)
+for _,remote in ipairs(game:GetDescendants()) do
+    if remote:IsA("RemoteEvent") then
+        local oldFire = remote.Fire
+        remote.Fire = function(r,...)
+            local args = {...}
+            AddLog("[Fire] "..r:GetFullName().." | Args: "..table.concat(args,", "))
+            return oldFire(r,...)
+        end
+    end
+end
+
+AddLog("✅ Universal Remote Logger aktif! Silakan Claim/Buy/Sell untuk lihat hasilnya.")
