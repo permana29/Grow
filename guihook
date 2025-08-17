@@ -1,4 +1,4 @@
---// Hook Explorer + Data Decoder (Final Version)
+--// Hook Explorer + Data Decoder (Final Stable Version)
 
 -- Services
 local RS = game:GetService("ReplicatedStorage")
@@ -11,8 +11,8 @@ local function CreateWindow(title)
     ScreenGui.Parent = game.CoreGui
 
     local Main = Instance.new("Frame")
-    Main.Size = UDim2.new(0, 400, 0, 300)
-    Main.Position = UDim2.new(0.3, 0, 0.2, 0)
+    Main.Size = UDim2.new(0, 500, 0, 350)
+    Main.Position = UDim2.new(0.25, 0, 0.2, 0)
     Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
     Main.BorderSizePixel = 0
     Main.Active = true
@@ -99,16 +99,41 @@ RemotePage.Visible = true
 RemotePage.Parent = Content
 
 local DataPage = Instance.new("ScrollingFrame")
-DataPage.Size = UDim2.new(1,0,1,0)
+DataPage.Size = UDim2.new(1,0,1,-30)
 DataPage.CanvasSize = UDim2.new(0,0,0,0)
 DataPage.BackgroundTransparency = 1
 DataPage.Visible = false
 DataPage.Parent = Content
 
+-- Control buttons for DataPage
+local ControlFrame = Instance.new("Frame")
+ControlFrame.Size = UDim2.new(1,0,0,30)
+ControlFrame.Position = UDim2.new(0,0,1,-30)
+ControlFrame.BackgroundColor3 = Color3.fromRGB(35,35,35)
+ControlFrame.Parent = Content
+
+local CopyAll = Instance.new("TextButton")
+CopyAll.Size = UDim2.new(0.5,0,1,0)
+CopyAll.Text = "Copy All"
+CopyAll.BackgroundColor3 = Color3.fromRGB(60,60,60)
+CopyAll.TextColor3 = Color3.new(1,1,1)
+CopyAll.Parent = ControlFrame
+
+local Clear = Instance.new("TextButton")
+Clear.Size = UDim2.new(0.5,0,1,0)
+Clear.Position = UDim2.new(0.5,0,0,0)
+Clear.Text = "Clear"
+Clear.BackgroundColor3 = Color3.fromRGB(60,60,60)
+Clear.TextColor3 = Color3.new(1,1,1)
+Clear.Parent = ControlFrame
+
+ControlFrame.Visible = false
+
 -- Switch tabs
 RemoteButton.MouseButton1Click:Connect(function()
     RemotePage.Visible = true
     DataPage.Visible = false
+    ControlFrame.Visible = false
     RemoteButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
     DataButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
 end)
@@ -116,6 +141,7 @@ end)
 DataButton.MouseButton1Click:Connect(function()
     RemotePage.Visible = false
     DataPage.Visible = true
+    ControlFrame.Visible = true
     DataButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
     RemoteButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
 end)
@@ -128,11 +154,11 @@ Minimize.MouseButton1Click:Connect(function()
     if Minimized then
         Content.Visible = false
         Tabs.Visible = false
-        Main.Size = UDim2.new(0,400,0,30)
+        Main.Size = UDim2.new(0,500,0,30)
     else
         Content.Visible = true
         Tabs.Visible = true
-        Main.Size = UDim2.new(0,400,0,300)
+        Main.Size = UDim2.new(0,500,0,350)
     end
 end)
 
@@ -167,6 +193,8 @@ ScanRemotes()
 ----------------------------------------------------------------
 -- Data Decoder Tab
 ----------------------------------------------------------------
+local Logs = {}
+
 local function AddLog(remoteType, obj, args)
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1,0,0,40)
@@ -175,8 +203,10 @@ local function AddLog(remoteType, obj, args)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.TextWrapped = true
     label.TextSize = 14
-    label.Text = "["..remoteType.."] "..obj:GetFullName().."\nData: "..toString(args)
+    local txt = "["..remoteType.."] "..obj:GetFullName().."\nData: "..toString(args)
+    label.Text = txt
     label.Parent = DataPage
+    table.insert(Logs, txt)
     DataPage.CanvasSize = UDim2.new(0,0,0,#DataPage:GetChildren()*42)
 end
 
@@ -193,3 +223,15 @@ for _,desc in ipairs(RS:GetDescendants()) do
         end)
     end
 end
+
+-- Control buttons
+CopyAll.MouseButton1Click:Connect(function()
+    if #Logs > 0 then
+        setclipboard(table.concat(Logs, "\n"))
+    end
+end)
+
+Clear.MouseButton1Click:Connect(function()
+    DataPage:ClearAllChildren()
+    Logs = {}
+end)
