@@ -246,11 +246,14 @@ Script2Btn.MouseButton1Click:Connect(function()
 	end
 end)
 
+-- -- == Permana Loader Final + ESP == --
+-- ... (isi backup kamu tetap sama) ...
+
 -- Menu 3
-styleButton(Script3Btn, "📂 Next Update")
+styleButton(Script3Btn, "🍎 Auto Claim")
 Script3Btn.Parent = Content
 Script3Btn.MouseButton1Click:Connect(function()
-	-- coming soon
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/auto_claim"))()
 end)
 
 --== Floating PL Button ==--
