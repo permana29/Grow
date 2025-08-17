@@ -1,198 +1,59 @@
--- Auto Claim Fruits (Fixed Clean Version)
+-- FRAME UTAMA
+local FruitFrame = Instance.new("Frame")
+FruitFrame.Size = UDim2.new(0, 250, 0, 200) -- bikin fix height
+FruitFrame.Position = UDim2.new(0.5, -125, 0.5, -100)
+FruitFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local UICorner = Instance.new("UICorner")
-local Title = Instance.new("TextLabel")
-local CloseBtn = Instance.new("TextButton")
-local MinBtn = Instance.new("TextButton")
-local Dropdown = Instance.new("TextButton")
-local DropdownFrame = Instance.new("Frame")
-local UIListLayout = Instance.new("UIListLayout")
-local ToggleSelected = Instance.new("TextButton")
-local ToggleAll = Instance.new("TextButton")
-local MiniButton = Instance.new("TextButton")
-
-ScreenGui.Name = "AutoClaimFruits"
-ScreenGui.Parent = game.CoreGui
-
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.Position = UDim2.new(0.35, 0, 0.25, 0)
-MainFrame.Size = UDim2.new(0, 260, 0, 190)
-MainFrame.Active = true
-MainFrame.Draggable = true
-
-UICorner.CornerRadius = UDim.new(0, 10)
-UICorner.Parent = MainFrame
-
-Title.Parent = MainFrame
+-- TITLE
+local Title = Instance.new("TextLabel", FruitFrame)
+Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(1, -60, 0, 30)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Font = Enum.Font.GothamBold
-Title.Text = "🍏 Auto Claim"
+Title.Text = "🍏 Select Fruit"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 16
-Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
 
-CloseBtn.Parent = MainFrame
-CloseBtn.Text = "x"
-CloseBtn.Size = UDim2.new(0, 25, 0, 25)
-CloseBtn.Position = UDim2.new(1, -30, 0, 2)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.TextColor3 = Color3.fromRGB(255, 70, 70)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 16
+-- SCROLLING LIST
+local Scroll = Instance.new("ScrollingFrame", FruitFrame)
+Scroll.Size = UDim2.new(1, -10, 1, -40) -- sisakan space buat tombol di bawah
+Scroll.Position = UDim2.new(0, 5, 0, 35)
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+Scroll.ScrollBarThickness = 4
+Scroll.BackgroundTransparency = 1
 
-MinBtn.Parent = MainFrame
-MinBtn.Text = "-"
-MinBtn.Size = UDim2.new(0, 25, 0, 25)
-MinBtn.Position = UDim2.new(1, -60, 0, 2)
-MinBtn.BackgroundTransparency = 1
-MinBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-MinBtn.Font = Enum.Font.GothamBold
-MinBtn.TextSize = 18
+-- Tambahin list fruits
+local Fruits = {"Apple", "Banana", "Mango", "Strawberry", "Grapes", "Watermelon"}
+local UIList = Instance.new("UIListLayout", Scroll)
+UIList.Padding = UDim.new(0, 5)
 
--- Dropdown Button
-Dropdown.Parent = MainFrame
-Dropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Dropdown.Size = UDim2.new(0, 220, 0, 30)
-Dropdown.Position = UDim2.new(0, 20, 0, 40)
-Dropdown.Font = Enum.Font.Gotham
-Dropdown.Text = "Select Fruit: None"
-Dropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
-Dropdown.TextSize = 14
+for _, fruit in ipairs(Fruits) do
+    local Btn = Instance.new("TextButton", Scroll)
+    Btn.Size = UDim2.new(1, -10, 0, 25)
+    Btn.Text = fruit
+    Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    Btn.TextColor3 = Color3.fromRGB(255,255,255)
 
--- Dropdown List
-DropdownFrame.Parent = MainFrame
-DropdownFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-DropdownFrame.Position = UDim2.new(0, 20, 0, 70)
-DropdownFrame.Size = UDim2.new(0, 220, 0, 0)
-DropdownFrame.ClipsDescendants = true
-DropdownFrame.Visible = false
-
-UIListLayout.Parent = DropdownFrame
-UIListLayout.Padding = UDim.new(0, 2)
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-local Fruits = {"Apple", "Banana", "Mango", "Blueberry", "Strawberry"}
-local SelectedFruit = nil
-local dropdownOpen = false
-
-for _,fruit in ipairs(Fruits) do
-    local btn = Instance.new("TextButton")
-    btn.Parent = DropdownFrame
-    btn.Size = UDim2.new(1, 0, 0, 28)
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.Font = Enum.Font.Gotham
-    btn.Text = fruit
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 14
-    btn.MouseButton1Click:Connect(function()
-        SelectedFruit = fruit
-        Dropdown.Text = "Select Fruit: " .. fruit
-        DropdownFrame:TweenSize(UDim2.new(0, 220, 0, 0), "Out", "Quad", 0.2, true)
-        DropdownFrame.Visible = false
-        dropdownOpen = false
+    Btn.MouseButton1Click:Connect(function()
+        print("Selected: "..fruit)
     end)
 end
 
-Dropdown.MouseButton1Click:Connect(function()
-    if dropdownOpen then
-        DropdownFrame:TweenSize(UDim2.new(0, 220, 0, 0), "Out", "Quad", 0.2, true)
-        wait(0.2)
-        DropdownFrame.Visible = false
-    else
-        DropdownFrame.Visible = true
-        DropdownFrame:TweenSize(UDim2.new(0, 220, 0, #Fruits*30), "Out", "Quad", 0.2, true)
-    end
-    dropdownOpen = not dropdownOpen
+-- UPDATE canvas size biar bisa scroll
+UIList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    Scroll.CanvasSize = UDim2.new(0,0,0,UIList.AbsoluteContentSize.Y)
 end)
 
--- Toggle Selected
-ToggleSelected.Parent = MainFrame
-ToggleSelected.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ToggleSelected.Size = UDim2.new(0, 220, 0, 30)
-ToggleSelected.Position = UDim2.new(0, 20, 0, 110)
-ToggleSelected.Font = Enum.Font.GothamBold
-ToggleSelected.Text = "Selected: OFF"
-ToggleSelected.TextColor3 = Color3.fromRGB(255, 80, 80)
-ToggleSelected.TextSize = 14
+-- TOMBOL AUTO CLAIM
+local AutoBtn = Instance.new("TextButton", FruitFrame)
+AutoBtn.Size = UDim2.new(1, -20, 0, 30)
+AutoBtn.Position = UDim2.new(0, 10, 1, -35)
+AutoBtn.Text = "Auto Claim: OFF"
+AutoBtn.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+AutoBtn.TextColor3 = Color3.fromRGB(255,255,255)
 
-local selectedEnabled = false
-ToggleSelected.MouseButton1Click:Connect(function()
-    selectedEnabled = not selectedEnabled
-    if selectedEnabled then
-        ToggleSelected.Text = "Selected: ON"
-        ToggleSelected.TextColor3 = Color3.fromRGB(100, 255, 100)
-        spawn(function()
-            while selectedEnabled do
-                if SelectedFruit then
-                    print("Claiming "..SelectedFruit.." ...")
-                end
-                wait(2)
-            end
-        end)
-    else
-        ToggleSelected.Text = "Selected: OFF"
-        ToggleSelected.TextColor3 = Color3.fromRGB(255, 80, 80)
-    end
-end)
-
--- Toggle All
-ToggleAll.Parent = MainFrame
-ToggleAll.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ToggleAll.Size = UDim2.new(0, 220, 0, 30)
-ToggleAll.Position = UDim2.new(0, 20, 0, 150)
-ToggleAll.Font = Enum.Font.GothamBold
-ToggleAll.Text = "All: OFF"
-ToggleAll.TextColor3 = Color3.fromRGB(255, 80, 80)
-ToggleAll.TextSize = 14
-
-local allEnabled = false
-ToggleAll.MouseButton1Click:Connect(function()
-    allEnabled = not allEnabled
-    if allEnabled then
-        ToggleAll.Text = "All: ON"
-        ToggleAll.TextColor3 = Color3.fromRGB(100, 255, 100)
-        spawn(function()
-            while allEnabled do
-                for _,fruit in ipairs(Fruits) do
-                    print("Claiming "..fruit.." ...")
-                end
-                wait(2)
-            end
-        end)
-    else
-        ToggleAll.Text = "All: OFF"
-        ToggleAll.TextColor3 = Color3.fromRGB(255, 80, 80)
-    end
-end)
-
--- Minimize / Close
-MiniButton.Parent = ScreenGui
-MiniButton.Size = UDim2.new(0, 50, 0, 50)
-MiniButton.Position = UDim2.new(0, 20, 0.7, 0)
-MiniButton.Text = "Auto"
-MiniButton.TextSize = 14
-MiniButton.TextColor3 = Color3.fromRGB(255,255,255)
-MiniButton.BackgroundColor3 = Color3.fromRGB(40,40,40)
-MiniButton.Visible = false
-local UICorner2 = Instance.new("UICorner", MiniButton)
-UICorner2.CornerRadius = UDim.new(1,0)
-
-MinBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-    MiniButton.Visible = true
-end)
-
-MiniButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = true
-    MiniButton.Visible = false
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
+local toggled = false
+AutoBtn.MouseButton1Click:Connect(function()
+    toggled = not toggled
+    AutoBtn.Text = "Auto Claim: "..(toggled and "ON" or "OFF")
+    AutoBtn.BackgroundColor3 = toggled and Color3.fromRGB(0,120,0) or Color3.fromRGB(120,0,0)
 end)
