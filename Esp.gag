@@ -1,5 +1,4 @@
--- ⚡ Permana Loader - Egg ESP + Reroll + Logger
--- Gabungan ESP, Logger, Reroll Hook
+-- ⚡ Permana Loader - ESP + Logger + Reroll (Fix Hatch Bisa Jalan)
 -- By UnixCorp x Permana
 
 -- // Variabel
@@ -33,7 +32,7 @@ ESPButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 local RerollButton = Instance.new("TextButton", MainFrame)
 RerollButton.Position = UDim2.new(0, 210, 0, 40)
 RerollButton.Size = UDim2.new(0, 180, 0, 30)
-RerollButton.Text = "🎲 Manual Reroll"
+RerollButton.Text = "🎲 Manual Reroll (0)"
 RerollButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 
 -- Log Box
@@ -61,12 +60,12 @@ ClearBtn.Text = "Clear"
 ClearBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 
 -- // Fungsi Log
-local function AddLog(msg)
+local function AddLog(msg, color)
     local line = Instance.new("TextLabel", LogFrame)
     line.Size = UDim2.new(1, -5, 0, 20)
     line.TextXAlignment = Enum.TextXAlignment.Left
     line.Text = msg
-    line.TextColor3 = Color3.fromRGB(0, 255, 0)
+    line.TextColor3 = color or Color3.fromRGB(0, 255, 0)
     line.BackgroundTransparency = 1
     LogFrame.CanvasSize = UDim2.new(0,0,0,UIList.AbsoluteContentSize.Y)
 end
@@ -83,7 +82,7 @@ CopyBtn.MouseButton1Click:Connect(function()
         if v:IsA("TextLabel") then table.insert(all, v.Text) end
     end
     setclipboard(table.concat(all, "\n"))
-    AddLog("[Info] Log dicopy ke clipboard.")
+    AddLog("[Info] Log dicopy ke clipboard.", Color3.fromRGB(255,255,0))
 end)
 
 -- // ESP
@@ -95,48 +94,42 @@ local function ToggleESP()
 end
 ESPButton.MouseButton1Click:Connect(ToggleESP)
 
--- // Hook Payload
-local function SavePayload(remote, args)
-    table.insert(savedPayloads, {remote = remote, args = args})
-    AddLog("[Reroll] Payload tersimpan #" .. #savedPayloads)
-end
+-- // Hook Payload (AMAN - tidak ganggu FireServer asli)
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
 
-for _,remote in pairs(ReplicatedStorage:GetDescendants()) do
-    if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
-        if remote.Name:find("Egg") or remote.Name:find("PetEgg") then
-            local old; old = hookfunction(remote.FireServer, function(self, ...)
-                local args = {...}
-                SavePayload(self, args)
-                return old(self, unpack(args))
-            end)
-            local old2; old2 = hookfunction(remote.InvokeServer, function(self, ...)
-                local args = {...}
-                SavePayload(self, args)
-                return old2(self, unpack(args))
-            end)
-        end
+    if (method == "FireServer" or method == "InvokeServer") and tostring(self):lower():find("egg") then
+        -- simpan payload tanpa ganggu fungsi asli
+        table.insert(savedPayloads, {remote = self, args = args, method = method})
+        RerollButton.Text = "🎲 Manual Reroll ("..#savedPayloads..")"
+        AddLog("[Hook] Payload egg tersimpan #" .. #savedPayloads, Color3.fromRGB(0,200,255))
     end
-end
-AddLog("[Info] Hook aktif, tunggu aktivitas egg...")
+
+    return oldNamecall(self, unpack(args))
+end)
+
+AddLog("[Info] Hook aktif, jalankan aktivitas egg.", Color3.fromRGB(255,255,0))
 
 -- // Reroll Function
 local function ManualReroll()
     if #savedPayloads == 0 then
-        AddLog("[Reroll] Belum ada payload terekam.")
+        AddLog("[Reroll] Belum ada payload terekam.", Color3.fromRGB(255,0,0))
         return
     end
     for i, data in ipairs(savedPayloads) do
         local success, err = pcall(function()
-            if data.remote:IsA("RemoteEvent") then
+            if data.method == "FireServer" then
                 data.remote:FireServer(unpack(data.args))
-            elseif data.remote:IsA("RemoteFunction") then
+            elseif data.method == "InvokeServer" then
                 data.remote:InvokeServer(unpack(data.args))
             end
         end)
         if success then
-            AddLog("[Reroll] Payload #" .. i .. " berhasil direplay.")
+            AddLog("[Reroll] Payload #" .. i .. " berhasil direplay.", Color3.fromRGB(0,255,0))
         else
-            AddLog("[Reroll] Gagal replay payload #" .. i .. ": " .. err)
+            AddLog("[Reroll] Gagal replay payload #" .. i .. ": " .. err, Color3.fromRGB(255,0,0))
         end
     end
 end
