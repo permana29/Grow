@@ -1,212 +1,267 @@
---// Remote Explorer Final Version
+-- Remote Explorer Final Version
 
--- GUI Utama
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "RemoteExplorer"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = game:GetService("CoreGui")
-
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 450, 0, 300)
-MainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
-MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-
--- Header
-local Header = Instance.new("Frame", MainFrame)
-Header.Size = UDim2.new(1, 0, 0, 30)
-Header.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-Header.BorderSizePixel = 0
-
-local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(1, -90, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Remote Explorer"
-Title.TextColor3 = Color3.fromRGB(255,255,255)
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 16
-
--- Tombol minimize
-local Minimize = Instance.new("TextButton", Header)
-Minimize.Size = UDim2.new(0,30,1,0)
-Minimize.Position = UDim2.new(1,-60,0,0)
-Minimize.Text = "-"
-Minimize.TextColor3 = Color3.new(1,1,1)
-Minimize.BackgroundColor3 = Color3.fromRGB(70,70,70)
-Minimize.BorderSizePixel = 0
-
--- Tombol close
-local Close = Instance.new("TextButton", Header)
-Close.Size = UDim2.new(0,30,1,0)
-Close.Position = UDim2.new(1,-30,0,0)
-Close.Text = "X"
-Close.TextColor3 = Color3.new(1,1,1)
-Close.BackgroundColor3 = Color3.fromRGB(120,50,50)
-Close.BorderSizePixel = 0
-
--- Tab container
-local TabContainer = Instance.new("Frame", MainFrame)
-TabContainer.Size = UDim2.new(1, 0, 1, -30)
-TabContainer.Position = UDim2.new(0,0,0,30)
-TabContainer.BackgroundTransparency = 1
-
--- ==================== TAB SCAN ====================
-local ScanTab = Instance.new("Frame", TabContainer)
-ScanTab.Size = UDim2.new(1,0,1,0)
-ScanTab.BackgroundTransparency = 1
-ScanTab.Visible = true
-
--- Search bar
-local SearchBox = Instance.new("TextBox", ScanTab)
-SearchBox.Size = UDim2.new(1,-10,0,25)
-SearchBox.Position = UDim2.new(0,5,0,5)
-SearchBox.PlaceholderText = "Search remote..."
-SearchBox.Text = ""
-SearchBox.BackgroundColor3 = Color3.fromRGB(60,60,60)
-SearchBox.TextColor3 = Color3.new(1,1,1)
-
--- Scrolling log
-local LogFrame = Instance.new("ScrollingFrame", ScanTab)
-LogFrame.Size = UDim2.new(1,-10,1,-70)
-LogFrame.Position = UDim2.new(0,5,0,35)
-LogFrame.BackgroundTransparency = 1
-LogFrame.ScrollBarThickness = 6
-
-local LogLayout = Instance.new("UIListLayout", LogFrame)
-LogLayout.SortOrder = Enum.SortOrder.LayoutOrder
-LogLayout.Padding = UDim.new(0,3)
-
--- Toolbar
-local Toolbar = Instance.new("Frame", ScanTab)
-Toolbar.Size = UDim2.new(1,-10,0,30)
-Toolbar.Position = UDim2.new(0,5,1,-35)
-Toolbar.BackgroundTransparency = 1
-
-local ClearBtn = Instance.new("TextButton", Toolbar)
-ClearBtn.Size = UDim2.new(0,70,1,0)
-ClearBtn.Text = "Clear"
-ClearBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-ClearBtn.TextColor3 = Color3.new(1,1,1)
-
-local CopyBtn = Instance.new("TextButton", Toolbar)
-CopyBtn.Size = UDim2.new(0,70,1,0)
-CopyBtn.Position = UDim2.new(0,75,0,0)
-CopyBtn.Text = "Copy All"
-CopyBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-CopyBtn.TextColor3 = Color3.new(1,1,1)
-
-local RescanBtn = Instance.new("TextButton", Toolbar)
-RescanBtn.Size = UDim2.new(0,70,1,0)
-RescanBtn.Position = UDim2.new(0,150,0,0)
-RescanBtn.Text = "Rescan"
-RescanBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-RescanBtn.TextColor3 = Color3.new(1,1,1)
-
--- ==================== TAB DATA ====================
-local DataTab = Instance.new("Frame", TabContainer)
-DataTab.Size = UDim2.new(1,0,1,0)
-DataTab.BackgroundTransparency = 1
-DataTab.Visible = false
-
-local DataLog = Instance.new("ScrollingFrame", DataTab)
-DataLog.Size = UDim2.new(1,-10,1,-40)
-DataLog.Position = UDim2.new(0,5,0,35)
-DataLog.BackgroundTransparency = 1
-DataLog.ScrollBarThickness = 6
-
-local DataLayout = Instance.new("UIListLayout", DataLog)
-DataLayout.SortOrder = Enum.SortOrder.LayoutOrder
-DataLayout.Padding = UDim.new(0,5)
-
-local DataToolbar = Instance.new("Frame", DataTab)
-DataToolbar.Size = UDim2.new(1,-10,0,30)
-DataToolbar.Position = UDim2.new(0,5,0,0)
-DataToolbar.BackgroundTransparency = 1
-
-local BackBtn = Instance.new("TextButton", DataToolbar)
-BackBtn.Size = UDim2.new(0,60,1,0)
-BackBtn.Text = "← Back"
-BackBtn.BackgroundColor3 = Color3.fromRGB(50,70,100)
-BackBtn.TextColor3 = Color3.new(1,1,1)
-
--- ==================== FUNCTION ====================
-
--- Buka Data Tab
-local function ShowData(remote, data)
-    ScanTab.Visible = false
-    DataTab.Visible = true
-
-    DataLog:ClearAllChildren()
-    Instance.new("UIListLayout", DataLog).Padding = UDim.new(0,5)
-
-    local Title = Instance.new("TextLabel", DataLog)
-    Title.Size = UDim2.new(1,0,0,20)
-    Title.BackgroundTransparency = 1
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.TextColor3 = Color3.new(1,1,1)
-    Title.Text = "[RemoteEvent] " .. tostring(remote)
-
-    local DataLabel = Instance.new("TextLabel", DataLog)
-    DataLabel.Size = UDim2.new(1,0,0,20)
-    DataLabel.BackgroundTransparency = 1
-    DataLabel.TextXAlignment = Enum.TextXAlignment.Left
-    DataLabel.TextWrapped = true
-    DataLabel.TextColor3 = Color3.fromRGB(200,200,200)
-    DataLabel.Text = "Data: " .. game:GetService("HttpService"):JSONEncode(data)
+-- GUI lama hapus dulu biar ga dobel
+if game.CoreGui:FindFirstChild("RemoteExplorer") then
+    game.CoreGui.RemoteExplorer:Destroy()
 end
 
--- Back button
-BackBtn.MouseButton1Click:Connect(function()
-    DataTab.Visible = false
-    ScanTab.Visible = true
-end)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
 
--- Dummy data buat test
-RescanBtn.MouseButton1Click:Connect(function()
-    LogFrame:ClearAllChildren()
-    Instance.new("UIListLayout", LogFrame).Padding = UDim.new(0,3)
+-- ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "RemoteExplorer"
+gui.Parent = game.CoreGui
+gui.ResetOnSpawn = false
 
-    for i=1,5 do
-        local Btn = Instance.new("TextButton", LogFrame)
-        Btn.Size = UDim2.new(1, -10, 0, 25)
-        Btn.Text = "ReplicatedStorage.GameEvents.Remote_"..i
-        Btn.TextColor3 = Color3.new(1,1,1)
-        Btn.BackgroundColor3 = Color3.fromRGB(55,55,55)
-        Btn.MouseButton1Click:Connect(function()
-            ShowData(Btn.Text, {ID=i, Name="Egg_"..i, Stock=math.random(1,50)})
-        end)
-    end
-end)
+-- Frame utama
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 420, 0, 260)
+mainFrame.Position = UDim2.new(0.3, 0, 0.2, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = gui
 
--- Clear
-ClearBtn.MouseButton1Click:Connect(function()
-    LogFrame:ClearAllChildren()
-    Instance.new("UIListLayout", LogFrame).Padding = UDim.new(0,3)
-end)
+-- Ujung atas (TitleBar)
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 30)
+titleBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
 
--- Copy All
-CopyBtn.MouseButton1Click:Connect(function()
-    local data = {}
-    for _,v in pairs(LogFrame:GetChildren()) do
-        if v:IsA("TextButton") then
-            table.insert(data,v.Text)
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -60, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "Remote Explorer"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = titleBar
+
+-- Tombol minimize
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 30, 1, 0)
+minimizeBtn.Position = UDim2.new(1, -60, 0, 0)
+minimizeBtn.Text = "-"
+minimizeBtn.Font = Enum.Font.SourceSansBold
+minimizeBtn.TextSize = 20
+minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+minimizeBtn.Parent = titleBar
+
+-- Tombol close
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 1, 0)
+closeBtn.Position = UDim2.new(1, -30, 0, 0)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.TextSize = 18
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+closeBtn.Parent = titleBar
+
+-- Search bar
+local searchBar = Instance.new("TextBox")
+searchBar.Size = UDim2.new(1, -20, 0, 25)
+searchBar.Position = UDim2.new(0, 10, 0, 40)
+searchBar.PlaceholderText = "Search..."
+searchBar.Text = ""
+searchBar.Font = Enum.Font.SourceSans
+searchBar.TextSize = 16
+searchBar.TextColor3 = Color3.fromRGB(0, 0, 0)
+searchBar.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
+searchBar.Parent = mainFrame
+
+-- Scrolling list untuk scan
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -20, 1, -110)
+scrollFrame.Position = UDim2.new(0, 10, 0, 70)
+scrollFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+scrollFrame.BorderSizePixel = 0
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.Parent = mainFrame
+
+local layout = Instance.new("UIListLayout")
+layout.Parent = scrollFrame
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Tombol bawah
+local buttonBar = Instance.new("Frame")
+buttonBar.Size = UDim2.new(1, -20, 0, 30)
+buttonBar.Position = UDim2.new(0, 10, 1, -40)
+buttonBar.BackgroundTransparency = 1
+buttonBar.Parent = mainFrame
+
+local clearBtn = Instance.new("TextButton")
+clearBtn.Size = UDim2.new(0.3, -5, 1, 0)
+clearBtn.Position = UDim2.new(0, 0, 0, 0)
+clearBtn.Text = "Clear"
+clearBtn.Font = Enum.Font.SourceSansBold
+clearBtn.TextSize = 16
+clearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+clearBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+clearBtn.Parent = buttonBar
+
+local copyAllBtn = Instance.new("TextButton")
+copyAllBtn.Size = UDim2.new(0.3, -5, 1, 0)
+copyAllBtn.Position = UDim2.new(0.35, 0, 0, 0)
+copyAllBtn.Text = "Copy All"
+copyAllBtn.Font = Enum.Font.SourceSansBold
+copyAllBtn.TextSize = 16
+copyAllBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+copyAllBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+copyAllBtn.Parent = buttonBar
+
+local rescanBtn = Instance.new("TextButton")
+rescanBtn.Size = UDim2.new(0.3, -5, 1, 0)
+rescanBtn.Position = UDim2.new(0.7, 0, 0, 0)
+rescanBtn.Text = "Rescan"
+rescanBtn.Font = Enum.Font.SourceSansBold
+rescanBtn.TextSize = 16
+rescanBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+rescanBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+rescanBtn.Parent = buttonBar
+
+-- Frame untuk detail data
+local dataFrame = Instance.new("Frame")
+dataFrame.Size = UDim2.new(1, -20, 1, -80)
+dataFrame.Position = UDim2.new(0, 10, 0, 60)
+dataFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+dataFrame.Visible = false
+dataFrame.Parent = mainFrame
+
+local dataBox = Instance.new("TextBox")
+dataBox.Size = UDim2.new(1, -20, 1, -60)
+dataBox.Position = UDim2.new(0, 10, 0, 10)
+dataBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+dataBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+dataBox.ClearTextOnFocus = false
+dataBox.MultiLine = true
+dataBox.TextXAlignment = Enum.TextXAlignment.Left
+dataBox.TextYAlignment = Enum.TextYAlignment.Top
+dataBox.TextSize = 14
+dataBox.Font = Enum.Font.Code
+dataBox.TextWrapped = false
+dataBox.Text = ""
+dataBox.Parent = dataFrame
+
+local backBtn = Instance.new("TextButton")
+backBtn.Size = UDim2.new(0.3, -5, 0, 30)
+backBtn.Position = UDim2.new(0, 0, 1, -40)
+backBtn.Text = "Back"
+backBtn.Font = Enum.Font.SourceSansBold
+backBtn.TextSize = 16
+backBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+backBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+backBtn.Parent = dataFrame
+
+local copyPathBtn = Instance.new("TextButton")
+copyPathBtn.Size = UDim2.new(0.3, -5, 0, 30)
+copyPathBtn.Position = UDim2.new(0.35, 0, 1, -40)
+copyPathBtn.Text = "Copy Path"
+copyPathBtn.Font = Enum.Font.SourceSansBold
+copyPathBtn.TextSize = 16
+copyPathBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+copyPathBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+copyPathBtn.Parent = dataFrame
+
+-- Variabel
+local remotes = {}
+
+-- Fungsi buat scan remote
+local function scanRemotes()
+    scrollFrame:ClearAllChildren()
+    layout.Parent = scrollFrame
+    remotes = {}
+
+    local function addRemote(obj, path)
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            table.insert(remotes, path)
+
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -10, 0, 25)
+            btn.Text = path
+            btn.TextSize = 14
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+            btn.Font = Enum.Font.SourceSans
+            btn.Parent = scrollFrame
+
+            btn.MouseButton1Click:Connect(function()
+                scrollFrame.Visible = false
+                searchBar.Visible = false
+                buttonBar.Visible = false
+                dataFrame.Visible = true
+                dataBox.Text = "[Remote] " .. path .. "\nType: " .. obj.ClassName
+                copyPathBtn.MouseButton1Click:Connect(function()
+                    setclipboard(path)
+                end)
+            end)
         end
     end
-    if setclipboard then setclipboard(table.concat(data,"\n")) end
+
+    local function recurse(obj, path)
+        for _, child in ipairs(obj:GetChildren()) do
+            local newPath = path .. "." .. child.Name
+            addRemote(child, newPath)
+            recurse(child, newPath)
+        end
+    end
+
+    recurse(ReplicatedStorage, "ReplicatedStorage")
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+end
+
+-- Hubungkan tombol
+rescanBtn.MouseButton1Click:Connect(scanRemotes)
+clearBtn.MouseButton1Click:Connect(function()
+    scrollFrame:ClearAllChildren()
+    remotes = {}
+end)
+copyAllBtn.MouseButton1Click:Connect(function()
+    if #remotes > 0 then
+        setclipboard(table.concat(remotes, "\n"))
+    end
+end)
+backBtn.MouseButton1Click:Connect(function()
+    scrollFrame.Visible = true
+    searchBar.Visible = true
+    buttonBar.Visible = true
+    dataFrame.Visible = false
 end)
 
--- Minimize
+closeBtn.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
 local minimized = false
-Minimize.MouseButton1Click:Connect(function()
+minimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
-    TabContainer.Visible = not minimized
+    scrollFrame.Visible = not minimized
+    searchBar.Visible = not minimized
+    buttonBar.Visible = not minimized
+    dataFrame.Visible = not minimized
+    if minimized then
+        mainFrame.Size = UDim2.new(0, 420, 0, 30)
+    else
+        mainFrame.Size = UDim2.new(0, 420, 0, 260)
+    end
 end)
 
--- Close
-Close.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
+-- Search filter
+searchBar:GetPropertyChangedSignal("Text"):Connect(function()
+    local query = string.lower(searchBar.Text)
+    for _, child in ipairs(scrollFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child.Visible = (query == "" or string.find(string.lower(child.Text), query))
+        end
+    end
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
 end)
+
+-- Pertama kali scan
+scanRemotes()
