@@ -1,4 +1,4 @@
--- Permana Loader v2
+-- Permana Loader v3
 
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
@@ -24,24 +24,35 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 --== Main Frame ==--
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.BorderColor3 = Color3.fromRGB(0, 170, 255)
-MainFrame.BorderSizePixel = 2
 MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
-MainFrame.Size = UDim2.new(0, 260, 0, 200)
+MainFrame.Size = UDim2.new(0, 280, 0, 210)
 MainFrame.Active = true
 MainFrame.Draggable = true
+
+-- Rounded
+local frameCorner = Instance.new("UICorner", MainFrame)
+frameCorner.CornerRadius = UDim.new(0, 12)
+
+-- Glow Border
+local frameStroke = Instance.new("UIStroke", MainFrame)
+frameStroke.Thickness = 2
+frameStroke.Color = Color3.fromRGB(0, 200, 255)
+frameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 --== Top Bar ==--
 TopBar.Parent = MainFrame
 TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-TopBar.Size = UDim2.new(1, 0, 0, 30)
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+
+local topCorner = Instance.new("UICorner", TopBar)
+topCorner.CornerRadius = UDim.new(0, 12)
 
 Title.Parent = TopBar
 Title.BackgroundTransparency = 1
 Title.Size = UDim2.new(1, -70, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "Permana Loader"
+Title.Text = "⚡ Permana Loader ⚡"
 Title.TextColor3 = Color3.fromRGB(0, 200, 255)
 Title.TextSize = 16
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -49,32 +60,32 @@ Title.TextXAlignment = Enum.TextXAlignment.Left
 -- Minimize
 MinimizeBtn.Parent = TopBar
 MinimizeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-MinimizeBtn.BorderColor3 = Color3.fromRGB(0, 170, 255)
-MinimizeBtn.BorderSizePixel = 1
 MinimizeBtn.Size = UDim2.new(0, 30, 0, 22)
-MinimizeBtn.Position = UDim2.new(1, -65, 0.1, 0)
+MinimizeBtn.Position = UDim2.new(1, -65, 0.2, 0)
 MinimizeBtn.Text = "-"
 MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeBtn.Font = Enum.Font.GothamBold
 MinimizeBtn.TextSize = 20
 
+Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
+
 -- Close
 CloseBtn.Parent = TopBar
-CloseBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-CloseBtn.BorderColor3 = Color3.fromRGB(0, 170, 255)
-CloseBtn.BorderSizePixel = 1
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 CloseBtn.Size = UDim2.new(0, 30, 0, 22)
-CloseBtn.Position = UDim2.new(1, -33, 0.1, 0)
+CloseBtn.Position = UDim2.new(1, -33, 0.2, 0)
 CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 18
 
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+
 --== Content ==--
 Content.Parent = MainFrame
 Content.BackgroundTransparency = 1
-Content.Position = UDim2.new(0, 0, 0, 35)
-Content.Size = UDim2.new(1, 0, 1, -35)
+Content.Position = UDim2.new(0, 0, 0, 40)
+Content.Size = UDim2.new(1, 0, 1, -40)
 
 UIListLayout.Parent = Content
 UIListLayout.Padding = UDim.new(0, 10)
@@ -84,14 +95,19 @@ UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 --== Style Buttons ==--
 local function styleButton(btn, text)
 	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-	btn.BorderColor3 = Color3.fromRGB(0, 170, 255)
-	btn.BorderSizePixel = 1
-	btn.Size = UDim2.new(0.9, 0, 0, 40)
+	btn.Size = UDim2.new(0.85, 0, 0, 40)
 	btn.Text = text
 	btn.Font = Enum.Font.GothamBold
 	btn.TextSize = 14
 	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+
+	local stroke = Instance.new("UIStroke", btn)
+	stroke.Color = Color3.fromRGB(0, 200, 255)
+	stroke.Thickness = 1.5
+
+	-- Hover efek
 	btn.MouseEnter:Connect(function()
 		btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 	end)
@@ -101,21 +117,21 @@ local function styleButton(btn, text)
 end
 
 -- Script GAG
-styleButton(Script1Btn, "SCRIPT GAG")
+styleButton(Script1Btn, "🚀 Script GAG")
 Script1Btn.Parent = Content
 Script1Btn.MouseButton1Click:Connect(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Liriosha/GAGAPI/main/GAGAPI.lua"))()
 end)
 
 -- Menu 2
-styleButton(Script2Btn, "MENU 2 (Loader)")
+styleButton(Script2Btn, "📂 Menu 2 Loader")
 Script2Btn.Parent = Content
 Script2Btn.MouseButton1Click:Connect(function()
 	-- isi scriptmu di sini
 end)
 
 -- Menu 3
-styleButton(Script3Btn, "MENU 3 (Loader)")
+styleButton(Script3Btn, "📂 Menu 3 Loader")
 Script3Btn.Parent = Content
 Script3Btn.MouseButton1Click:Connect(function()
 	-- isi scriptmu di sini
@@ -123,18 +139,22 @@ end)
 
 --== Floating PL Button ==--
 PLButton.Parent = ScreenGui
-PLButton.Size = UDim2.new(0, 50, 0, 50)
+PLButton.Size = UDim2.new(0, 55, 0, 55)
 PLButton.Position = UDim2.new(0.4, 0, 0.5, 0)
 PLButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-PLButton.BorderColor3 = Color3.fromRGB(0, 200, 255)
-PLButton.BorderSizePixel = 2
 PLButton.Text = "P.L"
 PLButton.TextColor3 = Color3.fromRGB(0, 200, 255)
 PLButton.Font = Enum.Font.GothamBold
-PLButton.TextSize = 16
+PLButton.TextSize = 18
 PLButton.Visible = false
 PLButton.Active = true
-PLButton.Draggable = true -- Bisa digeser
+PLButton.Draggable = true
+
+Instance.new("UICorner", PLButton).CornerRadius = UDim.new(1, 0)
+
+local plStroke = Instance.new("UIStroke", PLButton)
+plStroke.Color = Color3.fromRGB(0, 200, 255)
+plStroke.Thickness = 2
 
 --== Minimize Logic ==--
 MinimizeBtn.MouseButton1Click:Connect(function()
