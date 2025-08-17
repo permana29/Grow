@@ -1,136 +1,288 @@
--- ⚡ Permana Loader - ESP + Logger + Reroll (Fix Hatch Bisa Jalan)
--- By UnixCorp x Permana
+--== Permana Loader (Fix ESP + Reroll + Logger) ==--
 
--- // Variabel
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
-local savedPayloads = {}
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local TopBar = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local MinimizeBtn = Instance.new("TextButton")
+local CloseBtn = Instance.new("TextButton")
+local Content = Instance.new("Frame")
+local UIListLayout = Instance.new("UIListLayout")
 
--- // GUI
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 400, 0, 300)
-MainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.BorderSizePixel = 0
+-- Floating PL button
+local PLButton = Instance.new("TextButton")
 
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "⚡ Permana Loader"
-Title.TextColor3 = Color3.fromRGB(255, 170, 0)
-Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+-- Buttons
+local Script1Btn = Instance.new("TextButton")
+local Script2Btn = Instance.new("TextButton") -- ESP
+local Script3Btn = Instance.new("TextButton") -- Reroll
+local Script4Btn = Instance.new("TextButton") -- Logger
 
--- Tombol ESP
-local ESPButton = Instance.new("TextButton", MainFrame)
-ESPButton.Position = UDim2.new(0, 10, 0, 40)
-ESPButton.Size = UDim2.new(0, 180, 0, 30)
-ESPButton.Text = "🥚 ESP: OFF"
-ESPButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+-- Tabs container
+local Tabs = {}
 
--- Tombol Reroll
-local RerollButton = Instance.new("TextButton", MainFrame)
-RerollButton.Position = UDim2.new(0, 210, 0, 40)
-RerollButton.Size = UDim2.new(0, 180, 0, 30)
-RerollButton.Text = "🎲 Manual Reroll (0)"
-RerollButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+--== Parent ==--
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Log Box
-local LogFrame = Instance.new("ScrollingFrame", MainFrame)
-LogFrame.Position = UDim2.new(0, 10, 0, 80)
-LogFrame.Size = UDim2.new(1, -20, 1, -120)
-LogFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-LogFrame.CanvasSize = UDim2.new(0,0,0,0)
-LogFrame.ScrollBarThickness = 6
+--== Main Frame ==--
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
+MainFrame.Size = UDim2.new(0, 320, 0, 280)
+MainFrame.Active = true
+MainFrame.Draggable = true
 
-local UIList = Instance.new("UIListLayout", LogFrame)
-UIList.SortOrder = Enum.SortOrder.LayoutOrder
+local frameCorner = Instance.new("UICorner", MainFrame)
+frameCorner.CornerRadius = UDim.new(0, 12)
 
--- Copy + Clear Button
-local CopyBtn = Instance.new("TextButton", MainFrame)
-CopyBtn.Position = UDim2.new(0, 10, 1, -35)
-CopyBtn.Size = UDim2.new(0.5, -15, 0, 30)
-CopyBtn.Text = "Copy All"
-CopyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+local frameStroke = Instance.new("UIStroke", MainFrame)
+frameStroke.Thickness = 2
+frameStroke.Color = Color3.fromRGB(0, 200, 255)
+frameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-local ClearBtn = Instance.new("TextButton", MainFrame)
-ClearBtn.Position = UDim2.new(0.5, 5, 1, -35)
-ClearBtn.Size = UDim2.new(0.5, -15, 0, 30)
-ClearBtn.Text = "Clear"
-ClearBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+--== Top Bar ==--
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TopBar.Size = UDim2.new(1, 0, 0, 35)
 
--- // Fungsi Log
-local function AddLog(msg, color)
-    local line = Instance.new("TextLabel", LogFrame)
-    line.Size = UDim2.new(1, -5, 0, 20)
-    line.TextXAlignment = Enum.TextXAlignment.Left
-    line.Text = msg
-    line.TextColor3 = color or Color3.fromRGB(0, 255, 0)
-    line.BackgroundTransparency = 1
-    LogFrame.CanvasSize = UDim2.new(0,0,0,UIList.AbsoluteContentSize.Y)
+local topCorner = Instance.new("UICorner", TopBar)
+topCorner.CornerRadius = UDim.new(0, 12)
+
+Title.Parent = TopBar
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, -70, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "⚡ Permana Loader ⚡"
+Title.TextColor3 = Color3.fromRGB(0, 200, 255)
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Minimize
+MinimizeBtn.Parent = TopBar
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+MinimizeBtn.Size = UDim2.new(0, 30, 0, 22)
+MinimizeBtn.Position = UDim2.new(1, -65, 0.2, 0)
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextSize = 20
+Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
+
+-- Close
+CloseBtn.Parent = TopBar
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.Size = UDim2.new(0, 30, 0, 22)
+CloseBtn.Position = UDim2.new(1, -33, 0.2, 0)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 18
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+
+--== Content ==--
+Content.Parent = MainFrame
+Content.BackgroundTransparency = 1
+Content.Position = UDim2.new(0, 0, 0, 40)
+Content.Size = UDim2.new(1, 0, 1, -40)
+
+UIListLayout.Parent = Content
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+--== Style Button ==--
+local function styleButton(btn, text)
+	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	btn.Size = UDim2.new(0.85, 0, 0, 36)
+	btn.Text = text
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 14
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+
+	local stroke = Instance.new("UIStroke", btn)
+	stroke.Color = Color3.fromRGB(0, 200, 255)
+	stroke.Thickness = 1.5
+
+	btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(55,55,55) end)
+	btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(35,35,35) end)
 end
 
-ClearBtn.MouseButton1Click:Connect(function()
-    for _,v in pairs(LogFrame:GetChildren()) do
-        if v:IsA("TextLabel") then v:Destroy() end
-    end
-end)
-
-CopyBtn.MouseButton1Click:Connect(function()
-    local all = {}
-    for _,v in pairs(LogFrame:GetChildren()) do
-        if v:IsA("TextLabel") then table.insert(all, v.Text) end
-    end
-    setclipboard(table.concat(all, "\n"))
-    AddLog("[Info] Log dicopy ke clipboard.", Color3.fromRGB(255,255,0))
-end)
-
--- // ESP
-local ESPEnabled = false
-local function ToggleESP()
-    ESPEnabled = not ESPEnabled
-    ESPButton.Text = ESPEnabled and "🥚 ESP: ON" or "🥚 ESP: OFF"
-    AddLog(ESPEnabled and "[ESP] Aktif." or "[ESP] Nonaktif.")
+--== Helper buat Tab ==--
+local function createTab(name)
+	local frame = Instance.new("Frame")
+	frame.Name = name
+	frame.Parent = MainFrame
+	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+	frame.Size = UDim2.new(1, -20, 1, -90)
+	frame.Position = UDim2.new(0, 10, 0, 80)
+	frame.Visible = false
+	local corner = Instance.new("UICorner", frame)
+	corner.CornerRadius = UDim.new(0, 10)
+	return frame
 end
-ESPButton.MouseButton1Click:Connect(ToggleESP)
 
--- // Hook Payload (AMAN - tidak ganggu FireServer asli)
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
+local function switchTab(name)
+	for n,f in pairs(Tabs) do
+		f.Visible = (n == name)
+	end
+end
 
-    if (method == "FireServer" or method == "InvokeServer") and tostring(self):lower():find("egg") then
-        -- simpan payload tanpa ganggu fungsi asli
-        table.insert(savedPayloads, {remote = self, args = args, method = method})
-        RerollButton.Text = "🎲 Manual Reroll ("..#savedPayloads..")"
-        AddLog("[Hook] Payload egg tersimpan #" .. #savedPayloads, Color3.fromRGB(0,200,255))
-    end
-
-    return oldNamecall(self, unpack(args))
+--== Menu 1: Script GAG ==--
+styleButton(Script1Btn, "🚀 Script GAG")
+Script1Btn.Parent = Content
+Script1Btn.MouseButton1Click:Connect(function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
 end)
 
-AddLog("[Info] Hook aktif, jalankan aktivitas egg.", Color3.fromRGB(255,255,0))
+--== Menu 2: ESP ==--
+styleButton(Script2Btn, "🥚 ESP")
+Script2Btn.Parent = Content
 
--- // Reroll Function
-local function ManualReroll()
-    if #savedPayloads == 0 then
-        AddLog("[Reroll] Belum ada payload terekam.", Color3.fromRGB(255,0,0))
-        return
-    end
-    for i, data in ipairs(savedPayloads) do
-        local success, err = pcall(function()
-            if data.method == "FireServer" then
-                data.remote:FireServer(unpack(data.args))
-            elseif data.method == "InvokeServer" then
-                data.remote:InvokeServer(unpack(data.args))
-            end
-        end)
-        if success then
-            AddLog("[Reroll] Payload #" .. i .. " berhasil direplay.", Color3.fromRGB(0,255,0))
-        else
-            AddLog("[Reroll] Gagal replay payload #" .. i .. ": " .. err, Color3.fromRGB(255,0,0))
-        end
-    end
+-- fungsi esp (disingkat dari versi kamu, tetap hide UI bawaan)
+local function getEggOracleGui()
+	for _,pg in ipairs(game.Players.LocalPlayer:WaitForChild("PlayerGui"):GetChildren()) do
+		if pg:IsA("ScreenGui") and pg.Name=="EggOracle_Container" then return pg end
+	end
+	for _,cg in ipairs(game.CoreGui:GetChildren()) do
+		if cg:IsA("ScreenGui") and cg.Name=="EggOracle_Container" then return cg end
+	end
 end
-RerollButton.MouseButton1Click:Connect(ManualReroll)
+
+local ESP_ON=false
+Script2Btn.MouseButton1Click:Connect(function()
+	if not getEggOracleGui() then
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/permana29/Grow/refs/heads/main/Esp_egg"))()
+		task.wait(1)
+	end
+	local container=getEggOracleGui()
+	if container then
+		if container:FindFirstChild("ControlPanel") then container.ControlPanel.Visible=false end
+		if container:FindFirstChild("ShowButton") then container.ShowButton.Visible=false end
+	end
+	ESP_ON=not ESP_ON
+	Script2Btn.Text = ESP_ON and "🥚 ESP: ON" or "🥚 ESP: OFF"
+end)
+
+--== Menu 3: Reroll ==--
+styleButton(Script3Btn, "🎲 Reroll Payload")
+Script3Btn.Parent = Content
+Tabs["Reroll"] = createTab("Reroll")
+
+local rerollBox = Instance.new("TextBox", Tabs["Reroll"])
+rerollBox.Size = UDim2.new(1, -10, 1, -50)
+rerollBox.Position = UDim2.new(0,5,0,5)
+rerollBox.Text = "[Reroll] Belum ada payload terekam."
+rerollBox.ClearTextOnFocus = false
+rerollBox.MultiLine = true
+rerollBox.TextWrapped = false
+rerollBox.TextXAlignment = Enum.TextXAlignment.Left
+rerollBox.TextYAlignment = Enum.TextYAlignment.Top
+rerollBox.Font = Enum.Font.Code
+rerollBox.TextSize = 14
+rerollBox.TextColor3 = Color3.fromRGB(200,200,200)
+rerollBox.BackgroundColor3 = Color3.fromRGB(15,15,15)
+
+local scroll = Instance.new("UIScrollBarInset", rerollBox)
+
+local copyBtn = Instance.new("TextButton", Tabs["Reroll"])
+copyBtn.Size = UDim2.new(0.45,0,0,30)
+copyBtn.Position = UDim2.new(0,5,1,-35)
+copyBtn.Text = "Copy"
+copyBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+copyBtn.TextColor3 = Color3.fromRGB(0,200,255)
+
+local clearBtn = Instance.new("TextButton", Tabs["Reroll"])
+clearBtn.Size = UDim2.new(0.45,0,0,30)
+clearBtn.Position = UDim2.new(0.5,0,1,-35)
+clearBtn.Text = "Clear"
+clearBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+clearBtn.TextColor3 = Color3.fromRGB(255,100,100)
+
+copyBtn.MouseButton1Click:Connect(function()
+	setclipboard(rerollBox.Text)
+end)
+clearBtn.MouseButton1Click:Connect(function()
+	rerollBox.Text=""
+end)
+
+Script3Btn.MouseButton1Click:Connect(function()
+	switchTab("Reroll")
+end)
+
+--== Menu 4: Logger ==--
+styleButton(Script4Btn, "📜 Logger")
+Script4Btn.Parent = Content
+Tabs["Logger"] = createTab("Logger")
+
+local logBox = rerollBox:Clone()
+logBox.Parent = Tabs["Logger"]
+logBox.Text = "[Info] Logger siap. Jalankan aktivitas egg."
+logBox.Size = UDim2.new(1,-10,1,-50)
+
+local copyLog = copyBtn:Clone()
+copyLog.Parent = Tabs["Logger"]
+copyLog.Position = UDim2.new(0,5,1,-35)
+copyLog.Text = "Copy"
+
+local clearLog = clearBtn:Clone()
+clearLog.Parent = Tabs["Logger"]
+clearLog.Position = UDim2.new(0.5,0,1,-35)
+clearLog.Text = "Clear"
+
+copyLog.MouseButton1Click:Connect(function() setclipboard(logBox.Text) end)
+clearLog.MouseButton1Click:Connect(function() logBox.Text="" end)
+
+Script4Btn.MouseButton1Click:Connect(function()
+	switchTab("Logger")
+end)
+
+--== Floating PL ==--
+PLButton.Parent = ScreenGui
+PLButton.Size = UDim2.new(0, 55, 0, 55)
+PLButton.Position = UDim2.new(0.4, 0, 0.5, 0)
+PLButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+PLButton.Text = "P.L"
+PLButton.TextColor3 = Color3.fromRGB(0, 200, 255)
+PLButton.Font = Enum.Font.GothamBold
+PLButton.TextSize = 18
+PLButton.Visible = false
+PLButton.Active = true
+PLButton.Draggable = true
+Instance.new("UICorner", PLButton).CornerRadius = UDim.new(1, 0)
+local plStroke = Instance.new("UIStroke", PLButton)
+plStroke.Color = Color3.fromRGB(0, 200, 255)
+plStroke.Thickness = 2
+
+--== Logic ==--
+MinimizeBtn.MouseButton1Click:Connect(function()
+	MainFrame.Visible = false
+	PLButton.Visible = true
+end)
+
+PLButton.MouseButton1Click:Connect(function()
+	MainFrame.Visible = true
+	PLButton.Visible = false
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+	local container = getEggOracleGui()
+	if container then container:Destroy() end
+	ScreenGui:Destroy()
+end)
+
+--== Hook event server untuk logger + reroll ==--
+local RS = game:GetService("ReplicatedStorage")
+for _,evName in ipairs({"EggReadyToHatch_RE","PetEggService","EggTutorial","BuyPetEgg"}) do
+	local ev = RS:FindFirstChild(evName,true)
+	if ev and ev:IsA("RemoteEvent") or ev:IsA("RemoteFunction") then
+		hookfunction(ev.FireServer, function(self,...)
+			local args={...}
+			logBox.Text=logBox.Text.."\n[Hooked]["..ev.Name.."] "..game:GetService("HttpService"):JSONEncode(args)
+			rerollBox.Text=rerollBox.Text.."\n"..ev.Name.." -> "..game:GetService("HttpService"):JSONEncode(args)
+			return self:FireServer(...)
+		end)
+	end
+end
