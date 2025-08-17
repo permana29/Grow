@@ -1,131 +1,206 @@
--- 🟦 Permana Loader (P.L) 🟦
-local ScreenGui = Instance.new("ScreenGui")
-local Main = Instance.new("Frame")
-local TopBar = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local Minimize = Instance.new("TextButton")
-local Close = Instance.new("TextButton")
-local Content = Instance.new("Frame")
-local Btn1 = Instance.new("TextButton")
-local Btn2 = Instance.new("TextButton")
-local Btn3 = Instance.new("TextButton")
+-- Permana Loader (PL)
+if game.CoreGui:FindFirstChild("PermanaLoader") then
+    game.CoreGui.PermanaLoader:Destroy()
+end
 
--- Parent
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PermanaLoader"
 ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 -- Main Frame
-Main.Parent = ScreenGui
-Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
-Main.BorderColor3 = Color3.fromRGB(0,170,255)
-Main.BorderSizePixel = 2
-Main.Size = UDim2.new(0,260,0,200)
-Main.Position = UDim2.new(0.5,-130,0.5,-100)
-Main.Active = true
-Main.Draggable = true -- Bisa digeser
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 320, 0, 220)
+MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
 
--- Top Bar
-TopBar.Parent = Main
-TopBar.Size = UDim2.new(1,0,0,30)
-TopBar.BackgroundColor3 = Color3.fromRGB(40,40,40)
+-- Glow Border
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Parent = MainFrame
+UIStroke.Color = Color3.fromRGB(0, 170, 255)
+UIStroke.Thickness = 2
+UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
--- Title
-Title.Parent = TopBar
-Title.Text = "🔷 Permana Loader 🔷"
-Title.Size = UDim2.new(1,-60,1,0)
-Title.Position = UDim2.new(0,10,0,0)
-Title.TextColor3 = Color3.fromRGB(255,255,255)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 16
-Title.BackgroundTransparency = 1
+-- Rounded Corners
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
 
--- Minimize Button
-Minimize.Parent = TopBar
-Minimize.Size = UDim2.new(0,25,0,25)
-Minimize.Position = UDim2.new(1,-55,0,2)
-Minimize.Text = "-"
-Minimize.TextColor3 = Color3.fromRGB(255,255,255)
-Minimize.BackgroundColor3 = Color3.fromRGB(80,80,80)
+-- Title Bar
+local TitleBar = Instance.new("TextLabel")
+TitleBar.Size = UDim2.new(1, -60, 0, 30)
+TitleBar.Position = UDim2.new(0, 10, 0, 0)
+TitleBar.BackgroundTransparency = 1
+TitleBar.Text = "Permana Loader"
+TitleBar.Font = Enum.Font.GothamBold
+TitleBar.TextSize = 18
+TitleBar.TextColor3 = Color3.fromRGB(0, 200, 255)
+TitleBar.TextXAlignment = Enum.TextXAlignment.Left
+TitleBar.Parent = MainFrame
 
 -- Close Button
-Close.Parent = TopBar
-Close.Size = UDim2.new(0,25,0,25)
-Close.Position = UDim2.new(1,-28,0,2)
-Close.Text = "X"
-Close.TextColor3 = Color3.fromRGB(255,255,255)
-Close.BackgroundColor3 = Color3.fromRGB(150,0,0)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 0)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 20
+CloseBtn.Parent = MainFrame
 
--- Content Frame
-Content.Parent = Main
-Content.Size = UDim2.new(1,0,1,-30)
-Content.Position = UDim2.new(0,0,0,30)
-Content.BackgroundTransparency = 1
+-- Minimize Button
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -70, 0, 0)
+MinBtn.BackgroundTransparency = 1
+MinBtn.Text = "-"
+MinBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 20
+MinBtn.Parent = MainFrame
 
--- Buttons
-Btn1.Parent = Content
-Btn1.Size = UDim2.new(1,-20,0,40)
-Btn1.Position = UDim2.new(0,10,0,10)
-Btn1.Text = "Menu 1: GAG Script"
-Btn1.BackgroundColor3 = Color3.fromRGB(45,45,45)
-Btn1.TextColor3 = Color3.fromRGB(255,255,255)
+-- Buttons Holder
+local BtnFrame = Instance.new("Frame")
+BtnFrame.Size = UDim2.new(1, -20, 1, -50)
+BtnFrame.Position = UDim2.new(0, 10, 0, 40)
+BtnFrame.BackgroundTransparency = 1
+BtnFrame.Parent = MainFrame
 
-Btn2.Parent = Content
-Btn2.Size = UDim2.new(1,-20,0,40)
-Btn2.Position = UDim2.new(0,10,0,60)
-Btn2.Text = "Menu 2: ESP Egg"
-Btn2.BackgroundColor3 = Color3.fromRGB(45,45,45)
-Btn2.TextColor3 = Color3.fromRGB(255,255,255)
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.FillDirection = Enum.FillDirection.Vertical
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+UIListLayout.Parent = BtnFrame
 
-Btn3.Parent = Content
-Btn3.Size = UDim2.new(1,-20,0,40)
-Btn3.Position = UDim2.new(0,10,0,110)
-Btn3.Text = "Menu 3: Komentar"
-Btn3.BackgroundColor3 = Color3.fromRGB(45,45,45)
-Btn3.TextColor3 = Color3.fromRGB(255,255,255)
+-- Function create button
+local function CreateButton(txt)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 250, 0, 40)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    btn.Text = txt
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.AutoButtonColor = true
 
--- 🔹 Fungsi Tombol 🔹
--- Menu 1 (GAG Script Loader)
-Btn1.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Skibidiking123/Fisch1/refs/heads/main/GAG"))()
-end)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
 
--- Menu 2 (ESP Egg Loader)
-Btn2.MouseButton1Click:Connect(function()
-    local Players = game:GetService("Players")
-    local LocalPlayer = Players.LocalPlayer
-    local CollectionService = game:GetService("CollectionService")
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(0, 170, 255)
+    stroke.Thickness = 1.5
+    stroke.Parent = btn
 
-    local function highlightEgg(egg)
-        if egg:FindFirstChild("SelectionBox") then return end
-        local box = Instance.new("SelectionBox")
-        box.Adornee = egg
-        box.LineThickness = 0.05
-        box.Color3 = Color3.fromRGB(0,255,255)
-        box.Parent = egg
-    end
+    btn.Parent = BtnFrame
+    return btn
+end
 
-    for _, egg in ipairs(CollectionService:GetTagged("Egg")) do
-        highlightEgg(egg)
-    end
+-- Menu Buttons
+local Script1Btn = CreateButton("Load Script 1 (GAG)")
+local Script2Btn = CreateButton("Load Script 2")
+local Script3Btn = CreateButton("Load Script 3")
 
-    CollectionService:GetInstanceAddedSignal("Egg"):Connect(function(egg)
-        highlightEgg(egg)
-    end)
+-- Minimized Box
+local MiniFrame = Instance.new("Frame")
+MiniFrame.Size = UDim2.new(0, 60, 0, 30)
+MiniFrame.Position = UDim2.new(0.05, 0, 0.05, 0)
+MiniFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MiniFrame.Visible = false
+MiniFrame.Active = true
+MiniFrame.Draggable = true
+MiniFrame.Parent = ScreenGui
 
-    print("✅ ESP Egg Aktif")
-end)
+local MiniCorner = Instance.new("UICorner")
+MiniCorner.CornerRadius = UDim.new(0, 6)
+MiniCorner.Parent = MiniFrame
 
--- Menu 3 (Kosong, komentar manual)
-Btn3.MouseButton1Click:Connect(function()
-    -- isi manual nanti
-    print("Menu 3 masih kosong...")
-end)
+local MiniLabel = Instance.new("TextLabel")
+MiniLabel.Size = UDim2.new(1, 0, 1, 0)
+MiniLabel.BackgroundTransparency = 1
+MiniLabel.Text = "PL"
+MiniLabel.Font = Enum.Font.GothamBold
+MiniLabel.TextSize = 18
+MiniLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+MiniLabel.Parent = MiniFrame
 
--- 🔹 Minimize
-Minimize.MouseButton1Click:Connect(function()
-    Content.Visible = not Content.Visible
-end)
-
--- 🔹 Close
-Close.MouseButton1Click:Connect(function()
+-- Functions
+CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
+end)
+
+MinBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    MiniFrame.Visible = true
+end)
+
+MiniFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        MainFrame.Visible = true
+        MiniFrame.Visible = false
+    end
+end)
+
+-- Egg ESP
+local EggESP = {}
+local EggData = {
+    ["Common Egg"] = {Color = Color3.fromRGB(85, 255, 127), Tier = "Common"},
+    ["Uncommon Egg"] = {Color = Color3.fromRGB(223, 201, 34), Tier = "Uncommon"},
+    ["Rare Egg"] = {Color = Color3.fromRGB(255, 47, 47), Tier = "Rare"},
+    ["Mythic Egg"] = {Color = Color3.fromRGB(211, 79, 255), Tier = "Mythic"}
+}
+
+local function CreateESP(eggName, position)
+    local billboard = Instance.new("BillboardGui")
+    billboard.Adornee = position
+    billboard.Size = UDim2.new(0, 100, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.Parent = ScreenGui
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = EggData[eggName].Color
+    frame.BackgroundTransparency = 0.5
+    frame.Parent = billboard
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = eggName
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 14
+    label.TextStrokeTransparency = 0.8
+    label.Parent = frame
+
+    table.insert(EggESP, billboard)
+end
+
+local function RemoveESP()
+    for _, esp in ipairs(EggESP) do
+        esp:Destroy()
+    end
+    EggESP = {}
+end
+
+local function ToggleESP()
+    if #EggESP == 0 then
+        for _, egg in pairs(EggData) do
+            local eggPart = workspace:FindFirstChild(egg.Tier)
+            if eggPart then
+                CreateESP(egg.Tier, eggPart)
+            end
+        end
+    else
+        RemoveESP()
+    end
+end
+
+Script2Btn.MouseButton1Click:Connect(function()
+    ToggleESP()
 end)
