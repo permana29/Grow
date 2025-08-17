@@ -1,0 +1,68 @@
+return function(Tab)
+
+    -- global data buah
+    _G.GlobalFruitList = {
+        "Apple",
+        "Banana",
+        "Orange",
+        "Mango",
+        "Grape"
+    }
+
+    _G.AutoClaimAll = false
+    _G.AutoClaimSelected = false
+    _G.SelectedFruit = nil
+
+    -- fungsi claim
+    function ClaimFruit(fruitName)
+        print("Claimed:", fruitName)
+        -- contoh: game:GetService("ReplicatedStorage").Events.ClaimFruit:FireServer(fruitName)
+    end
+
+    -- loop auto all
+    task.spawn(function()
+        while task.wait(1) do
+            if _G.AutoClaimAll then
+                for _, fruit in ipairs(_G.GlobalFruitList) do
+                    ClaimFruit(fruit)
+                end
+            end
+        end
+    end)
+
+    -- loop auto selected
+    task.spawn(function()
+        while task.wait(1) do
+            if _G.AutoClaimSelected and _G.SelectedFruit ~= nil then
+                ClaimFruit(_G.SelectedFruit)
+            end
+        end
+    end)
+
+    -- GUI: masuk ke Tab (Menu 3 loader)
+    Tab:AddToggle({
+        Name = "Auto Claim Semua Buah",
+        Default = false,
+        Callback = function(Value)
+            _G.AutoClaimAll = Value
+        end    
+    })
+
+    Tab:AddDropdown({
+        Name = "Pilih Buah",
+        Default = "Apple",
+        Options = _G.GlobalFruitList,
+        Callback = function(Value)
+            _G.SelectedFruit = Value
+        end    
+    })
+
+    Tab:AddToggle({
+        Name = "Auto Claim Buah Pilihan",
+        Default = false,
+        Callback = function(Value)
+            _G.AutoClaimSelected = Value
+        end    
+    })
+
+end
