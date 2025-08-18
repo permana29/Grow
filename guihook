@@ -1,5 +1,4 @@
---// Remote Scanner + Explorer Final
--- GUI + Hook
+--// Remote Scanner + Explorer Fixed
 local HttpService = game:GetService("HttpService")
 
 -- GUI Setup
@@ -9,10 +8,10 @@ local TitleBar = Instance.new("Frame")
 local Title = Instance.new("TextLabel")
 local CloseButton = Instance.new("TextButton")
 local MinimizeButton = Instance.new("TextButton")
+local SearchBar = Instance.new("TextBox")
 local TabFrame = Instance.new("Frame")
 local RescanTab = Instance.new("ScrollingFrame")
 local DataTab = Instance.new("ScrollingFrame")
-local SearchBar = Instance.new("TextBox")
 local ButtonFrame = Instance.new("Frame")
 local RescanButton = Instance.new("TextButton")
 local ClearButton = Instance.new("TextButton")
@@ -23,8 +22,8 @@ ScreenGui.Parent = game.CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 500, 0, 300)
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -150)
+MainFrame.Size = UDim2.new(0, 520, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -260, 0.5, -175)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -86,7 +85,6 @@ ButtonFrame.BackgroundTransparency = 1
 
 RescanButton.Parent = ButtonFrame
 RescanButton.Size = UDim2.new(0.25, -5, 1, 0)
-RescanButton.Position = UDim2.new(0, 0, 0, 0)
 RescanButton.Text = "Rescan"
 RescanButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 RescanButton.TextColor3 = Color3.new(1,1,1)
@@ -112,12 +110,12 @@ ClearButton.Text = "Clear"
 ClearButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 ClearButton.TextColor3 = Color3.new(1,1,1)
 
--- Variables
+-- Vars
 local currentRemote = nil
 local logs = {}
 local connections = {}
 
--- Utility: format args
+-- format args
 local function formatArgs(args)
     local output = {}
     for i,v in ipairs(args) do
@@ -130,10 +128,11 @@ local function formatArgs(args)
     return table.concat(output, "\n")
 end
 
--- Add log to DataTab
+-- add log to DataTab
 local function addLog(text)
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -10, 0, 40)
+    label.Size = UDim2.new(1, -10, 0, 0)
+    label.AutomaticSize = Enum.AutomaticSize.Y
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.TextYAlignment = Enum.TextYAlignment.Top
     label.BackgroundTransparency = 1
@@ -143,10 +142,10 @@ local function addLog(text)
     label.TextSize = 14
     label.Text = text
     label.Parent = DataTab
-    DataTab.CanvasSize = UDim2.new(0, 0, 0, #DataTab:GetChildren() * 45)
+    DataTab.CanvasSize = UDim2.new(0, 0, 0, DataTab.CanvasSize.Y.Offset + label.TextBounds.Y + 10)
 end
 
--- Hook remote
+-- hook remote
 local function hookRemote(remote)
     for _,con in ipairs(connections) do
         con:Disconnect()
@@ -175,7 +174,7 @@ local function hookRemote(remote)
     DataTab.Visible = true
 end
 
--- Refresh remotes list
+-- refresh remotes list
 local function rescan()
     RescanTab:ClearAllChildren()
     local y = 0
@@ -212,6 +211,7 @@ end)
 ClearButton.MouseButton1Click:Connect(function()
     DataTab:ClearAllChildren()
     logs = {}
+    DataTab.CanvasSize = UDim2.new()
 end)
 CloseButton.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
@@ -223,5 +223,19 @@ MinimizeButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not minimized
 end)
 
--- Run first scan
+-- Search filter
+SearchBar:GetPropertyChangedSignal("Text"):Connect(function()
+    local query = SearchBar.Text:lower()
+    for _,child in ipairs(RescanTab:GetChildren()) do
+        if child:IsA("TextButton") then
+            if query == "" or child.Text:lower():find(query) then
+                child.Visible = true
+            else
+                child.Visible = false
+            end
+        end
+    end
+end)
+
+-- run first scan
 rescan()
