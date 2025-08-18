@@ -1,190 +1,162 @@
--- Remote Explorer (Final Lightweight Version)
--- GUI + Log Call Data (safe, no crash)
-
+-- Remote Explorer Final
 local Players = game:GetService("Players")
-local RS = game:GetService("ReplicatedStorage")
-local LP = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
 
--- UI Library
-local ScreenGui = Instance.new("ScreenGui", LP:WaitForChild("PlayerGui"))
+-- GUI utama
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
 ScreenGui.Name = "RemoteExplorer"
 
+-- Frame utama
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 500, 0, 350)
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-MainFrame.Active = true
-MainFrame.Draggable = true
+MainFrame.Size = UDim2.new(0, 500, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.Visible = true
 
+local UICorner = Instance.new("UICorner", MainFrame)
+UICorner.CornerRadius = UDim.new(0, 8)
+
+-- Judul
 local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, -40, 0, 30)
+Title.Position = UDim2.new(0, 10, 0, 5)
+Title.BackgroundTransparency = 1
 Title.Text = "Remote Explorer"
-Title.Size = UDim2.new(1,0,0,30)
-Title.BackgroundColor3 = Color3.fromRGB(30,30,30)
 Title.TextColor3 = Color3.fromRGB(255,255,255)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 20
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Font = Enum.Font.Code
+Title.TextSize = 18
 
-local BackBtn = Instance.new("TextButton", MainFrame)
+-- Tombol Close
+local CloseBtn = Instance.new("TextButton", MainFrame)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+CloseBtn.Font = Enum.Font.Code
+CloseBtn.TextSize = 18
+CloseBtn.BackgroundTransparency = 1
+
+-- Container List
+local ListFrame = Instance.new("ScrollingFrame", MainFrame)
+ListFrame.Size = UDim2.new(1, -20, 1, -50)
+ListFrame.Position = UDim2.new(0, 10, 0, 40)
+ListFrame.CanvasSize = UDim2.new(0,0,0,0)
+ListFrame.ScrollBarThickness = 6
+ListFrame.BackgroundTransparency = 1
+
+local UIListLayout = Instance.new("UIListLayout", ListFrame)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Container Detail
+local DetailFrame = Instance.new("Frame", MainFrame)
+DetailFrame.Size = UDim2.new(1, -20, 1, -50)
+DetailFrame.Position = UDim2.new(0, 10, 0, 40)
+DetailFrame.Visible = false
+
+local DetailBox = Instance.new("TextLabel", DetailFrame)
+DetailBox.Size = UDim2.new(1,0,1,-40)
+DetailBox.Position = UDim2.new(0,0,0,0)
+DetailBox.BackgroundTransparency = 1
+DetailBox.TextColor3 = Color3.fromRGB(200,200,200)
+DetailBox.Font = Enum.Font.Code
+DetailBox.TextSize = 15
+DetailBox.TextWrapped = false
+DetailBox.TextXAlignment = Enum.TextXAlignment.Left
+DetailBox.TextYAlignment = Enum.TextYAlignment.Top
+DetailBox.Text = ""
+
+local UISize = Instance.new("UIListLayout", DetailFrame)
+
+-- Tombol di Detail
+local BackBtn = Instance.new("TextButton", DetailFrame)
+BackBtn.Size = UDim2.new(0,80,0,30)
+BackBtn.Position = UDim2.new(0,0,1,-35)
 BackBtn.Text = "< Back"
-BackBtn.Size = UDim2.new(0,80,0,25)
-BackBtn.Position = UDim2.new(0,5,0,35)
+BackBtn.Font = Enum.Font.Code
+BackBtn.TextSize = 16
 BackBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 BackBtn.TextColor3 = Color3.fromRGB(255,255,255)
 
-local CopyBtn = Instance.new("TextButton", MainFrame)
+local CopyBtn = Instance.new("TextButton", DetailFrame)
+CopyBtn.Size = UDim2.new(0,80,0,30)
+CopyBtn.Position = UDim2.new(0,90,1,-35)
 CopyBtn.Text = "Copy"
-CopyBtn.Size = UDim2.new(0,80,0,25)
-CopyBtn.Position = UDim2.new(0,95,0,35)
+CopyBtn.Font = Enum.Font.Code
+CopyBtn.TextSize = 16
 CopyBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 CopyBtn.TextColor3 = Color3.fromRGB(255,255,255)
 
-local ClearBtn = Instance.new("TextButton", MainFrame)
+local ClearBtn = Instance.new("TextButton", DetailFrame)
+ClearBtn.Size = UDim2.new(0,80,0,30)
+ClearBtn.Position = UDim2.new(0,180,1,-35)
 ClearBtn.Text = "Clear"
-ClearBtn.Size = UDim2.new(0,80,0,25)
-ClearBtn.Position = UDim2.new(0,185,0,35)
-ClearBtn.BackgroundColor3 = Color3.fromRGB(100,30,30)
+ClearBtn.Font = Enum.Font.Code
+ClearBtn.TextSize = 16
+ClearBtn.BackgroundColor3 = Color3.fromRGB(80,20,20)
 ClearBtn.TextColor3 = Color3.fromRGB(255,255,255)
 
-local Scrolling = Instance.new("ScrollingFrame", MainFrame)
-Scrolling.Position = UDim2.new(0,5,0,65)
-Scrolling.Size = UDim2.new(1,-10,1,-70)
-Scrolling.BackgroundColor3 = Color3.fromRGB(15,15,15)
-Scrolling.BorderSizePixel = 0
-Scrolling.ScrollBarThickness = 6
-Scrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
-local UIList = Instance.new("UIListLayout", Scrolling)
-UIList.SortOrder = Enum.SortOrder.LayoutOrder
-
--- storage
-local currentRemote = nil
+-- Variabel data
+local scannedRemotes = {}
 local logs = {}
 
--- function: show remote detail
-local function showRemote(r)
-	currentRemote = r
-	Scrolling:ClearAllChildren()
-	
-	local info = {}
-	table.insert(info, "Name: " .. r.Name)
-	table.insert(info, "Class: " .. r.ClassName)
-	if r:IsDescendantOf(RS) then
-		table.insert(info, "Path: ReplicatedStorage." .. r:GetFullName():gsub("ReplicatedStorage%.",""))
-	else
-		table.insert(info, "Path: " .. r:GetFullName())
-	end
-	table.insert(info, "")
-	table.insert(info, "Properties:")
-	table.insert(info, "  Archivable: " .. tostring(r.Archivable))
-	table.insert(info, "  Name: " .. r.Name)
-	table.insert(info, "  ClassName: " .. r.ClassName)
-	table.insert(info, "  Parent: " .. (r.Parent and r.Parent.Name or "nil"))
-	table.insert(info, "-------------------------")
-	table.insert(info, "Logs:")
+-- Fungsi untuk scan remote
+local function scanRemotes()
+    ListFrame:ClearAllChildren()
+    for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -10, 0, 25)
+            btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+            btn.TextColor3 = Color3.fromRGB(255,255,255)
+            btn.Text = obj.Name
+            btn.Font = Enum.Font.Code
+            btn.TextSize = 15
+            btn.Parent = ListFrame
 
-	-- isi logs
-	if logs[r] then
-		for _,log in ipairs(logs[r]) do
-			table.insert(info, log)
-		end
-	else
-		table.insert(info, "(Belum ada log)")
-	end
+            btn.MouseButton1Click:Connect(function()
+                local details = 
+                    "Name: "..obj.Name.."\n"..
+                    "Class: "..obj.ClassName.."\n"..
+                    "Path: "..obj:GetFullName().."\n\n"..
+                    "Properties:\n"..
+                    "  Archivable: "..tostring(obj.Archivable).."\n"..
+                    "  ClassName: "..obj.ClassName.."\n"
 
-	for _,line in ipairs(info) do
-		local lbl = Instance.new("TextLabel", Scrolling)
-		lbl.Size = UDim2.new(1,-5,0,20)
-		lbl.BackgroundTransparency = 1
-		lbl.Font = Enum.Font.Code
-		lbl.TextXAlignment = Enum.TextXAlignment.Left
-		lbl.TextSize = 16
-		lbl.TextColor3 = Color3.fromRGB(200,200,100)
-		lbl.Text = line
-	end
+                if logs[obj] and #logs[obj] > 0 then
+                    details = details.."\nLogs:\n"..table.concat(logs[obj], "\n")
+                end
+
+                DetailBox.Text = details
+                DetailFrame.Visible = true
+                ListFrame.Visible = false
+
+                -- Copy
+                CopyBtn.MouseButton1Click:Connect(function()
+                    setclipboard(DetailBox.Text)
+                end)
+
+                -- Clear log
+                ClearBtn.MouseButton1Click:Connect(function()
+                    logs[obj] = {}
+                    DetailBox.Text = details
+                end)
+
+                -- Back
+                BackBtn.MouseButton1Click:Connect(function()
+                    DetailFrame.Visible = false
+                    ListFrame.Visible = true
+                end)
+            end)
+        end
+    end
 end
 
--- Back button
-BackBtn.MouseButton1Click:Connect(function()
-	currentRemote = nil
-	Scrolling:ClearAllChildren()
+-- Close
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
 end)
 
--- Copy button
-CopyBtn.MouseButton1Click:Connect(function()
-	if currentRemote then
-		local clip = "Remote: " .. currentRemote.Name .. "\nLogs:\n"
-		if logs[currentRemote] then
-			for _,log in ipairs(logs[currentRemote]) do
-				clip ..= log .. "\n"
-			end
-		end
-		setclipboard(clip)
-	end
-end)
-
--- Clear button
-ClearBtn.MouseButton1Click:Connect(function()
-	if currentRemote and logs[currentRemote] then
-		logs[currentRemote] = {}
-		showRemote(currentRemote)
-	end
-end)
-
--- hook remote signals
-local function hookRemote(r)
-	if logs[r] then return end
-	logs[r] = {}
-
-	local function addLog(args)
-		local str = ""
-		for i,v in ipairs(args) do
-			if typeof(v) == "Instance" then
-				str ..= "["..i.."]: Instance("..v:GetFullName()..") "
-			else
-				str ..= "["..i.."]: "..tostring(v).." "
-			end
-		end
-		table.insert(logs[r], os.date("[%H:%M:%S] ")..str)
-		if #logs[r] > 50 then table.remove(logs[r],1) end
-		if currentRemote == r then
-			showRemote(r)
-		end
-	end
-
-	if r:IsA("RemoteEvent") then
-		r.OnClientEvent:Connect(function(...)
-			addLog({...})
-		end)
-	elseif r:IsA("RemoteFunction") then
-		local old; old = hookfunction(r.InvokeClient,function(self,...)
-			addLog({...})
-			return old(self,...)
-		end)
-	end
-end
-
--- scan remotes
-for _,desc in ipairs(RS:GetDescendants()) do
-	if desc:IsA("RemoteEvent") or desc:IsA("RemoteFunction") then
-		hookRemote(desc)
-	end
-end
-RS.DescendantAdded:Connect(function(desc)
-	if desc:IsA("RemoteEvent") or desc:IsA("RemoteFunction") then
-		hookRemote(desc)
-	end
-end)
-
--- TEST GUI : klik remote buat lihat detail
-for r,_ in pairs(logs) do
-	local btn = Instance.new("TextButton", Scrolling)
-	btn.Size = UDim2.new(1,-5,0,25)
-	btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-	btn.TextColor3 = Color3.fromRGB(255,255,255)
-	btn.Font = Enum.Font.SourceSans
-	btn.TextSize = 18
-	btn.Text = r.Name
-	btn.MouseButton1Click:Connect(function()
-		showRemote(r)
-	end)
-end
+-- Pertama kali scan
+scanRemotes()
