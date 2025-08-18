@@ -1,10 +1,11 @@
--- 📌 Remote Explorer (Final Safe Mode)
+-- 📌 Remote Explorer (Final Safe Mode - Readable Log)
 -- + Tab system (Rescan <-> Data)
 -- + Copy / Clear Data
 -- + Back button (Data -> Rescan)
 -- + Auto wrap teks log
 -- + GUI lebih kecil & responsif
 -- + Safe mode (tidak terlalu agresif hook)
+-- + Readable log (label argumen: Name, Value, Amount, Data)
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -12,25 +13,32 @@ local RS = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 
--- 🛠 Decode function
-local function safeDecode(data, depth)
-    depth = depth or 0
-    if depth > 3 then return '"<Max Depth>"' end
-
-    local t = typeof(data)
+-- 🛠 Decode function (lebih readable)
+local function readableDecode(arg, index)
+    local t = typeof(arg)
     if t == "string" then
-        return '"'..data..'"'
-    elseif t == "number" or t == "boolean" then
-        return tostring(data)
+        return "[Name] \""..arg.."\""
+    elseif t == "number" then
+        if index == 2 then
+            return "[Amount] "..tostring(arg)
+        else
+            return "[Value] "..tostring(arg)
+        end
+    elseif t == "boolean" then
+        return "[Bool] "..tostring(arg)
     elseif t == "table" then
         local ok, json = pcall(function()
-            return HttpService:JSONEncode(data)
+            return HttpService:JSONEncode(arg)
         end)
-        if ok then return json else return '"<Table>"' end
+        if ok then
+            return "[Data] "..json
+        else
+            return "[Data] <Table>"
+        end
     elseif t == "Instance" then
-        return '"'..data:GetFullName()..'"'
+        return "[Instance] "..arg:GetFullName()
     else
-        return '"'..tostring(data)..'"'
+        return "["..t.."] "..tostring(arg)
     end
 end
 
@@ -196,11 +204,11 @@ DataLog.ScrollBarThickness = 6
 local Logs = {}
 
 local function AddLog(remote, args)
-    local msg = "["..remote.ClassName.."] "..remote:GetFullName().."\nData: { "
+    local msg = "["..remote.ClassName.."] "..remote:GetFullName().."\nArgs:"
     for i,arg in ipairs(args) do
-        msg = msg.."\n   ["..i.."] = "..safeDecode(arg)
+        msg = msg.."\n  ["..i.."] "..readableDecode(arg,i)
     end
-    msg = msg.."\n}\n-----------------------"
+    msg = msg.."\n-----------------------"
 
     table.insert(Logs, msg)
 
