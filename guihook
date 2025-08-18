@@ -1,4 +1,4 @@
--- 📌 Remote Explorer (Final Extended)
+-- 📌 Remote Explorer + Sniffer (Final Version)
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -33,7 +33,7 @@ local function CreateWindow(title)
     local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 
     local Main = Instance.new("Frame")
-    Main.Size = UDim2.new(0, 500, 0, 360)
+    Main.Size = UDim2.new(0, 500, 0, 320)
     Main.Position = UDim2.new(0.25, 0, 0.25, 0)
     Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
     Main.BorderSizePixel = 0
@@ -124,7 +124,7 @@ local function CreateWindow(title)
         else
             Content.Visible = true
             TabBar.Visible = true
-            Main.Size = UDim2.new(0,500,0,360)
+            Main.Size = UDim2.new(0,500,0,320)
         end
     end)
 
@@ -194,29 +194,9 @@ DataLog.BackgroundTransparency = 1
 DataLog.ScrollBarThickness = 6
 
 local Logs = {}
+local CurrentRemote
 
--- 🔥 ShowRemote
-local function ShowRemote(remote)
-    DataLog:ClearAllChildren()
-    Logs = {}
-
-    local lines = {}
-    table.insert(lines, "Name: "..remote.Name)
-    table.insert(lines, "Class: "..remote.ClassName)
-    table.insert(lines, "Path: "..remote:GetFullName())
-    table.insert(lines, "")
-    table.insert(lines, "Properties:")
-
-    for _,prop in ipairs({"Archivable","Name","ClassName","Parent"}) do
-        local ok,val = pcall(function() return tostring(remote[prop]) end)
-        if ok then
-            table.insert(lines, "  "..prop..": "..val)
-        end
-    end
-
-    local text = table.concat(lines, "\n")
-    table.insert(Logs, text)
-
+local function Log(text)
     local Label = Instance.new("TextLabel")
     Label.Size = UDim2.new(1,-10,0,0)
     Label.AutomaticSize = Enum.AutomaticSize.Y
@@ -230,53 +210,49 @@ local function ShowRemote(remote)
     Label.Text = text
     Label.Parent = DataLog
 
-    -- Input argumen manual
-    local ArgBox = Instance.new("TextBox")
-    ArgBox.Size = UDim2.new(1,-10,0,25)
-    ArgBox.Position = UDim2.new(0,5,0,Label.TextBounds.Y + 10)
-    ArgBox.PlaceholderText = 'Args (contoh: "Mango", 1)'
-    ArgBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    ArgBox.TextColor3 = Color3.new(1,1,1)
-    ArgBox.ClearTextOnFocus = false
-    ArgBox.Parent = DataLog
+    table.insert(Logs, text)
+    DataLog.CanvasSize = UDim2.new(0,0,0,DataLog.CanvasSize.Y.Offset + Label.TextBounds.Y + 5)
+end
 
-    -- Tombol Run
-    local TestBtn = Instance.new("TextButton")
-    TestBtn.Size = UDim2.new(0,120,0,25)
-    TestBtn.Position = UDim2.new(0,5,0,Label.TextBounds.Y + 45)
-    TestBtn.Text = "▶ Run Remote"
-    TestBtn.TextColor3 = Color3.new(1,1,1)
-    TestBtn.BackgroundColor3 = Color3.fromRGB(70,120,70)
-    TestBtn.Parent = DataLog
+local function ShowRemote(remote)
+    DataLog:ClearAllChildren()
+    Logs = {}
+    CurrentRemote = remote
 
-    TestBtn.MouseButton1Click:Connect(function()
-        local args = {}
-        if ArgBox.Text ~= "" then
-            local ok, parsed = pcall(function()
-                return loadstring("return {"..ArgBox.Text.."}")()
-            end)
-            if ok and type(parsed) == "table" then
-                args = parsed
-            else
-                warn("[Explorer] Argumen invalid:", ArgBox.Text)
+    Log("Name: "..remote.Name)
+    Log("Class: "..remote.ClassName)
+    Log("Path: "..remote:GetFullName())
+    Log("")
+    Log("Properties:")
+
+    for _,prop in ipairs({"Archivable","Name","ClassName","Parent"}) do
+        local ok,val = pcall(function() return tostring(remote[prop]) end)
+        if ok then Log("  "..prop..": "..val) end
+    end
+
+    Log("\n-- Sniffer Attached --")
+
+    -- Attach Sniffer
+    if remote:IsA("RemoteEvent") then
+        remote.OnClientEvent:Connect(function(...)
+            local args = {...}
+            local dump = {}
+            for i,v in ipairs(args) do
+                dump[i] = safeDecode(v)
             end
-        end
-
-        if remote:IsA("RemoteEvent") then
-            remote:FireServer(unpack(args))
-            print("[Explorer] Fired RemoteEvent:", remote.Name, "Args:", unpack(args))
-        elseif remote:IsA("RemoteFunction") then
-            local result
-            local ok,err = pcall(function()
-                result = remote:InvokeServer(unpack(args))
-            end)
-            print("[Explorer] Invoked RemoteFunction:", remote.Name, "=>", ok and result or err)
-        else
-            print("[Explorer] Unknown remote type:", remote.ClassName)
-        end
-    end)
-
-    DataLog.CanvasSize = UDim2.new(0,0,0,Label.TextBounds.Y + 80)
+            Log("[Event] "..table.concat(dump,", "))
+        end)
+    elseif remote:IsA("RemoteFunction") then
+        local old; old = hookfunction(remote.InvokeClient, function(self, plr, ...)
+            local args = {...}
+            local dump = {}
+            for i,v in ipairs(args) do
+                dump[i] = safeDecode(v)
+            end
+            Log("[Function] "..table.concat(dump,", "))
+            return old(self, plr, ...)
+        end)
+    end
 end
 
 -- Buttons
