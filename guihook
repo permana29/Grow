@@ -1,4 +1,4 @@
---// Remote Scanner + Explorer Fixed
+--// Remote Scanner + Explorer with Working Search & Data Logs
 local HttpService = game:GetService("HttpService")
 
 -- GUI Setup
@@ -113,14 +113,14 @@ ClearButton.TextColor3 = Color3.new(1,1,1)
 -- Vars
 local currentRemote = nil
 local logs = {}
-local connections = {}
 
 -- format args
 local function formatArgs(args)
     local output = {}
     for i,v in ipairs(args) do
-        if typeof(v) == "table" then
-            table.insert(output, "["..i.."] = " .. HttpService:JSONEncode(v))
+        local ok,encoded = pcall(function() return HttpService:JSONEncode(v) end)
+        if ok then
+            table.insert(output, "["..i.."] = " .. encoded)
         else
             table.insert(output, "["..i.."] = " .. tostring(v))
         end
@@ -145,35 +145,6 @@ local function addLog(text)
     DataTab.CanvasSize = UDim2.new(0, 0, 0, DataTab.CanvasSize.Y.Offset + label.TextBounds.Y + 10)
 end
 
--- hook remote
-local function hookRemote(remote)
-    for _,con in ipairs(connections) do
-        con:Disconnect()
-    end
-    connections = {}
-    currentRemote = remote
-    DataTab:ClearAllChildren()
-    logs = {}
-
-    if remote:IsA("RemoteEvent") then
-        table.insert(connections, remote.OnClientEvent:Connect(function(...)
-            local log = "[RemoteEvent] "..remote:GetFullName().."\n"..formatArgs({...}).."\n----------------"
-            addLog(log)
-            table.insert(logs, log)
-        end))
-    elseif remote:IsA("RemoteFunction") then
-        local old; old = hookfunction(remote.InvokeServer, function(self, ...)
-            local log = "[RemoteFunction] "..self:GetFullName().."\n"..formatArgs({...}).."\n----------------"
-            addLog(log)
-            table.insert(logs, log)
-            return old(self, ...)
-        end)
-    end
-
-    RescanTab.Visible = false
-    DataTab.Visible = true
-end
-
 -- refresh remotes list
 local function rescan()
     RescanTab:ClearAllChildren()
@@ -189,13 +160,35 @@ local function rescan()
             btn.TextXAlignment = Enum.TextXAlignment.Left
             btn.Parent = RescanTab
             btn.MouseButton1Click:Connect(function()
-                hookRemote(desc)
+                currentRemote = desc
+                DataTab:ClearAllChildren()
+                logs = {}
+                RescanTab.Visible = false
+                DataTab.Visible = true
             end)
             y = y + 30
         end
     end
     RescanTab.CanvasSize = UDim2.new(0, 0, 0, y)
 end
+
+-- Hook __namecall
+local mt = getrawmetatable(game)
+local old = mt.__namecall
+setreadonly(mt,false)
+mt.__namecall = newcclosure(function(self,...)
+    local method = getnamecallmethod()
+    if (method == "FireServer" or method == "InvokeServer") then
+        local args = {...}
+        if currentRemote == nil or self == currentRemote then
+            local log = "["..method.."] "..self:GetFullName().."\n"..formatArgs(args).."\n----------------"
+            addLog(log)
+            table.insert(logs, log)
+        end
+    end
+    return old(self,...)
+end)
+setreadonly(mt,true)
 
 -- Buttons
 RescanButton.MouseButton1Click:Connect(rescan)
@@ -226,15 +219,19 @@ end)
 -- Search filter
 SearchBar:GetPropertyChangedSignal("Text"):Connect(function()
     local query = SearchBar.Text:lower()
+    local y = 0
     for _,child in ipairs(RescanTab:GetChildren()) do
         if child:IsA("TextButton") then
             if query == "" or child.Text:lower():find(query) then
                 child.Visible = true
+                child.Position = UDim2.new(0, 5, 0, y)
+                y = y + 30
             else
                 child.Visible = false
             end
         end
     end
+    RescanTab.CanvasSize = UDim2.new(0, 0, 0, y)
 end)
 
 -- run first scan
