@@ -1,183 +1,280 @@
--- Remote Explorer Final + Realtime Log
--- by ChatGPT
+-- 📌 Remote Explorer (Final Stable)
 
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
+local RS = game:GetService("ReplicatedStorage")
 
--- UI Setup
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 500, 0, 350)
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.Active = true
-MainFrame.Draggable = true
+local player = Players.LocalPlayer
 
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Title.Text = "Remote Explorer"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 18
+-- Decode helper
+local function safeDecode(data, depth)
+    depth = depth or 0
+    if depth > 3 then return "<Max Depth>" end
 
--- Container
-local ContentFrame = Instance.new("Frame", MainFrame)
-ContentFrame.Size = UDim2.new(1, -10, 1, -40)
-ContentFrame.Position = UDim2.new(0, 5, 0, 35)
-ContentFrame.BackgroundTransparency = 1
-
--- List of Remotes
-local RemoteList = Instance.new("ScrollingFrame", ContentFrame)
-RemoteList.Size = UDim2.new(1, 0, 1, 0)
-RemoteList.CanvasSize = UDim2.new(0, 0, 0, 0)
-RemoteList.ScrollBarThickness = 6
-RemoteList.Visible = true
-
--- Detail frame
-local DetailFrame = Instance.new("Frame", ContentFrame)
-DetailFrame.Size = UDim2.new(1, 0, 1, 0)
-DetailFrame.BackgroundTransparency = 1
-DetailFrame.Visible = false
-
-local BackBtn = Instance.new("TextButton", DetailFrame)
-BackBtn.Size = UDim2.new(0, 60, 0, 25)
-BackBtn.Position = UDim2.new(0, 0, 0, 0)
-BackBtn.Text = "< Back"
-BackBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-BackBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-local CopyBtn = Instance.new("TextButton", DetailFrame)
-CopyBtn.Size = UDim2.new(0, 60, 0, 25)
-CopyBtn.Position = UDim2.new(0, 70, 0, 0)
-CopyBtn.Text = "Copy"
-CopyBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
-CopyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-local ClearBtn = Instance.new("TextButton", DetailFrame)
-ClearBtn.Size = UDim2.new(0, 60, 0, 25)
-ClearBtn.Position = UDim2.new(0, 140, 0, 0)
-ClearBtn.Text = "Clear"
-ClearBtn.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
-ClearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-
--- Info Text
-local InfoLabel = Instance.new("TextLabel", DetailFrame)
-InfoLabel.Size = UDim2.new(1, -10, 0, 100)
-InfoLabel.Position = UDim2.new(0, 5, 0, 40)
-InfoLabel.BackgroundTransparency = 1
-InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
-InfoLabel.TextYAlignment = Enum.TextYAlignment.Top
-InfoLabel.Font = Enum.Font.Code
-InfoLabel.TextSize = 14
-InfoLabel.TextColor3 = Color3.fromRGB(255,255,255)
-InfoLabel.Text = ""
-
--- Log
-local LogFrame = Instance.new("ScrollingFrame", DetailFrame)
-LogFrame.Size = UDim2.new(1, -10, 0, 150)
-LogFrame.Position = UDim2.new(0, 5, 0, 150)
-LogFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-LogFrame.ScrollBarThickness = 6
-
-local LogLayout = Instance.new("UIListLayout", LogFrame)
-LogLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-local CurrentRemote = nil
-local RemoteConnections = {}
-
--- Function AddLog
-local function AddLog(text)
-    local LogLabel = Instance.new("TextLabel", LogFrame)
-    LogLabel.Size = UDim2.new(1, -5, 0, 20)
-    LogLabel.BackgroundTransparency = 1
-    LogLabel.TextXAlignment = Enum.TextXAlignment.Left
-    LogLabel.Font = Enum.Font.Code
-    LogLabel.TextSize = 14
-    LogLabel.TextColor3 = Color3.fromRGB(200,200,200)
-    LogLabel.Text = text
-
-    LogFrame.CanvasSize = UDim2.new(0, 0, 0, LogLayout.AbsoluteContentSize.Y + 10)
+    local t = typeof(data)
+    if t == "string" then
+        return '"'..data..'"'
+    elseif t == "number" or t == "boolean" then
+        return tostring(data)
+    elseif t == "Instance" then
+        return data:GetFullName()
+    elseif t == "table" then
+        local ok, json = pcall(function()
+            return HttpService:JSONEncode(data)
+        end)
+        if ok then return json else return "<Table>" end
+    else
+        return tostring(data)
+    end
 end
 
--- Copy to clipboard
-local function CopyAll()
-    local text = "Remote Info:\n" .. InfoLabel.Text .. "\n\nLogs:\n"
-    for _, child in ipairs(LogFrame:GetChildren()) do
-        if child:IsA("TextLabel") then
-            text = text .. child.Text .. "\n"
+-- GUI Builder
+local function CreateWindow(title)
+    local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+
+    local Main = Instance.new("Frame")
+    Main.Size = UDim2.new(0, 500, 0, 320)
+    Main.Position = UDim2.new(0.25, 0, 0.25, 0)
+    Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    Main.BorderSizePixel = 0
+    Main.Active = true
+    Main.Draggable = true
+    Main.Parent = ScreenGui
+
+    local Header = Instance.new("TextLabel")
+    Header.Size = UDim2.new(1, -80, 0, 30)
+    Header.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    Header.Text = title
+    Header.TextColor3 = Color3.fromRGB(255,255,255)
+    Header.Font = Enum.Font.GothamBold
+    Header.TextSize = 14
+    Header.TextXAlignment = Enum.TextXAlignment.Left
+    Header.BorderSizePixel = 0
+    Header.Parent = Main
+
+    local TabBar = Instance.new("Frame")
+    TabBar.Size = UDim2.new(1, 0, 0, 25)
+    TabBar.Position = UDim2.new(0,0,0,30)
+    TabBar.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    TabBar.BorderSizePixel = 0
+    TabBar.Parent = Main
+
+    local Content = Instance.new("Frame")
+    Content.Size = UDim2.new(1,0,1,-55)
+    Content.Position = UDim2.new(0,0,0,55)
+    Content.BackgroundTransparency = 1
+    Content.Parent = Main
+
+    local Minimize = Instance.new("TextButton")
+    Minimize.Size = UDim2.new(0,40,0,30)
+    Minimize.Position = UDim2.new(1,-80,0,0)
+    Minimize.Text = "-"
+    Minimize.TextColor3 = Color3.new(1,1,1)
+    Minimize.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    Minimize.Parent = Main
+
+    local Close = Instance.new("TextButton")
+    Close.Size = UDim2.new(0,40,0,30)
+    Close.Position = UDim2.new(1,-40,0,0)
+    Close.Text = "X"
+    Close.TextColor3 = Color3.new(1,1,1)
+    Close.BackgroundColor3 = Color3.fromRGB(100,50,50)
+    Close.Parent = Main
+
+    local Tabs = {}
+    local CurrentTab
+
+    local function AddTab(name)
+        local Button = Instance.new("TextButton")
+        Button.Size = UDim2.new(0,100,1,0)
+        Button.BackgroundColor3 = Color3.fromRGB(50,50,50)
+        Button.Text = name
+        Button.TextColor3 = Color3.new(1,1,1)
+        Button.Font = Enum.Font.Gotham
+        Button.TextSize = 12
+        Button.Parent = TabBar
+
+        local Page = Instance.new("Frame")
+        Page.Size = UDim2.new(1,0,1,0)
+        Page.BackgroundTransparency = 1
+        Page.Visible = false
+        Page.Parent = Content
+
+        Button.MouseButton1Click:Connect(function()
+            if CurrentTab then CurrentTab.Visible = false end
+            Page.Visible = true
+            CurrentTab = Page
+        end)
+
+        Tabs[name] = Page
+        if not CurrentTab then
+            CurrentTab = Page
+            Page.Visible = true
         end
+        return Page
     end
-    setclipboard(text)
-end
 
--- Clear logs
-local function ClearAll()
-    for _, child in ipairs(LogFrame:GetChildren()) do
-        if child:IsA("TextLabel") then
-            child:Destroy()
-        end
-    end
-    LogFrame.CanvasSize = UDim2.new(0,0,0,0)
-end
-
-CopyBtn.MouseButton1Click:Connect(CopyAll)
-ClearBtn.MouseButton1Click:Connect(ClearAll)
-
-BackBtn.MouseButton1Click:Connect(function()
-    DetailFrame.Visible = false
-    RemoteList.Visible = true
-    if CurrentRemote and RemoteConnections[CurrentRemote] then
-        RemoteConnections[CurrentRemote]:Disconnect()
-        RemoteConnections[CurrentRemote] = nil
-    end
-    CurrentRemote = nil
-end)
-
--- Populate list
-local function AddRemote(remote)
-    local Btn = Instance.new("TextButton", RemoteList)
-    Btn.Size = UDim2.new(1, -10, 0, 25)
-    Btn.Text = remote.Name
-    Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    Btn.TextColor3 = Color3.fromRGB(255,255,255)
-
-    Btn.MouseButton1Click:Connect(function()
-        RemoteList.Visible = false
-        DetailFrame.Visible = true
-        CurrentRemote = remote
-
-        -- Show info
-        InfoLabel.Text =
-            "Name: " .. remote.Name ..
-            "\nClass: " .. remote.ClassName ..
-            "\nPath: " .. remote:GetFullName() ..
-            "\n\nProperties:" ..
-            "\n  Archivable: " .. tostring(remote.Archivable) ..
-            "\n  Name: " .. remote.Name ..
-            "\n  ClassName: " .. remote.ClassName ..
-            "\n  Parent: " .. (remote.Parent and remote.Parent.Name or "nil")
-
-        -- Clear old logs
-        ClearAll()
-
-        -- Hook for log
-        if remote:IsA("RemoteEvent") then
-            RemoteConnections[remote] = remote.OnClientEvent:Connect(function(...)
-                AddLog("OnClientEvent: " .. table.concat({...}, ", "))
-            end)
-        elseif remote:IsA("RemoteFunction") then
-            RemoteConnections[remote] = remote.OnClientInvoke:Connect(function(...)
-                AddLog("OnClientInvoke: " .. table.concat({...}, ", "))
-            end)
+    local Minimized = false
+    Minimize.MouseButton1Click:Connect(function()
+        Minimized = not Minimized
+        if Minimized then
+            Content.Visible = false
+            TabBar.Visible = false
+            Main.Size = UDim2.new(0,500,0,30)
+        else
+            Content.Visible = true
+            TabBar.Visible = true
+            Main.Size = UDim2.new(0,500,0,320)
         end
     end)
-end
 
--- Scan Remotes
-for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-        AddRemote(obj)
+    Close.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+
+    return AddTab, Tabs, function(tabName)
+        if CurrentTab then CurrentTab.Visible = false end
+        if Tabs[tabName] then
+            Tabs[tabName].Visible = true
+            CurrentTab = Tabs[tabName]
+        end
     end
 end
+
+-- Main Window
+local AddTab, Tabs, SwitchTab = CreateWindow("Remote Explorer")
+
+-- 📌 Tab Rescan
+local ScanTab = AddTab("Rescan")
+local Search = Instance.new("TextBox", ScanTab)
+Search.Size = UDim2.new(1,-10,0,25)
+Search.Position = UDim2.new(0,5,0,5)
+Search.PlaceholderText = "Search Remote..."
+Search.BackgroundColor3 = Color3.fromRGB(40,40,40)
+Search.TextColor3 = Color3.new(1,1,1)
+
+local RemoteList = Instance.new("ScrollingFrame", ScanTab)
+RemoteList.Size = UDim2.new(1,-10,1,-40)
+RemoteList.Position = UDim2.new(0,5,0,35)
+RemoteList.BackgroundTransparency = 1
+RemoteList.ScrollBarThickness = 6
+
+-- 📌 Tab Data
+local DataTab = AddTab("Data")
+
+local Toolbar = Instance.new("Frame", DataTab)
+Toolbar.Size = UDim2.new(1,-10,0,25)
+Toolbar.Position = UDim2.new(0,5,0,5)
+Toolbar.BackgroundColor3 = Color3.fromRGB(35,35,35)
+
+local BackBtn = Instance.new("TextButton", Toolbar)
+BackBtn.Size = UDim2.new(0,60,1,0)
+BackBtn.Text = "Back"
+BackBtn.TextColor3 = Color3.new(1,1,1)
+BackBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+
+local CopyBtn = Instance.new("TextButton", Toolbar)
+CopyBtn.Size = UDim2.new(0,60,1,0)
+CopyBtn.Position = UDim2.new(0,65,0,0)
+CopyBtn.Text = "Copy"
+CopyBtn.TextColor3 = Color3.new(1,1,1)
+CopyBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+
+local ClearBtn = Instance.new("TextButton", Toolbar)
+ClearBtn.Size = UDim2.new(0,60,1,0)
+ClearBtn.Position = UDim2.new(0,130,0,0)
+ClearBtn.Text = "Clear"
+ClearBtn.TextColor3 = Color3.new(1,1,1)
+ClearBtn.BackgroundColor3 = Color3.fromRGB(70,50,50)
+
+local DataLog = Instance.new("ScrollingFrame", DataTab)
+DataLog.Size = UDim2.new(1,-10,1,-40)
+DataLog.Position = UDim2.new(0,5,0,35)
+DataLog.BackgroundTransparency = 1
+DataLog.ScrollBarThickness = 6
+
+local Logs = {}
+
+local function ShowRemote(remote)
+    DataLog:ClearAllChildren()
+    Logs = {}
+
+    local lines = {}
+    table.insert(lines, "Name: "..remote.Name)
+    table.insert(lines, "Class: "..remote.ClassName)
+    table.insert(lines, "Path: "..remote:GetFullName())
+    table.insert(lines, "")
+    table.insert(lines, "Properties:")
+
+    for _,prop in ipairs({"Archivable","Name","ClassName","Parent"}) do
+        local ok,val = pcall(function() return tostring(remote[prop]) end)
+        if ok then
+            table.insert(lines, "  "..prop..": "..val)
+        end
+    end
+
+    local text = table.concat(lines, "\n")
+    table.insert(Logs, text)
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1,-10,0,0)
+    Label.AutomaticSize = Enum.AutomaticSize.Y
+    Label.BackgroundTransparency = 1
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.TextYAlignment = Enum.TextYAlignment.Top
+    Label.TextWrapped = true
+    Label.TextColor3 = Color3.new(1,1,1)
+    Label.Font = Enum.Font.Code
+    Label.TextSize = 12
+    Label.Text = text
+    Label.Parent = DataLog
+
+    DataLog.CanvasSize = UDim2.new(0,0,0,Label.TextBounds.Y + 10)
+end
+
+-- Buttons
+BackBtn.MouseButton1Click:Connect(function()
+    SwitchTab("Rescan")
+end)
+
+CopyBtn.MouseButton1Click:Connect(function()
+    if #Logs > 0 then
+        setclipboard(table.concat(Logs, "\n"))
+    end
+end)
+
+ClearBtn.MouseButton1Click:Connect(function()
+    Logs = {}
+    DataLog:ClearAllChildren()
+    DataLog.CanvasSize = UDim2.new(0,0,0,0)
+end)
+
+-- Refresh list
+local function RefreshRemotes()
+    RemoteList:ClearAllChildren()
+    local y = 0
+    for _,v in ipairs(RS:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            if Search.Text == "" or v.Name:lower():find(Search.Text:lower()) then
+                local Btn = Instance.new("TextButton")
+                Btn.Size = UDim2.new(1,-10,0,25)
+                Btn.Position = UDim2.new(0,5,0,y)
+                Btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+                Btn.TextColor3 = Color3.new(1,1,1)
+                Btn.Text = v:GetFullName()
+                Btn.Parent = RemoteList
+
+                Btn.MouseButton1Click:Connect(function()
+                    ShowRemote(v)
+                    SwitchTab("Data")
+                end)
+
+                y = y + 30
+            end
+        end
+    end
+    RemoteList.CanvasSize = UDim2.new(0,0,0,y)
+end
+
+Search:GetPropertyChangedSignal("Text"):Connect(RefreshRemotes)
+RefreshRemotes()
