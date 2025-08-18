@@ -1,46 +1,44 @@
--- 📌 Remote Explorer (Final Manual Rescan)
--- + Manual Rescan button
+-- 📌 Remote Explorer (Manual Rescan + Focused Data Logger)
 -- + Tab system (Rescan <-> Data)
--- + Back button di Data tab
+-- + Klik Remote -> lihat log decode di Data
+-- + Back to Rescan
 -- + Copy / Clear log
--- + Deep decode (lebih kebaca)
--- + Minimize & Close button
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
+local SelectedRemote = nil
 
--- 🔍 Decode lebih jelas
-local function deepDecode(value, depth)
+-- Decode function
+local function safeDecode(data, depth)
     depth = depth or 0
-    if depth > 4 then return "<Max Depth>" end
-    local t = typeof(value)
+    if depth > 3 then return '"<Max Depth>"' end
 
+    local t = typeof(data)
     if t == "string" then
-        return '"'..value..'"'
+        return '"'..data..'"'
     elseif t == "number" or t == "boolean" then
-        return tostring(value)
-    elseif t == "Instance" then
-        return "<Instance:"..value:GetFullName()..">"
+        return tostring(data)
     elseif t == "table" then
-        local parts = {}
-        for k,v in pairs(value) do
-            table.insert(parts, "["..deepDecode(k, depth+1).."] = "..deepDecode(v, depth+1))
-        end
-        return "{ "..table.concat(parts, ", ").." }"
+        local ok, json = pcall(function()
+            return HttpService:JSONEncode(data)
+        end)
+        if ok then return json else return '"<Table>"' end
+    elseif t == "Instance" then
+        return '"'..data:GetFullName()..'"'
     else
-        return "<"..tostring(value)..">"
+        return '"'..tostring(data)..'"'
     end
 end
 
--- 🖼️ GUI Builder
+-- GUI Builder
 local function CreateWindow(title)
     local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 
     local Main = Instance.new("Frame")
-    Main.Size = UDim2.new(0, 400, 0, 300)
+    Main.Size = UDim2.new(0, 420, 0, 320)
     Main.Position = UDim2.new(0.3, 0, 0.25, 0)
     Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
     Main.BorderSizePixel = 0
@@ -127,11 +125,11 @@ local function CreateWindow(title)
         if Minimized then
             Content.Visible = false
             TabBar.Visible = false
-            Main.Size = UDim2.new(0,400,0,30)
+            Main.Size = UDim2.new(0,420,0,30)
         else
             Content.Visible = true
             TabBar.Visible = true
-            Main.Size = UDim2.new(0,400,0,300)
+            Main.Size = UDim2.new(0,420,0,320)
         end
     end)
 
@@ -148,15 +146,15 @@ local AddTab, Tabs = CreateWindow("Remote Explorer")
 -- 📌 Tab Rescan
 local ScanTab = AddTab("Rescan")
 local Search = Instance.new("TextBox", ScanTab)
-Search.Size = UDim2.new(1,-90,0,25)
+Search.Size = UDim2.new(1,-10,0,25)
 Search.Position = UDim2.new(0,5,0,5)
 Search.PlaceholderText = "Search Remote..."
 Search.BackgroundColor3 = Color3.fromRGB(40,40,40)
 Search.TextColor3 = Color3.new(1,1,1)
 
 local RescanBtn = Instance.new("TextButton", ScanTab)
-RescanBtn.Size = UDim2.new(0,70,0,25)
-RescanBtn.Position = UDim2.new(1,-75,0,5)
+RescanBtn.Size = UDim2.new(0,80,0,25)
+RescanBtn.Position = UDim2.new(1,-85,0,5)
 RescanBtn.Text = "Rescan"
 RescanBtn.TextColor3 = Color3.new(1,1,1)
 RescanBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
@@ -179,7 +177,7 @@ local BackBtn = Instance.new("TextButton", Toolbar)
 BackBtn.Size = UDim2.new(0,60,1,0)
 BackBtn.Text = "< Back"
 BackBtn.TextColor3 = Color3.new(1,1,1)
-BackBtn.BackgroundColor3 = Color3.fromRGB(70,70,120)
+BackBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
 
 local CopyBtn = Instance.new("TextButton", Toolbar)
 CopyBtn.Size = UDim2.new(0,60,1,0)
@@ -202,12 +200,12 @@ DataLog.BackgroundTransparency = 1
 DataLog.ScrollBarThickness = 6
 
 local Logs = {}
-local SelectedRemote
 
 local function AddLog(remote, args)
-    local msg = "["..remote.ClassName.."] "..remote:GetFullName().."\nData: {"
+    if remote ~= SelectedRemote then return end
+    local msg = "["..remote.ClassName.."] "..remote:GetFullName().."\nData: { "
     for i,arg in ipairs(args) do
-        msg = msg.."\n   ["..i.."] = "..deepDecode(arg)
+        msg = msg.."\n   ["..i.."] = "..safeDecode(arg)
     end
     msg = msg.."\n}\n-----------------------"
 
@@ -230,7 +228,7 @@ local function AddLog(remote, args)
 end
 
 CopyBtn.MouseButton1Click:Connect(function()
-    setclipboard(table.concat(Logs, "\n"))
+    if setclipboard then setclipboard(table.concat(Logs, "\n")) end
 end)
 
 ClearBtn.MouseButton1Click:Connect(function()
@@ -240,13 +238,11 @@ ClearBtn.MouseButton1Click:Connect(function()
 end)
 
 BackBtn.MouseButton1Click:Connect(function()
-    if Tabs["Rescan"] then
-        Tabs["Data"].Visible = false
-        Tabs["Rescan"].Visible = true
-    end
+    Tabs["Data"].Visible = false
+    Tabs["Rescan"].Visible = true
 end)
 
--- 🔁 Manual Rescan
+-- 📌 Refresh Remotes
 local function RefreshRemotes()
     RemoteList:ClearAllChildren()
     local y = 0
@@ -259,13 +255,15 @@ local function RefreshRemotes()
                 Btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
                 Btn.TextColor3 = Color3.new(1,1,1)
                 Btn.Text = v:GetFullName()
+                Btn.TextXAlignment = Enum.TextXAlignment.Left
                 Btn.Parent = RemoteList
 
                 Btn.MouseButton1Click:Connect(function()
+                    SelectedRemote = v
                     Logs = {}
                     DataLog:ClearAllChildren()
                     DataLog.CanvasSize = UDim2.new(0,0,0,0)
-                    SelectedRemote = v
+
                     Tabs["Rescan"].Visible = false
                     Tabs["Data"].Visible = true
                 end)
@@ -276,32 +274,20 @@ local function RefreshRemotes()
     end
     RemoteList.CanvasSize = UDim2.new(0,0,0,y)
 end
-
-Search:GetPropertyChangedSignal("Text"):Connect(RefreshRemotes)
 RescanBtn.MouseButton1Click:Connect(RefreshRemotes)
+Search:GetPropertyChangedSignal("Text"):Connect(RefreshRemotes)
+RefreshRemotes()
 
--- 🪝 Hook log hanya untuk remote yg dipilih
-local function HookRemote(remote)
-    if remote:IsA("RemoteEvent") then
-        remote.OnClientEvent:Connect(function(...)
-            if SelectedRemote == remote then
-                AddLog(remote, {...})
-            end
+-- 📌 Hook semua Remote
+for _,v in ipairs(RS:GetDescendants()) do
+    if v:IsA("RemoteEvent") then
+        v.OnClientEvent:Connect(function(...)
+            AddLog(v, {...})
         end)
-    elseif remote:IsA("RemoteFunction") then
-        local old; old = hookfunction(remote.InvokeClient, function(self,plr,...)
-            if SelectedRemote == self then
-                AddLog(self, {...})
-            end
+    elseif v:IsA("RemoteFunction") then
+        local old; old = hookfunction(v.InvokeClient, function(self,plr,...)
+            AddLog(self, {...})
             return old(self,plr,...)
         end)
     end
 end
-
-for _,v in ipairs(RS:GetDescendants()) do
-    if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-        HookRemote(v)
-    end
-end
-
-print("✅ Remote Explorer Loaded (Manual Rescan)")
