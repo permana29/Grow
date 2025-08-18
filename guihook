@@ -1,204 +1,173 @@
--- Remote Explorer Final
--- GUI untuk scan dan lihat RemoteEvent / RemoteFunction di ReplicatedStorage
-
+-- Remote Explorer Final Clean Version
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- GUI utama
+-- GUI Utama
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
 ScreenGui.Name = "RemoteExplorer"
 
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 600, 0, 350)
-MainFrame.Position = UDim2.new(0.5, -300, 0.5, -175)
-MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-MainFrame.BorderSizePixel = 0
-MainFrame.Visible = true
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 500, 0, 350)
+Frame.Position = UDim2.new(0.5, -250, 0.5, -175)
+Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Frame.Active = true
+Frame.Draggable = true
 
--- Title bar
-local TitleBar = Instance.new("Frame", MainFrame)
-TitleBar.Size = UDim2.new(1, 0, 0, 30)
-TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-TitleBar.BorderSizePixel = 0
-
-local Title = Instance.new("TextLabel", TitleBar)
-Title.Size = UDim2.new(1, -60, 1, 0)
-Title.Position = UDim2.new(0, 5, 0, 0)
-Title.BackgroundTransparency = 1
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Title.Text = "Remote Explorer"
-Title.TextColor3 = Color3.new(1,1,1)
-Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 16
 
--- Minimize & Close
-local Minimize = Instance.new("TextButton", TitleBar)
-Minimize.Size = UDim2.new(0, 30, 1, 0)
-Minimize.Position = UDim2.new(1, -60, 0, 0)
-Minimize.Text = "-"
-Minimize.BackgroundColor3 = Color3.fromRGB(60,60,60)
-Minimize.TextColor3 = Color3.new(1,1,1)
-
-local Close = Instance.new("TextButton", TitleBar)
-Close.Size = UDim2.new(0, 30, 1, 0)
+local Close = Instance.new("TextButton", Frame)
+Close.Size = UDim2.new(0, 30, 0, 30)
 Close.Position = UDim2.new(1, -30, 0, 0)
 Close.Text = "X"
-Close.BackgroundColor3 = Color3.fromRGB(100,40,40)
-Close.TextColor3 = Color3.new(1,1,1)
+Close.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+Close.TextColor3 = Color3.fromRGB(255,255,255)
+Close.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- Search bar
-local SearchBox = Instance.new("TextBox", MainFrame)
-SearchBox.Size = UDim2.new(1, -10, 0, 25)
-SearchBox.Position = UDim2.new(0, 5, 0, 35)
-SearchBox.PlaceholderText = "Search..."
-SearchBox.Text = ""
-SearchBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-SearchBox.TextColor3 = Color3.new(1,1,1)
+local Minimize = Instance.new("TextButton", Frame)
+Minimize.Size = UDim2.new(0, 30, 0, 30)
+Minimize.Position = UDim2.new(1, -60, 0, 0)
+Minimize.Text = "-"
+Minimize.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+Minimize.TextColor3 = Color3.fromRGB(255,255,255)
 
--- List container
-local Scrolling = Instance.new("ScrollingFrame", MainFrame)
-Scrolling.Size = UDim2.new(1, -10, 1, -110)
-Scrolling.Position = UDim2.new(0, 5, 0, 65)
-Scrolling.BackgroundColor3 = Color3.fromRGB(20,20,20)
-Scrolling.ScrollBarThickness = 6
-Scrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y
-Scrolling.CanvasSize = UDim2.new(0,0,0,0)
+local Content = Instance.new("Frame", Frame)
+Content.Size = UDim2.new(1, -10, 1, -50)
+Content.Position = UDim2.new(0, 5, 0, 40)
+Content.BackgroundTransparency = 1
 
-local UIListLayout = Instance.new("UIListLayout", Scrolling)
-UIListLayout.Padding = UDim.new(0,3)
+-- Search Bar
+local SearchBar = Instance.new("TextBox", Content)
+SearchBar.Size = UDim2.new(1, 0, 0, 25)
+SearchBar.PlaceholderText = "Search remote..."
+SearchBar.Text = ""
+SearchBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+SearchBar.TextColor3 = Color3.fromRGB(255,255,255)
 
--- Detail viewer
-local DetailFrame = Instance.new("ScrollingFrame", MainFrame)
-DetailFrame.Size = UDim2.new(1, -10, 1, -110)
-DetailFrame.Position = UDim2.new(0, 5, 0, 65)
-DetailFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-DetailFrame.ScrollBarThickness = 6
-DetailFrame.Visible = false
-DetailFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+-- List
+local ScrollingFrame = Instance.new("ScrollingFrame", Content)
+ScrollingFrame.Size = UDim2.new(1, 0, 1, -65)
+ScrollingFrame.Position = UDim2.new(0, 0, 0, 30)
+ScrollingFrame.CanvasSize = UDim2.new(0,0,0,0)
+ScrollingFrame.ScrollBarThickness = 6
+ScrollingFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 
-local DetailText = Instance.new("TextLabel", DetailFrame)
-DetailText.Size = UDim2.new(1, -10, 1, 0)
-DetailText.Position = UDim2.new(0, 5, 0, 0)
-DetailText.BackgroundTransparency = 1
-DetailText.TextColor3 = Color3.new(1,1,1)
-DetailText.TextXAlignment = Enum.TextXAlignment.Left
-DetailText.TextYAlignment = Enum.TextYAlignment.Top
-DetailText.TextWrapped = true
-DetailText.TextSize = 14
-DetailText.Text = ""
-DetailText.RichText = true
+local UIListLayout = Instance.new("UIListLayout", ScrollingFrame)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Bottom buttons
-local ButtonBar = Instance.new("Frame", MainFrame)
-ButtonBar.Size = UDim2.new(1, -10, 0, 30)
-ButtonBar.Position = UDim2.new(0, 5, 1, -35)
-ButtonBar.BackgroundTransparency = 1
+-- Tombol bawah
+local ButtonFrame = Instance.new("Frame", Frame)
+ButtonFrame.Size = UDim2.new(1, -10, 0, 30)
+ButtonFrame.Position = UDim2.new(0, 5, 1, -35)
+ButtonFrame.BackgroundTransparency = 1
 
-local function MakeButton(name, pos, text)
-	local btn = Instance.new("TextButton", ButtonBar)
-	btn.Size = UDim2.new(0, 100, 1, 0)
-	btn.Position = UDim2.new(0, pos, 0, 0)
-	btn.Text = text
-	btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
-	btn.TextColor3 = Color3.new(1,1,1)
+local function MakeButton(name, pos, func)
+	local btn = Instance.new("TextButton", ButtonFrame)
+	btn.Size = UDim2.new(0.25, -5, 1, 0)
+	btn.Position = UDim2.new(pos, 5*pos, 0, 0)
+	btn.Text = name
+	btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	btn.TextColor3 = Color3.fromRGB(255,255,255)
+	btn.MouseButton1Click:Connect(func)
 	return btn
 end
 
-local Rescan = MakeButton("Rescan", 0, "Rescan")
-local Back = MakeButton("Back", 110, "< Back")
-local CopyBtn = MakeButton("Copy", 220, "Copy")
-local ClearBtn = MakeButton("Clear", 330, "Clear")
+-- Data display
+local DataBox = Instance.new("TextBox", Content)
+DataBox.Size = UDim2.new(1, 0, 1, -65)
+DataBox.Position = UDim2.new(0,0,0,30)
+DataBox.BackgroundColor3 = Color3.fromRGB(20,20,20)
+DataBox.TextColor3 = Color3.fromRGB(0,255,0)
+DataBox.TextXAlignment = Enum.TextXAlignment.Left
+DataBox.TextYAlignment = Enum.TextYAlignment.Top
+DataBox.MultiLine = true
+DataBox.TextWrapped = true
+DataBox.ClearTextOnFocus = false
+DataBox.Visible = false
 
--- Logic
+-- Remote Scanner
 local Remotes = {}
 
-local function GetRemotes()
+local function ScanRemotes()
 	Remotes = {}
-	for _,v in ipairs(ReplicatedStorage:GetDescendants()) do
-		if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-			table.insert(Remotes, v)
-		end
-	end
-end
-
-local function ShowList()
-	Scrolling:ClearAllChildren()
-	UIListLayout.Parent = Scrolling
-	for _,remote in ipairs(Remotes) do
-		if SearchBox.Text == "" or string.find(remote.Name:lower(), SearchBox.Text:lower()) then
-			local btn = Instance.new("TextButton", Scrolling)
-			btn.Size = UDim2.new(1, -10, 0, 25)
-			btn.Text = remote:GetFullName()
-			btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-			btn.TextColor3 = Color3.new(1,1,1)
-
+	ScrollingFrame:ClearAllChildren()
+	UIListLayout.Parent = ScrollingFrame
+	for _, obj in ipairs(game:GetDescendants()) do
+		if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+			table.insert(Remotes, obj)
+			local btn = Instance.new("TextButton", ScrollingFrame)
+			btn.Size = UDim2.new(1, -5, 0, 25)
+			btn.Text = obj:GetFullName()
+			btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+			btn.TextColor3 = Color3.fromRGB(255,255,255)
 			btn.MouseButton1Click:Connect(function()
+				ScrollingFrame.Visible = false
+				DataBox.Visible = true
 				local success, props = pcall(function()
-					return remote:GetAttributes()
+					return {
+						"Name: " .. obj.Name,
+						"Class: " .. obj.ClassName,
+						"Path: " .. obj:GetFullName(),
+						"",
+						"Properties:",
+						"  Archivable: " .. tostring(obj.Archivable),
+						"  Name: " .. obj.Name,
+						"  ClassName: " .. obj.ClassName,
+						"  Parent: " .. (obj.Parent and obj.Parent.Name or "nil")
+					}
 				end)
-
-				local info = {}
-				table.insert(info, "Name: " .. remote.Name)
-				table.insert(info, "Class: " .. remote.ClassName)
-				table.insert(info, "Path: " .. remote:GetFullName())
-				table.insert(info, "\nProperties:")
-
 				if success then
-					local found = false
-					for k,v in pairs(props) do
-						found = true
-						table.insert(info, string.format("  %s: %s", k, tostring(v)))
-					end
-					if not found then
-						table.insert(info, "  Archivable: " .. tostring(remote.Archivable))
-						table.insert(info, "  Parent: " .. (remote.Parent and remote.Parent.Name or "nil"))
-					end
+					DataBox.Text = table.concat(props, "\n")
 				else
-					table.insert(info, "  Data tidak terbaca")
+					DataBox.Text = "Data tidak terbaca"
 				end
-
-				DetailText.Text = table.concat(info, "\n")
-				Scrolling.Visible = false
-				DetailFrame.Visible = true
 			end)
 		end
 	end
+	ScrollingFrame.CanvasSize = UDim2.new(0,0,0,UIListLayout.AbsoluteContentSize.Y)
 end
 
 -- Buttons
-Rescan.MouseButton1Click:Connect(function()
-	GetRemotes()
-	ShowList()
+MakeButton("Rescan", 0, ScanRemotes)
+MakeButton("< Back", 1, function()
+	ScrollingFrame.Visible = true
+	DataBox.Visible = false
 end)
-
-Back.MouseButton1Click:Connect(function()
-	DetailFrame.Visible = false
-	Scrolling.Visible = true
-end)
-
-CopyBtn.MouseButton1Click:Connect(function()
-	if DetailFrame.Visible and DetailText.Text ~= "" then
-		setclipboard(DetailText.Text)
+MakeButton("Copy", 2, function()
+	if DataBox.Visible then
+		setclipboard(DataBox.Text)
 	end
 end)
-
-ClearBtn.MouseButton1Click:Connect(function()
-	DetailText.Text = ""
+MakeButton("Clear", 3, function()
+	SearchBar.Text = ""
+	ScanRemotes()
 end)
 
+-- Search
+SearchBar:GetPropertyChangedSignal("Text"):Connect(function()
+	local txt = SearchBar.Text:lower()
+	for _,btn in ipairs(ScrollingFrame:GetChildren()) do
+		if btn:IsA("TextButton") then
+			btn.Visible = txt == "" or btn.Text:lower():find(txt,1,true)
+		end
+	end
+	UIListLayout.Parent = nil
+	UIListLayout.Parent = ScrollingFrame
+	ScrollingFrame.CanvasSize = UDim2.new(0,0,0,UIListLayout.AbsoluteContentSize.Y)
+end)
+
+-- Minimize
+local minimized = false
 Minimize.MouseButton1Click:Connect(function()
-	MainFrame.Visible = not MainFrame.Visible
+	minimized = not minimized
+	Content.Visible = not minimized
+	ButtonFrame.Visible = not minimized
+	Frame.Size = minimized and UDim2.new(0,500,0,30) or UDim2.new(0,500,0,350)
 end)
 
-Close.MouseButton1Click:Connect(function()
-	ScreenGui:Destroy()
-end)
-
-SearchBox.Changed:Connect(function(prop)
-	if prop == "Text" then
-		ShowList()
-	end
-end)
-
--- Init
-GetRemotes()
-ShowList()
+-- Initial scan
+ScanRemotes()
