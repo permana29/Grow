@@ -1,13 +1,14 @@
 -- 📌 Remote Explorer (Final Improved)
 -- + Tab system responsif (Rescan <-> Data)
 -- + Copy / Clear di Data tab
--- + Auto wrap teks log
+-- + Data hanya muncul untuk Remote yang dipilih
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
+local SelectedRemote = nil -- Remote yang dipilih user
 
 -- Decode function
 local function safeDecode(data, depth)
@@ -156,28 +157,6 @@ RemoteList.Position = UDim2.new(0,5,0,35)
 RemoteList.BackgroundTransparency = 1
 RemoteList.ScrollBarThickness = 6
 
-local function RefreshRemotes()
-    RemoteList:ClearAllChildren()
-    local y = 0
-    for _,v in ipairs(RS:GetDescendants()) do
-        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-            if Search.Text == "" or v.Name:lower():find(Search.Text:lower()) then
-                local Btn = Instance.new("TextButton")
-                Btn.Size = UDim2.new(1,-10,0,25)
-                Btn.Position = UDim2.new(0,5,0,y)
-                Btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-                Btn.TextColor3 = Color3.new(1,1,1)
-                Btn.Text = v:GetFullName()
-                Btn.Parent = RemoteList
-                y = y + 30
-            end
-        end
-    end
-    RemoteList.CanvasSize = UDim2.new(0,0,0,y)
-end
-Search:GetPropertyChangedSignal("Text"):Connect(RefreshRemotes)
-RefreshRemotes()
-
 -- 📌 Tab Data
 local DataTab = AddTab("Data")
 
@@ -207,13 +186,11 @@ DataLog.ScrollBarThickness = 6
 
 local Logs = {}
 
-local function AddLog(remote, args)
-    local msg = "["..remote.ClassName.."] "..remote:GetFullName().."\nData: { "
-    for i,arg in ipairs(args) do
-        msg = msg.."\n   ["..i.."] = "..safeDecode(arg)
-    end
-    msg = msg.."\n}\n-----------------------"
+local function ShowRemote(remote)
+    DataLog:ClearAllChildren()
+    Logs = {}
 
+    local msg = "[Selected] "..remote.ClassName.." - "..remote:GetFullName()
     table.insert(Logs, msg)
 
     local Label = Instance.new("TextLabel")
@@ -229,7 +206,7 @@ local function AddLog(remote, args)
     Label.Text = msg
     Label.Parent = DataLog
 
-    DataLog.CanvasSize = UDim2.new(0,0,0,DataLog.CanvasSize.Y.Offset + Label.TextBounds.Y + 10)
+    DataLog.CanvasSize = UDim2.new(0,0,0,Label.TextBounds.Y + 10)
 end
 
 CopyBtn.MouseButton1Click:Connect(function()
@@ -242,16 +219,31 @@ ClearBtn.MouseButton1Click:Connect(function()
     DataLog.CanvasSize = UDim2.new(0,0,0,0)
 end)
 
--- Hook semua Remote
-for _,v in ipairs(RS:GetDescendants()) do
-    if v:IsA("RemoteEvent") then
-        v.OnClientEvent:Connect(function(...)
-            AddLog(v, {...})
-        end)
-    elseif v:IsA("RemoteFunction") then
-        local old; old = hookfunction(v.InvokeClient, function(self,plr,...)
-            AddLog(self, {...})
-            return old(self,plr,...)
-        end)
+-- Refresh list di Rescan tab
+local function RefreshRemotes()
+    RemoteList:ClearAllChildren()
+    local y = 0
+    for _,v in ipairs(RS:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            if Search.Text == "" or v.Name:lower():find(Search.Text:lower()) then
+                local Btn = Instance.new("TextButton")
+                Btn.Size = UDim2.new(1,-10,0,25)
+                Btn.Position = UDim2.new(0,5,0,y)
+                Btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+                Btn.TextColor3 = Color3.new(1,1,1)
+                Btn.Text = v:GetFullName()
+                Btn.Parent = RemoteList
+
+                Btn.MouseButton1Click:Connect(function()
+                    SelectedRemote = v
+                    ShowRemote(v)
+                end)
+
+                y = y + 30
+            end
+        end
     end
+    RemoteList.CanvasSize = UDim2.new(0,0,0,y)
 end
+Search:GetPropertyChangedSignal("Text"):Connect(RefreshRemotes)
+RefreshRemotes()
