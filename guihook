@@ -1,5 +1,5 @@
--- 📌 Remote Explorer (Final Auto + Data Decode)
--- + Auto-update realtime remote list
+-- 📌 Remote Explorer (Final Manual Rescan)
+-- + Manual Rescan button
 -- + Tab system (Rescan <-> Data)
 -- + Back button di Data tab
 -- + Copy / Clear log
@@ -148,11 +148,18 @@ local AddTab, Tabs = CreateWindow("Remote Explorer")
 -- 📌 Tab Rescan
 local ScanTab = AddTab("Rescan")
 local Search = Instance.new("TextBox", ScanTab)
-Search.Size = UDim2.new(1,-10,0,25)
+Search.Size = UDim2.new(1,-90,0,25)
 Search.Position = UDim2.new(0,5,0,5)
 Search.PlaceholderText = "Search Remote..."
 Search.BackgroundColor3 = Color3.fromRGB(40,40,40)
 Search.TextColor3 = Color3.new(1,1,1)
+
+local RescanBtn = Instance.new("TextButton", ScanTab)
+RescanBtn.Size = UDim2.new(0,70,0,25)
+RescanBtn.Position = UDim2.new(1,-75,0,5)
+RescanBtn.Text = "Rescan"
+RescanBtn.TextColor3 = Color3.new(1,1,1)
+RescanBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
 
 local RemoteList = Instance.new("ScrollingFrame", ScanTab)
 RemoteList.Size = UDim2.new(1,-10,1,-40)
@@ -239,7 +246,7 @@ BackBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- 🔁 Remote List auto-update
+-- 🔁 Manual Rescan
 local function RefreshRemotes()
     RemoteList:ClearAllChildren()
     local y = 0
@@ -271,9 +278,7 @@ local function RefreshRemotes()
 end
 
 Search:GetPropertyChangedSignal("Text"):Connect(RefreshRemotes)
-RS.DescendantAdded:Connect(RefreshRemotes)
-RS.DescendantRemoving:Connect(RefreshRemotes)
-RefreshRemotes()
+RescanBtn.MouseButton1Click:Connect(RefreshRemotes)
 
 -- 🪝 Hook log hanya untuk remote yg dipilih
 local function HookRemote(remote)
@@ -299,8 +304,4 @@ for _,v in ipairs(RS:GetDescendants()) do
     end
 end
 
-RS.DescendantAdded:Connect(function(v)
-    if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-        HookRemote(v)
-    end
-end)
+print("✅ Remote Explorer Loaded (Manual Rescan)")
