@@ -1,5 +1,7 @@
--- 📌 Final Compact Remote Scanner + Data Decoder
--- GUI ukuran kecil, 2 tab: Rescan & Data
+-- 📌 Remote Explorer (Final Improved)
+-- + Tab system responsif (Rescan <-> Data)
+-- + Copy / Clear di Data tab
+-- + Auto wrap teks log
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -7,7 +9,7 @@ local RS = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 
--- Utility decode
+-- Decode function
 local function safeDecode(data, depth)
     depth = depth or 0
     if depth > 3 then return '"<Max Depth>"' end
@@ -31,8 +33,7 @@ end
 
 -- GUI Builder
 local function CreateWindow(title)
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Parent = game.CoreGui
+    local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 
     local Main = Instance.new("Frame")
     Main.Size = UDim2.new(0, 400, 0, 300)
@@ -96,11 +97,9 @@ local function CreateWindow(title)
         Button.TextSize = 12
         Button.Parent = TabBar
 
-        local Page = Instance.new("ScrollingFrame")
+        local Page = Instance.new("Frame")
         Page.Size = UDim2.new(1,0,1,0)
-        Page.CanvasSize = UDim2.new(0,0,0,0)
         Page.BackgroundTransparency = 1
-        Page.ScrollBarThickness = 6
         Page.Visible = false
         Page.Parent = Content
 
@@ -118,7 +117,6 @@ local function CreateWindow(title)
         return Page
     end
 
-    -- Control
     local Minimized = false
     Minimize.MouseButton1Click:Connect(function()
         Minimized = not Minimized
@@ -180,13 +178,34 @@ end
 Search:GetPropertyChangedSignal("Text"):Connect(RefreshRemotes)
 RefreshRemotes()
 
--- 📌 Tab Data (Logs decoded)
+-- 📌 Tab Data
 local DataTab = AddTab("Data")
+
+local Toolbar = Instance.new("Frame", DataTab)
+Toolbar.Size = UDim2.new(1,-10,0,25)
+Toolbar.Position = UDim2.new(0,5,0,5)
+Toolbar.BackgroundColor3 = Color3.fromRGB(35,35,35)
+
+local CopyBtn = Instance.new("TextButton", Toolbar)
+CopyBtn.Size = UDim2.new(0,60,1,0)
+CopyBtn.Text = "Copy"
+CopyBtn.TextColor3 = Color3.new(1,1,1)
+CopyBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+
+local ClearBtn = Instance.new("TextButton", Toolbar)
+ClearBtn.Size = UDim2.new(0,60,1,0)
+ClearBtn.Position = UDim2.new(0,65,0,0)
+ClearBtn.Text = "Clear"
+ClearBtn.TextColor3 = Color3.new(1,1,1)
+ClearBtn.BackgroundColor3 = Color3.fromRGB(70,50,50)
+
 local DataLog = Instance.new("ScrollingFrame", DataTab)
 DataLog.Size = UDim2.new(1,-10,1,-40)
-DataLog.Position = UDim2.new(0,5,0,5)
+DataLog.Position = UDim2.new(0,5,0,35)
 DataLog.BackgroundTransparency = 1
 DataLog.ScrollBarThickness = 6
+
+local Logs = {}
 
 local function AddLog(remote, args)
     local msg = "["..remote.ClassName.."] "..remote:GetFullName().."\nData: { "
@@ -195,8 +214,11 @@ local function AddLog(remote, args)
     end
     msg = msg.."\n}\n-----------------------"
 
+    table.insert(Logs, msg)
+
     local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1,-10,0,50)
+    Label.Size = UDim2.new(1,-10,0,0)
+    Label.AutomaticSize = Enum.AutomaticSize.Y
     Label.BackgroundTransparency = 1
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.TextYAlignment = Enum.TextYAlignment.Top
@@ -207,10 +229,20 @@ local function AddLog(remote, args)
     Label.Text = msg
     Label.Parent = DataLog
 
-    DataLog.CanvasSize = UDim2.new(0,0,0,DataLog.CanvasSize.Y.Offset + 60)
+    DataLog.CanvasSize = UDim2.new(0,0,0,DataLog.CanvasSize.Y.Offset + Label.TextBounds.Y + 10)
 end
 
--- Hook All
+CopyBtn.MouseButton1Click:Connect(function()
+    setclipboard(table.concat(Logs, "\n"))
+end)
+
+ClearBtn.MouseButton1Click:Connect(function()
+    Logs = {}
+    DataLog:ClearAllChildren()
+    DataLog.CanvasSize = UDim2.new(0,0,0,0)
+end)
+
+-- Hook semua Remote
 for _,v in ipairs(RS:GetDescendants()) do
     if v:IsA("RemoteEvent") then
         v.OnClientEvent:Connect(function(...)
