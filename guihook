@@ -1,4 +1,9 @@
--- 📌 Remote Explorer (Final Stable)
+-- 📌 Remote Explorer (Final Backup with Logs)
+-- + Tab Rescan -> pilih Remote
+-- + Tab Data -> detail Remote + Logs
+-- + Copy / Clear jalan
+-- + Auto wrap logs
+-- + "Data Tidak Terbaca" kalau gagal decode
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -9,20 +14,24 @@ local player = Players.LocalPlayer
 -- Decode helper
 local function safeDecode(data, depth)
     depth = depth or 0
-    if depth > 3 then return "<Max Depth>" end
+    if depth > 4 then return "<Max Depth>" end
 
     local t = typeof(data)
     if t == "string" then
         return '"'..data..'"'
     elseif t == "number" or t == "boolean" then
         return tostring(data)
-    elseif t == "Instance" then
-        return data:GetFullName()
     elseif t == "table" then
         local ok, json = pcall(function()
             return HttpService:JSONEncode(data)
         end)
-        if ok then return json else return "<Table>" end
+        if ok then
+            return json
+        else
+            return "<Data Tidak Terbaca>"
+        end
+    elseif t == "Instance" then
+        return data:GetFullName()
     else
         return tostring(data)
     end
@@ -33,7 +42,7 @@ local function CreateWindow(title)
     local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 
     local Main = Instance.new("Frame")
-    Main.Size = UDim2.new(0, 500, 0, 320)
+    Main.Size = UDim2.new(0, 500, 0, 350)
     Main.Position = UDim2.new(0.25, 0, 0.25, 0)
     Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
     Main.BorderSizePixel = 0
@@ -124,7 +133,7 @@ local function CreateWindow(title)
         else
             Content.Visible = true
             TabBar.Visible = true
-            Main.Size = UDim2.new(0,500,0,320)
+            Main.Size = UDim2.new(0,500,0,350)
         end
     end)
 
@@ -132,17 +141,11 @@ local function CreateWindow(title)
         ScreenGui:Destroy()
     end)
 
-    return AddTab, Tabs, function(tabName)
-        if CurrentTab then CurrentTab.Visible = false end
-        if Tabs[tabName] then
-            Tabs[tabName].Visible = true
-            CurrentTab = Tabs[tabName]
-        end
-    end
+    return AddTab, Tabs
 end
 
 -- Main Window
-local AddTab, Tabs, SwitchTab = CreateWindow("Remote Explorer")
+local AddTab, Tabs = CreateWindow("Remote Explorer")
 
 -- 📌 Tab Rescan
 local ScanTab = AddTab("Rescan")
@@ -169,7 +172,7 @@ Toolbar.BackgroundColor3 = Color3.fromRGB(35,35,35)
 
 local BackBtn = Instance.new("TextButton", Toolbar)
 BackBtn.Size = UDim2.new(0,60,1,0)
-BackBtn.Text = "Back"
+BackBtn.Text = "< Back"
 BackBtn.TextColor3 = Color3.new(1,1,1)
 BackBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
 
@@ -193,28 +196,56 @@ DataLog.Position = UDim2.new(0,5,0,35)
 DataLog.BackgroundTransparency = 1
 DataLog.ScrollBarThickness = 6
 
+-- State
 local Logs = {}
+local CurrentRemote
 
 local function ShowRemote(remote)
-    DataLog:ClearAllChildren()
+    CurrentRemote = remote
     Logs = {}
+    DataLog:ClearAllChildren()
+    DataLog.CanvasSize = UDim2.new(0,0,0,0)
 
-    local lines = {}
-    table.insert(lines, "Name: "..remote.Name)
-    table.insert(lines, "Class: "..remote.ClassName)
-    table.insert(lines, "Path: "..remote:GetFullName())
-    table.insert(lines, "")
-    table.insert(lines, "Properties:")
-
-    for _,prop in ipairs({"Archivable","Name","ClassName","Parent"}) do
-        local ok,val = pcall(function() return tostring(remote[prop]) end)
-        if ok then
-            table.insert(lines, "  "..prop..": "..val)
-        end
+    local function addLine(text)
+        local Label = Instance.new("TextLabel")
+        Label.Size = UDim2.new(1,-10,0,0)
+        Label.AutomaticSize = Enum.AutomaticSize.Y
+        Label.BackgroundTransparency = 1
+        Label.TextXAlignment = Enum.TextXAlignment.Left
+        Label.TextYAlignment = Enum.TextYAlignment.Top
+        Label.TextWrapped = true
+        Label.TextColor3 = Color3.new(1,1,1)
+        Label.Font = Enum.Font.Code
+        Label.TextSize = 12
+        Label.Text = text
+        Label.Parent = DataLog
+        DataLog.CanvasSize = UDim2.new(0,0,0,DataLog.CanvasSize.Y.Offset + Label.TextBounds.Y + 4)
     end
 
-    local text = table.concat(lines, "\n")
-    table.insert(Logs, text)
+    addLine("Name: "..remote.Name)
+    addLine("Class: "..remote.ClassName)
+    addLine("Path: "..remote:GetFullName())
+    addLine("")
+    addLine("Properties:")
+    for _,prop in ipairs({"Archivable","Name","ClassName","Parent"}) do
+        local ok, val = pcall(function() return tostring(remote[prop]) end)
+        if ok then
+            addLine("  "..prop..": "..val)
+        end
+    end
+    addLine("")
+    addLine("Logs:")
+end
+
+local function AddLog(remote, args)
+    if remote ~= CurrentRemote then return end
+
+    local msg = {}
+    for i,arg in ipairs(args) do
+        table.insert(msg, "["..i.."] "..safeDecode(arg))
+    end
+    local line = table.concat(msg, ", ")
+    table.insert(Logs, line)
 
     local Label = Instance.new("TextLabel")
     Label.Size = UDim2.new(1,-10,0,0)
@@ -226,30 +257,56 @@ local function ShowRemote(remote)
     Label.TextColor3 = Color3.new(1,1,1)
     Label.Font = Enum.Font.Code
     Label.TextSize = 12
-    Label.Text = text
+    Label.Text = "  "..line
     Label.Parent = DataLog
-
-    DataLog.CanvasSize = UDim2.new(0,0,0,Label.TextBounds.Y + 10)
+    DataLog.CanvasSize = UDim2.new(0,0,0,DataLog.CanvasSize.Y.Offset + Label.TextBounds.Y + 4)
 end
 
--- Buttons
-BackBtn.MouseButton1Click:Connect(function()
-    SwitchTab("Rescan")
-end)
-
 CopyBtn.MouseButton1Click:Connect(function()
-    if #Logs > 0 then
-        setclipboard(table.concat(Logs, "\n"))
+    if CurrentRemote then
+        local txt = "Name: "..CurrentRemote.Name..
+        "\nClass: "..CurrentRemote.ClassName..
+        "\nPath: "..CurrentRemote:GetFullName()..
+        "\n\nProperties:"
+        for _,prop in ipairs({"Archivable","Name","ClassName","Parent"}) do
+            local ok, val = pcall(function() return tostring(CurrentRemote[prop]) end)
+            if ok then
+                txt = txt.."\n  "..prop..": "..val
+            end
+        end
+        txt = txt.."\n\nLogs:\n"..table.concat(Logs,"\n")
+        setclipboard(txt)
     end
 end)
 
 ClearBtn.MouseButton1Click:Connect(function()
     Logs = {}
-    DataLog:ClearAllChildren()
+    for _,c in ipairs(DataLog:GetChildren()) do
+        if c:IsA("TextLabel") then c:Destroy() end
+    end
     DataLog.CanvasSize = UDim2.new(0,0,0,0)
 end)
 
--- Refresh list
+BackBtn.MouseButton1Click:Connect(function()
+    Tabs["Data"].Visible = false
+    Tabs["Rescan"].Visible = true
+end)
+
+-- Hook semua Remote
+for _,v in ipairs(RS:GetDescendants()) do
+    if v:IsA("RemoteEvent") then
+        v.OnClientEvent:Connect(function(...)
+            AddLog(v, {...})
+        end)
+    elseif v:IsA("RemoteFunction") then
+        local old; old = hookfunction(v.InvokeClient, function(self,plr,...)
+            AddLog(self, {...})
+            return old(self,plr,...)
+        end)
+    end
+end
+
+-- Refresh remote list
 local function RefreshRemotes()
     RemoteList:ClearAllChildren()
     local y = 0
@@ -262,11 +319,13 @@ local function RefreshRemotes()
                 Btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
                 Btn.TextColor3 = Color3.new(1,1,1)
                 Btn.Text = v:GetFullName()
+                Btn.TextXAlignment = Enum.TextXAlignment.Left
                 Btn.Parent = RemoteList
 
                 Btn.MouseButton1Click:Connect(function()
                     ShowRemote(v)
-                    SwitchTab("Data")
+                    Tabs["Rescan"].Visible = false
+                    Tabs["Data"].Visible = true
                 end)
 
                 y = y + 30
