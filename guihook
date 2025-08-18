@@ -44,7 +44,7 @@ local function CreateWindow(title)
     Main.Draggable = true
     Main.Parent = ScreenGui
 
-    local Header = Instance.new("TextLabel")
+    local Header = Instance.new("")
     Header.Size = UDim2.new(1, -80, 0, 30)
     Header.BackgroundColor3 = Color3.fromRGB(35,35,35)
     Header.Text = title
