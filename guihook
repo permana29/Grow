@@ -1,4 +1,4 @@
--- 📌 Remote Explorer (Final Stable)
+-- 📌 Remote Explorer (Final Extended)
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -33,7 +33,7 @@ local function CreateWindow(title)
     local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 
     local Main = Instance.new("Frame")
-    Main.Size = UDim2.new(0, 500, 0, 320)
+    Main.Size = UDim2.new(0, 500, 0, 360)
     Main.Position = UDim2.new(0.25, 0, 0.25, 0)
     Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
     Main.BorderSizePixel = 0
@@ -124,7 +124,7 @@ local function CreateWindow(title)
         else
             Content.Visible = true
             TabBar.Visible = true
-            Main.Size = UDim2.new(0,500,0,320)
+            Main.Size = UDim2.new(0,500,0,360)
         end
     end)
 
@@ -195,6 +195,7 @@ DataLog.ScrollBarThickness = 6
 
 local Logs = {}
 
+-- 🔥 ShowRemote
 local function ShowRemote(remote)
     DataLog:ClearAllChildren()
     Logs = {}
@@ -229,7 +230,53 @@ local function ShowRemote(remote)
     Label.Text = text
     Label.Parent = DataLog
 
-    DataLog.CanvasSize = UDim2.new(0,0,0,Label.TextBounds.Y + 10)
+    -- Input argumen manual
+    local ArgBox = Instance.new("TextBox")
+    ArgBox.Size = UDim2.new(1,-10,0,25)
+    ArgBox.Position = UDim2.new(0,5,0,Label.TextBounds.Y + 10)
+    ArgBox.PlaceholderText = 'Args (contoh: "Mango", 1)'
+    ArgBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    ArgBox.TextColor3 = Color3.new(1,1,1)
+    ArgBox.ClearTextOnFocus = false
+    ArgBox.Parent = DataLog
+
+    -- Tombol Run
+    local TestBtn = Instance.new("TextButton")
+    TestBtn.Size = UDim2.new(0,120,0,25)
+    TestBtn.Position = UDim2.new(0,5,0,Label.TextBounds.Y + 45)
+    TestBtn.Text = "▶ Run Remote"
+    TestBtn.TextColor3 = Color3.new(1,1,1)
+    TestBtn.BackgroundColor3 = Color3.fromRGB(70,120,70)
+    TestBtn.Parent = DataLog
+
+    TestBtn.MouseButton1Click:Connect(function()
+        local args = {}
+        if ArgBox.Text ~= "" then
+            local ok, parsed = pcall(function()
+                return loadstring("return {"..ArgBox.Text.."}")()
+            end)
+            if ok and type(parsed) == "table" then
+                args = parsed
+            else
+                warn("[Explorer] Argumen invalid:", ArgBox.Text)
+            end
+        end
+
+        if remote:IsA("RemoteEvent") then
+            remote:FireServer(unpack(args))
+            print("[Explorer] Fired RemoteEvent:", remote.Name, "Args:", unpack(args))
+        elseif remote:IsA("RemoteFunction") then
+            local result
+            local ok,err = pcall(function()
+                result = remote:InvokeServer(unpack(args))
+            end)
+            print("[Explorer] Invoked RemoteFunction:", remote.Name, "=>", ok and result or err)
+        else
+            print("[Explorer] Unknown remote type:", remote.ClassName)
+        end
+    end)
+
+    DataLog.CanvasSize = UDim2.new(0,0,0,Label.TextBounds.Y + 80)
 end
 
 -- Buttons
