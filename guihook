@@ -1,39 +1,46 @@
--- 📌 Remote Explorer (Final Improved + Back & Deep Decode)
+-- 📌 Remote Explorer (Final Auto + Data Decode)
+-- + Auto-update realtime remote list
+-- + Tab system (Rescan <-> Data)
+-- + Back button di Data tab
+-- + Copy / Clear log
+-- + Deep decode (lebih kebaca)
+-- + Minimize & Close button
+
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 
--- 🔎 Decode Function (lebih detail)
-local function safeDecode(data, depth)
+-- 🔍 Decode lebih jelas
+local function deepDecode(value, depth)
     depth = depth or 0
-    if depth > 2 then return '"<Max Depth>"' end
+    if depth > 4 then return "<Max Depth>" end
+    local t = typeof(value)
 
-    local t = typeof(data)
     if t == "string" then
-        return '"'..data..'"'
+        return '"'..value..'"'
     elseif t == "number" or t == "boolean" then
-        return tostring(data)
-    elseif t == "table" then
-        local s = "{"
-        for k,v in pairs(data) do
-            s = s.."\n   ["..tostring(k).."] = "..safeDecode(v, depth+1)
-        end
-        return s.."\n}"
+        return tostring(value)
     elseif t == "Instance" then
-        return "<Instance: "..data:GetFullName()..">"
+        return "<Instance:"..value:GetFullName()..">"
+    elseif t == "table" then
+        local parts = {}
+        for k,v in pairs(value) do
+            table.insert(parts, "["..deepDecode(k, depth+1).."] = "..deepDecode(v, depth+1))
+        end
+        return "{ "..table.concat(parts, ", ").." }"
     else
-        return '"'..tostring(data)..'"'
+        return "<"..tostring(value)..">"
     end
 end
 
--- GUI Builder
+-- 🖼️ GUI Builder
 local function CreateWindow(title)
     local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 
     local Main = Instance.new("Frame")
-    Main.Size = UDim2.new(0, 450, 0, 320)
+    Main.Size = UDim2.new(0, 400, 0, 300)
     Main.Position = UDim2.new(0.3, 0, 0.25, 0)
     Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
     Main.BorderSizePixel = 0
@@ -120,11 +127,11 @@ local function CreateWindow(title)
         if Minimized then
             Content.Visible = false
             TabBar.Visible = false
-            Main.Size = UDim2.new(0,450,0,30)
+            Main.Size = UDim2.new(0,400,0,30)
         else
             Content.Visible = true
             TabBar.Visible = true
-            Main.Size = UDim2.new(0,450,0,320)
+            Main.Size = UDim2.new(0,400,0,300)
         end
     end)
 
@@ -165,7 +172,7 @@ local BackBtn = Instance.new("TextButton", Toolbar)
 BackBtn.Size = UDim2.new(0,60,1,0)
 BackBtn.Text = "< Back"
 BackBtn.TextColor3 = Color3.new(1,1,1)
-BackBtn.BackgroundColor3 = Color3.fromRGB(50,70,90)
+BackBtn.BackgroundColor3 = Color3.fromRGB(70,70,120)
 
 local CopyBtn = Instance.new("TextButton", Toolbar)
 CopyBtn.Size = UDim2.new(0,60,1,0)
@@ -188,14 +195,12 @@ DataLog.BackgroundTransparency = 1
 DataLog.ScrollBarThickness = 6
 
 local Logs = {}
+local SelectedRemote
 
-local function ShowLog(remote, args)
-    DataLog:ClearAllChildren()
-    Logs = {}
-
-    local msg = "["..remote.ClassName.."] "..remote:GetFullName().."\nData: { "
+local function AddLog(remote, args)
+    local msg = "["..remote.ClassName.."] "..remote:GetFullName().."\nData: {"
     for i,arg in ipairs(args) do
-        msg = msg.."\n   ["..i.."] = "..safeDecode(arg)
+        msg = msg.."\n   ["..i.."] = "..deepDecode(arg)
     end
     msg = msg.."\n}\n-----------------------"
 
@@ -213,16 +218,12 @@ local function ShowLog(remote, args)
     Label.TextSize = 12
     Label.Text = msg
     Label.Parent = DataLog
-    DataLog.CanvasSize = UDim2.new(0,0,0,Label.TextBounds.Y + 10)
 
-    Tabs["Data"].Visible = true
-    Tabs["Rescan"].Visible = false
+    DataLog.CanvasSize = UDim2.new(0,0,0,DataLog.CanvasSize.Y.Offset + Label.TextBounds.Y + 10)
 end
 
 CopyBtn.MouseButton1Click:Connect(function()
-    if #Logs > 0 then
-        setclipboard(table.concat(Logs, "\n"))
-    end
+    setclipboard(table.concat(Logs, "\n"))
 end)
 
 ClearBtn.MouseButton1Click:Connect(function()
@@ -232,11 +233,13 @@ ClearBtn.MouseButton1Click:Connect(function()
 end)
 
 BackBtn.MouseButton1Click:Connect(function()
-    Tabs["Data"].Visible = false
-    Tabs["Rescan"].Visible = true
+    if Tabs["Rescan"] then
+        Tabs["Data"].Visible = false
+        Tabs["Rescan"].Visible = true
+    end
 end)
 
--- 🔁 Populate Remote List
+-- 🔁 Remote List auto-update
 local function RefreshRemotes()
     RemoteList:ClearAllChildren()
     local y = 0
@@ -252,8 +255,12 @@ local function RefreshRemotes()
                 Btn.Parent = RemoteList
 
                 Btn.MouseButton1Click:Connect(function()
-                    -- ketika klik remote, tampilkan data
-                    ShowLog(v, {"<No Data Captured Yet>"})
+                    Logs = {}
+                    DataLog:ClearAllChildren()
+                    DataLog.CanvasSize = UDim2.new(0,0,0,0)
+                    SelectedRemote = v
+                    Tabs["Rescan"].Visible = false
+                    Tabs["Data"].Visible = true
                 end)
 
                 y = y + 30
@@ -262,19 +269,38 @@ local function RefreshRemotes()
     end
     RemoteList.CanvasSize = UDim2.new(0,0,0,y)
 end
+
 Search:GetPropertyChangedSignal("Text"):Connect(RefreshRemotes)
+RS.DescendantAdded:Connect(RefreshRemotes)
+RS.DescendantRemoving:Connect(RefreshRemotes)
 RefreshRemotes()
 
--- 🔗 Hook semua Remote (log otomatis ke DataTab saat invoke)
-for _,v in ipairs(RS:GetDescendants()) do
-    if v:IsA("RemoteEvent") then
-        v.OnClientEvent:Connect(function(...)
-            ShowLog(v, {...})
+-- 🪝 Hook log hanya untuk remote yg dipilih
+local function HookRemote(remote)
+    if remote:IsA("RemoteEvent") then
+        remote.OnClientEvent:Connect(function(...)
+            if SelectedRemote == remote then
+                AddLog(remote, {...})
+            end
         end)
-    elseif v:IsA("RemoteFunction") then
-        local old; old = hookfunction(v.InvokeClient, function(self,plr,...)
-            ShowLog(self, {...})
+    elseif remote:IsA("RemoteFunction") then
+        local old; old = hookfunction(remote.InvokeClient, function(self,plr,...)
+            if SelectedRemote == self then
+                AddLog(self, {...})
+            end
             return old(self,plr,...)
         end)
     end
 end
+
+for _,v in ipairs(RS:GetDescendants()) do
+    if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+        HookRemote(v)
+    end
+end
+
+RS.DescendantAdded:Connect(function(v)
+    if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+        HookRemote(v)
+    end
+end)
