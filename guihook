@@ -1,10 +1,32 @@
--- 📌 Remote Explorer (Final Stable + Sniffer)
+-- 📌 Remote Explorer (Final Stable)
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
+
+-- Decode helper
+local function safeDecode(data, depth)
+    depth = depth or 0
+    if depth > 3 then return "<Max Depth>" end
+
+    local t = typeof(data)
+    if t == "string" then
+        return '"'..data..'"'
+    elseif t == "number" or t == "boolean" then
+        return tostring(data)
+    elseif t == "Instance" then
+        return data:GetFullName()
+    elseif t == "table" then
+        local ok, json = pcall(function()
+            return HttpService:JSONEncode(data)
+        end)
+        if ok then return json else return "<Table>" end
+    else
+        return tostring(data)
+    end
+end
 
 -- GUI Builder
 local function CreateWindow(title)
@@ -172,10 +194,28 @@ DataLog.BackgroundTransparency = 1
 DataLog.ScrollBarThickness = 6
 
 local Logs = {}
-local CurrentRemote
 
--- helper log
-local function AppendLog(text)
+local function ShowRemote(remote)
+    DataLog:ClearAllChildren()
+    Logs = {}
+
+    local lines = {}
+    table.insert(lines, "Name: "..remote.Name)
+    table.insert(lines, "Class: "..remote.ClassName)
+    table.insert(lines, "Path: "..remote:GetFullName())
+    table.insert(lines, "")
+    table.insert(lines, "Properties:")
+
+    for _,prop in ipairs({"Archivable","Name","ClassName","Parent"}) do
+        local ok,val = pcall(function() return tostring(remote[prop]) end)
+        if ok then
+            table.insert(lines, "  "..prop..": "..val)
+        end
+    end
+
+    local text = table.concat(lines, "\n")
+    table.insert(Logs, text)
+
     local Label = Instance.new("TextLabel")
     Label.Size = UDim2.new(1,-10,0,0)
     Label.AutomaticSize = Enum.AutomaticSize.Y
@@ -189,30 +229,7 @@ local function AppendLog(text)
     Label.Text = text
     Label.Parent = DataLog
 
-    DataLog.CanvasSize = UDim2.new(0,0,0,DataLog.CanvasSize.Y.Offset + Label.TextBounds.Y + 5)
-    table.insert(Logs, text)
-end
-
--- Show remote info
-local function ShowRemote(remote)
-    DataLog:ClearAllChildren()
-    Logs = {}
-    CurrentRemote = remote
-    DataLog.CanvasSize = UDim2.new(0,0,0,0)
-
-    AppendLog("Name: "..remote.Name)
-    AppendLog("Class: "..remote.ClassName)
-    AppendLog("Path: "..remote:GetFullName())
-    AppendLog("")
-    AppendLog("Properties:")
-    for _,prop in ipairs({"Archivable","Name","ClassName","Parent"}) do
-        local ok,val = pcall(function() return tostring(remote[prop]) end)
-        if ok then
-            AppendLog("  "..prop..": "..val)
-        end
-    end
-    AppendLog("")
-    AppendLog("-- Log --")
+    DataLog.CanvasSize = UDim2.new(0,0,0,Label.TextBounds.Y + 10)
 end
 
 -- Buttons
@@ -251,32 +268,6 @@ local function RefreshRemotes()
                     ShowRemote(v)
                     SwitchTab("Data")
                 end)
-
-                -- 🔎 Pasang sniff
-                if not v.__Sniffed then
-                    v.__Sniffed = true
-                    if v:IsA("RemoteEvent") then
-                        v.OnClientEvent:Connect(function(...)
-                            if CurrentRemote == v then
-                                local args = {...}
-                                for i,a in ipairs(args) do
-                                    args[i] = tostring(a)
-                                end
-                                AppendLog("["..os.date("%X").."] Fired with args: "..table.concat(args,", "))
-                            end
-                        end)
-                    elseif v:IsA("RemoteFunction") then
-                        v.OnClientInvoke = function(...)
-                            if CurrentRemote == v then
-                                local args = {...}
-                                for i,a in ipairs(args) do
-                                    args[i] = tostring(a)
-                                end
-                                AppendLog("["..os.date("%X").."] Invoked with args: "..table.concat(args,", "))
-                            end
-                        end
-                    end
-                end
 
                 y = y + 30
             end
