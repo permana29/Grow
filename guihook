@@ -1,8 +1,8 @@
--- 📌 Remote Explorer (Final + Log Data)
+-- 📌 Remote Explorer (Final Fix)
 -- + Rescan manual (search aktif)
--- + Klik Remote → tampil detail + log
--- + Copy / Clear jalan
--- + Data decode lebih jelas (fallback: "Data tidak terbaca")
+-- + Klik Remote → detail + log realtime
+-- + Copy / Clear fix
+-- + Tampilan data normal (no JSON)
 
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -160,8 +160,9 @@ DataLog.ScrollBarThickness = 6
 
 local CurrentLogs = {}
 local CurrentRemote
+local Connections = {}
 
--- 📝 render log call
+-- fungsi render log
 local function AddLog(remote, args)
     if remote ~= CurrentRemote then return end
     local msg = "Event call:\n"
@@ -189,8 +190,11 @@ local function AddLog(remote, args)
 end
 
 CopyBtn.MouseButton1Click:Connect(function()
-    if #CurrentLogs > 0 then
-        setclipboard(table.concat(CurrentLogs,"\n"))
+    local text = table.concat(CurrentLogs,"\n")
+    if setclipboard then
+        setclipboard(text)
+    else
+        print("[Clipboard Fallback]\n"..text)
     end
 end)
 
@@ -207,60 +211,9 @@ BackBtn.MouseButton1Click:Connect(function()
     CurrentLogs = {}
     DataLog:ClearAllChildren()
     DataLog.CanvasSize = UDim2.new(0,0,0,0)
+    for _,c in ipairs(Connections) do c:Disconnect() end
+    table.clear(Connections)
 end)
-
--- 📝 render detail remote
-local function ShowRemoteDetails(v)
-    ScanPage.Visible = false
-    DataPage.Visible = true
-    CurrentRemote = v
-    CurrentLogs = {}
-    DataLog:ClearAllChildren()
-    DataLog.CanvasSize = UDim2.new(0,0,0,0)
-
-    local details = {
-        "Name: "..v.Name,
-        "Class: "..v.ClassName,
-        "Path: "..v:GetFullName(),
-        "",
-        "Properties:"
-    }
-    for _,prop in ipairs({"Archivable","Name","ClassName","Parent"}) do
-        local ok,res = pcall(function() return tostring(v[prop]) end)
-        if ok then
-            table.insert(details,"  "..prop..": "..res)
-        end
-    end
-
-    local InfoLabel = Instance.new("TextLabel")
-    InfoLabel.Size = UDim2.new(1,-10,0,0)
-    InfoLabel.AutomaticSize = Enum.AutomaticSize.Y
-    InfoLabel.BackgroundTransparency = 1
-    InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
-    InfoLabel.TextYAlignment = Enum.TextYAlignment.Top
-    InfoLabel.TextWrapped = true
-    InfoLabel.TextColor3 = Color3.new(1,1,0.6)
-    InfoLabel.Font = Enum.Font.Code
-    InfoLabel.TextSize = 12
-    InfoLabel.Text = table.concat(details,"\n").."\n-----------------------"
-    InfoLabel.Parent = DataLog
-
-    DataLog.CanvasSize = UDim2.new(0,0,0,InfoLabel.TextBounds.Y + 10)
-end
-
--- Hook Remotes
-for _,v in ipairs(RS:GetDescendants()) do
-    if v:IsA("RemoteEvent") then
-        v.OnClientEvent:Connect(function(...)
-            AddLog(v,{...})
-        end)
-    elseif v:IsA("RemoteFunction") then
-        local old; old = hookfunction(v.InvokeClient,function(self,plr,...)
-            AddLog(self,{...})
-            return old(self,plr,...)
-        end)
-    end
-end
 
 -- Rescan
 local function RefreshRemotes()
@@ -280,7 +233,56 @@ local function RefreshRemotes()
                 y += 30
 
                 Btn.MouseButton1Click:Connect(function()
-                    ShowRemoteDetails(v)
+                    ScanPage.Visible = false
+                    DataPage.Visible = true
+                    CurrentRemote = v
+                    CurrentLogs = {}
+                    DataLog:ClearAllChildren()
+                    DataLog.CanvasSize = UDim2.new(0,0,0,0)
+
+                    for _,c in ipairs(Connections) do c:Disconnect() end
+                    table.clear(Connections)
+
+                    -- tampil detail property
+                    local details = {
+                        "Name: "..v.Name,
+                        "Class: "..v.ClassName,
+                        "Path: "..v:GetFullName(),
+                        "",
+                        "Properties:"
+                    }
+                    for _,prop in ipairs({"Archivable","Name","ClassName"}) do
+                        local ok,res = pcall(function() return tostring(v[prop]) end)
+                        if ok then
+                            table.insert(details,"  "..prop..": "..res)
+                        end
+                    end
+
+                    local InfoLabel = Instance.new("TextLabel")
+                    InfoLabel.Size = UDim2.new(1,-10,0,0)
+                    InfoLabel.AutomaticSize = Enum.AutomaticSize.Y
+                    InfoLabel.BackgroundTransparency = 1
+                    InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+                    InfoLabel.TextYAlignment = Enum.TextYAlignment.Top
+                    InfoLabel.TextWrapped = true
+                    InfoLabel.TextColor3 = Color3.new(1,1,0.6)
+                    InfoLabel.Font = Enum.Font.Code
+                    InfoLabel.TextSize = 12
+                    InfoLabel.Text = table.concat(details,"\n").."\n-----------------------"
+                    InfoLabel.Parent = DataLog
+                    DataLog.CanvasSize = UDim2.new(0,0,0,InfoLabel.TextBounds.Y + 10)
+
+                    -- Hook log khusus remote ini
+                    if v:IsA("RemoteEvent") then
+                        table.insert(Connections, v.OnClientEvent:Connect(function(...)
+                            AddLog(v,{...})
+                        end))
+                    elseif v:IsA("RemoteFunction") then
+                        local old; old = hookfunction(v.InvokeClient,function(self,plr,...)
+                            AddLog(self,{...})
+                            return old(self,plr,...)
+                        end)
+                    end
                 end)
             end
         end
