@@ -1,155 +1,101 @@
---[[ 
-  Remote Explorer (FINAL)
-  - Manual Rescan
-  - Realtime hook FireServer/InvokeServer (outgoing) + OnClientEvent (incoming on rescan)
-  - List + Search
-  - Klik remote => tab Data menampilkan argumen terakhir (readable)
-  - Copy / Clear / Back / Minimize / Close
-  - Safe: semua proses lokal; tidak kirim apapun ke server
---]]
+-- Remote Explorer (Crash-Fix Final)
 
 ------------------------
--- Services & Helpers --
+-- Services & helpers --
 ------------------------
 local Players = game:GetService("Players")
 local RS      = game:GetService("ReplicatedStorage")
 local LP      = Players.LocalPlayer
 
-local function safe(t, f, ...)
-    local ok, res = pcall(f, ...)
-    if ok then return res end
-    return t
-end
-
--- readable decode (tanpa JSON)
 local function pretty(v, depth)
-    depth = depth or 0
+    depth = (depth or 0)
     if depth > 3 then return "<max depth>" end
-    local ty = typeof(v)
-    if ty == "string" then
-        return '"'..v..'"'
-    elseif ty == "number" or ty == "boolean" then
-        return tostring(v)
-    elseif ty == "Instance" then
-        return v:GetFullName()
-    elseif ty == "Vector3" then
-        return string.format("Vector3(%s, %s, %s)", tostring(v.X), tostring(v.Y), tostring(v.Z))
-    elseif ty == "CFrame" then
-        return "CFrame("..table.concat({v:GetComponents()}, ", ")..")"
-    elseif ty == "table" then
-        -- Tabel kecil → kunci penting
-        local parts = {}
-        local count = 0
+    local t = typeof(v)
+    if t == "string" then return '"'..v..'"'
+    elseif t == "number" or t == "boolean" then return tostring(v)
+    elseif t == "Instance" then return v:GetFullName()
+    elseif t == "Vector3" then return ("Vector3(%s,%s,%s)"):format(v.X,v.Y,v.Z)
+    elseif t == "CFrame" then return "CFrame("..table.concat({v:GetComponents()}, ", ")..")"
+    elseif t == "table" then
+        local parts, n = {}, 0
         for k,val in pairs(v) do
-            count += 1
-            if count > 25 then
-                table.insert(parts, "  ...")
-                break
-            end
-            local key = "["..tostring(k).."]"
-            table.insert(parts, string.format("  %s = %s", key, pretty(val, depth+1)))
+            n += 1; if n>25 then table.insert(parts,"  ..."); break end
+            table.insert(parts, ("  [%s] = %s"):format(tostring(k), pretty(val, depth+1)))
         end
-        if #parts == 0 then return "{}" end
-        return "{\n"..table.concat(parts, "\n").."\n}"
+        return (#parts==0) and "{}" or "{\n"..table.concat(parts,"\n").."\n}"
     else
         return tostring(v)
     end
 end
 
--- ringkas extra info jika terdeteksi pola umum
 local function summarizeArgs(args)
-    -- args: array
     local lines = {}
-    -- heuristik sederhana
-    local function pick(tbl, keyList)
-        for _,k in ipairs(keyList) do
-            if type(tbl)=="table" and tbl[k] ~= nil then return k, tbl[k] end
-        end
-        return nil, nil
-    end
-    -- kalau arg pertama table & punya field umum
     if typeof(args[1])=="table" then
-        local t = args[1]
-        local kv = {}
-        local keys = {"id","Id","ID","name","Name","type","Type","amount","Amount","qty","Qty","quantity","Quantity","stock","Stock","price","Price","rarity","Rarity","egg","Egg","item","Item","gear","Gear"}
-        for _,k in ipairs(keys) do
-            if t[k] ~= nil then table.insert(kv, k..": "..pretty(t[k])) end
-        end
-        if #kv>0 then table.insert(lines, "Summary: "..table.concat(kv, ", ")) end
+        local t=args[1]; local wanted={"id","Id","ID","name","Name","type","Type","amount","Amount","qty","Qty","quantity","Quantity","stock","Stock","price","Price","rarity","Rarity","egg","Egg","item","Item","gear","Gear"}
+        local kv={}
+        for _,k in ipairs(wanted) do if t[k]~=nil then table.insert(kv,k..": "..pretty(t[k])) end end
+        if #kv>0 then table.insert(lines,"Summary: "..table.concat(kv,", ")) end
     end
-    -- jika argumen string/numeric sederhana
-    do
-        local kv = {}
-        for i,a in ipairs(args) do
-            if type(a)=="string" or type(a)=="number" then
-                table.insert(kv, "["..i.."]="..pretty(a))
-            end
-        end
-        if #kv>0 then table.insert(lines, "ArgsQuick: "..table.concat(kv, ", ")) end
+    local quick={}
+    for i,a in ipairs(args) do
+        if type(a)=="string" or type(a)=="number" then table.insert(quick, "["..i.."]="..pretty(a)) end
     end
-    return table.concat(lines, "\n")
+    if #quick>0 then table.insert(lines,"ArgsQuick: "..table.concat(quick,", ")) end
+    return table.concat(lines,"\n")
 end
 
 -----------------
--- Data Store  --
+-- Data store  --
 -----------------
--- index per remote fullname
-local RemoteIndex = {}  -- fullname -> {instance=Remote, class="RemoteEvent/Function", calls={{dir="→/←", method="FireServer/InvokeServer/OnClientEvent", args={...}, t=os.clock()}}}
-
-local function ensureRemote(recInstance)
-    local fn = recInstance:GetFullName()
-    local rec = RemoteIndex[fn]
-    if not rec then
-        rec = { instance = recInstance, class = recInstance.ClassName, calls = {} }
-        RemoteIndex[fn] = rec
-    end
-    return rec
+local RemoteIndex = {}  -- fullname -> {instance, class, calls = { {dir,method,args,t} ... } }
+local function ensureRemote(r)
+    local fn=r:GetFullName()
+    RemoteIndex[fn]=RemoteIndex[fn] or {instance=r,class=r.ClassName,calls={}}
+    return RemoteIndex[fn], fn
+end
+local function pushCall(r, dir, method, args)
+    local rec = ensureRemote(r)
+    table.insert(rec.calls, {dir=dir, method=method, args=table.pack(table.unpack(args)), t=os.clock()})
 end
 
-local function pushCall(remote, dir, method, args)
-    local rec = ensureRemote(remote)
-    table.insert(rec.calls, { dir = dir, method = method, args = table.pack(table.unpack(args)), t = os.clock() })
-end
+-------------------------
+-- Safe client hooking --
+-------------------------
+local oldNamecall
+local canHook = typeof(hookmetamethod)=="function" and typeof(checkcaller)=="function"
 
------------------------
--- Hook (client side) --
------------------------
-do
-    local mt = getrawmetatable(game)
-    if mt and setreadonly then
-        setreadonly(mt, false)
-        local oldNamecall = mt.__namecall
-        mt.__namecall = newcclosure(function(self, ...)
-            local m = getnamecallmethod()
+if canHook then
+    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local m = getnamecallmethod and getnamecallmethod() or ""
+        if not checkcaller() then
             if (self and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))) and (m=="FireServer" or m=="InvokeServer") then
-                pushCall(self, "→", m, {...})
+                -- catat panggilan keluar
+                pcall(function() pushCall(self, "→", m, {...}) end)
             end
-            return oldNamecall(self, ...)
-        end)
-        setreadonly(mt, true)
-    end
+        end
+        return oldNamecall(self, ...)
+    end)
 end
 
--- OnClientEvent listener akan dipasang saat Rescan agar ringan
-local clientConnections = {} -- fullname -> RBXScriptConnection
-
+-- OnClientEvent listener dipasang saat rescan (biar ringan)
+local clientConns = {} -- fn -> connection
 local function connectClientEvent(rv)
     if not rv:IsA("RemoteEvent") then return end
     local fn = rv:GetFullName()
-    if clientConnections[fn] then return end
-    local conn = rv.OnClientEvent:Connect(function(...)
+    if clientConns[fn] then return end
+    clientConns[fn] = rv.OnClientEvent:Connect(function(...)
         pushCall(rv, "←", "OnClientEvent", {...})
     end)
-    clientConnections[fn] = conn
 end
 
 ----------------
--- GUI Build  --
+-- GUI build  --
 ----------------
+local parent = (gethui and gethui()) or game:FindFirstChildOfClass("CoreGui") or LP:WaitForChild("PlayerGui")
 local SG = Instance.new("ScreenGui")
 SG.Name = "RemoteExplorer_UI"
 SG.ResetOnSpawn = false
-SG.Parent = gethui and gethui() or game.CoreGui
+SG.Parent = parent
 
 local Main = Instance.new("Frame", SG)
 Main.Size = UDim2.fromOffset(820, 460)
@@ -172,16 +118,12 @@ Header.TextColor3 = Color3.fromRGB(255,255,255)
 local BtnMin = Instance.new("TextButton", Main)
 BtnMin.Size = UDim2.fromOffset(40,36)
 BtnMin.Position = UDim2.new(1,-90,0,0)
-BtnMin.Text = "-"
-BtnMin.BackgroundColor3 = Color3.fromRGB(55,55,55)
-BtnMin.TextColor3 = Color3.fromRGB(255,255,255)
+BtnMin.Text, BtnMin.BackgroundColor3, BtnMin.TextColor3 = "-", Color3.fromRGB(55,55,55), Color3.fromRGB(255,255,255)
 
 local BtnClose = Instance.new("TextButton", Main)
 BtnClose.Size = UDim2.fromOffset(50,36)
 BtnClose.Position = UDim2.new(1,-50,0,0)
-BtnClose.Text = "X"
-BtnClose.BackgroundColor3 = Color3.fromRGB(90,40,40)
-BtnClose.TextColor3 = Color3.fromRGB(255,255,255)
+BtnClose.Text, BtnClose.BackgroundColor3, BtnClose.TextColor3 = "X", Color3.fromRGB(90,40,40), Color3.fromRGB(255,255,255)
 
 local Tabs = Instance.new("Frame", Main)
 Tabs.Size = UDim2.new(1,0,0,32)
@@ -203,11 +145,10 @@ TabDataBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
 TabDataBtn.TextColor3 = Color3.fromRGB(220,220,220)
 
 local Body = Instance.new("Frame", Main)
-Body.Size = UDim2.new(1, -0, 1, -68)
+Body.Size = UDim2.new(1,0,1,-68)
 Body.Position = UDim2.new(0,0,0,68)
 Body.BackgroundTransparency = 1
 
--- pages
 local PageRescan = Instance.new("Frame", Body)
 PageRescan.Size = UDim2.fromScale(1,1)
 PageRescan.BackgroundTransparency = 1
@@ -234,7 +175,6 @@ List.CanvasSize = UDim2.new()
 List.ScrollBarThickness = 6
 List.BackgroundColor3 = Color3.fromRGB(30,30,30)
 List.BorderSizePixel = 0
-
 local UIList = Instance.new("UIListLayout", List)
 UIList.Padding = UDim.new(0,6)
 UIList.SortOrder = Enum.SortOrder.LayoutOrder
@@ -250,36 +190,39 @@ BtnRescan.Text = "Rescan"
 BtnRescan.BackgroundColor3 = Color3.fromRGB(64,64,64)
 BtnRescan.TextColor3 = Color3.new(1,1,1)
 
-local BtnClearAll = Instance.new("TextButton", FooterRes)
-BtnClearAll.Size = UDim2.new(0,120,1,0)
-BtnClearAll.Position = UDim2.new(0,130,0,0)
-BtnClearAll.Text = "Clear"
-BtnClearAll.BackgroundColor3 = Color3.fromRGB(80,55,55)
-BtnClearAll.TextColor3 = Color3.new(1,1,1)
-
 local BtnCopyList = Instance.new("TextButton", FooterRes)
 BtnCopyList.Size = UDim2.new(0,120,1,0)
-BtnCopyList.Position = UDim2.new(0,260,0,0)
+BtnCopyList.Position = UDim2.new(0,130,0,0)
 BtnCopyList.Text = "Copy All"
 BtnCopyList.BackgroundColor3 = Color3.fromRGB(55,80,55)
 BtnCopyList.TextColor3 = Color3.new(1,1,1)
+
+local BtnClearAll = Instance.new("TextButton", FooterRes)
+BtnClearAll.Size = UDim2.new(0,120,1,0)
+BtnClearAll.Position = UDim2.new(0,260,0,0)
+BtnClearAll.Text = "Clear"
+BtnClearAll.BackgroundColor3 = Color3.fromRGB(80,55,55)
+BtnClearAll.TextColor3 = Color3.new(1,1,1)
 
 -- Data UI
 local BarData = Instance.new("Frame", PageData)
 BarData.Size = UDim2.new(1,-20,0,30)
 BarData.Position = UDim2.new(0,10,0,10)
 BarData.BackgroundColor3 = Color3.fromRGB(35,35,35)
+
 local BtnBack = Instance.new("TextButton", BarData)
 BtnBack.Size = UDim2.new(0,120,1,0)
 BtnBack.Text = "< Back"
 BtnBack.BackgroundColor3 = Color3.fromRGB(64,64,64)
 BtnBack.TextColor3 = Color3.new(1,1,1)
+
 local BtnCopyData = Instance.new("TextButton", BarData)
 BtnCopyData.Size = UDim2.new(0,120,1,0)
 BtnCopyData.Position = UDim2.new(0,130,0,0)
 BtnCopyData.Text = "Copy"
 BtnCopyData.BackgroundColor3 = Color3.fromRGB(55,80,55)
 BtnCopyData.TextColor3 = Color3.new(1,1,1)
+
 local BtnClearData = Instance.new("TextButton", BarData)
 BtnClearData.Size = UDim2.new(0,120,1,0)
 BtnClearData.Position = UDim2.new(0,260,0,0)
@@ -307,32 +250,14 @@ local UILData = Instance.new("UIListLayout", DataScroll)
 UILData.Padding = UDim.new(0,6)
 UILData.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Min/Close
-local minimized = false
-BtnMin.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    if minimized then
-        Body.Visible = false
-        Tabs.Visible = false
-        Main.Size = UDim2.fromOffset(260, 36)
-    else
-        Body.Visible = true
-        Tabs.Visible = true
-        Main.Size = UDim2.fromOffset(820, 460)
-    end
-end)
-BtnClose.MouseButton1Click:Connect(function() SG:Destroy() end)
-
--- Tab switching
+-- Tab handlers
 local function showRescan()
-    PageRescan.Visible = true
-    PageData.Visible = false
+    PageRescan.Visible, PageData.Visible = true, false
     TabResBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
     TabDataBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
 end
 local function showData()
-    PageRescan.Visible = false
-    PageData.Visible = true
+    PageRescan.Visible, PageData.Visible = false, true
     TabResBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
     TabDataBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
 end
@@ -340,14 +265,74 @@ TabResBtn.MouseButton1Click:Connect(showRescan)
 TabDataBtn.MouseButton1Click:Connect(showData)
 BtnBack.MouseButton1Click:Connect(showRescan)
 
+BtnMin.MouseButton1Click:Connect(function()
+    local mini = (Body.Visible == true)
+    Body.Visible = not mini
+    Tabs.Visible = not mini
+    Main.Size = mini and UDim2.fromOffset(260,36) or UDim2.fromOffset(820,460)
+end)
+BtnClose.MouseButton1Click:Connect(function()
+    for _,c in pairs(clientConns) do pcall(function() c:Disconnect() end) end
+    SG:Destroy()
+end)
+
 ---------------------
--- List Rendering  --
+-- List rendering  --
 ---------------------
 local currentSelectedFN = nil
 
-local function makeRemoteButton(fn, class)
+local function renderData(fn)
+    currentSelectedFN = fn
+    local rec = RemoteIndex[fn]
+    DataTitle.Text = "["..(rec and rec.class or "?").."] "..fn
+    -- clear
+    for _,c in ipairs(DataScroll:GetChildren()) do
+        if c:IsA("TextLabel") then c:Destroy() end
+    end
+    if not rec or #rec.calls==0 then
+        local t = Instance.new("TextLabel", DataScroll)
+        t.Size = UDim2.new(1,-10,0,0)
+        t.AutomaticSize = Enum.AutomaticSize.Y
+        t.BackgroundTransparency = 1
+        t.TextXAlignment = Enum.TextXAlignment.Left
+        t.TextYAlignment = Enum.TextYAlignment.Top
+        t.Font = Enum.Font.Code
+        t.TextSize = 14
+        t.TextColor3 = Color3.fromRGB(220,220,220)
+        t.TextWrapped = true
+        t.Text = "Belum ada panggilan/args yang tertangkap."
+        return
+    end
+
+    local start = math.max(1, #rec.calls-39)
+    for i=start,#rec.calls do
+        local call = rec.calls[i]
+        local header = string.format("%s %s", call.dir, call.method)
+        local lines = {header, "Args:"}
+        for ai,arg in ipairs(call.args) do
+            table.insert(lines, string.format("  [%d] = %s", ai, pretty(arg)))
+        end
+        local sum = summarizeArgs(call.args)
+        if #sum>0 then table.insert(lines, "-----"); table.insert(lines, sum) end
+        table.insert(lines, "------------------------------")
+
+        local lbl = Instance.new("TextLabel", DataScroll)
+        lbl.Size = UDim2.new(1,-10,0,0)
+        lbl.AutomaticSize = Enum.AutomaticSize.Y
+        lbl.BackgroundTransparency = 1
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.TextYAlignment = Enum.TextYAlignment.Top
+        lbl.Font = Enum.Font.Code
+        lbl.TextSize = 14
+        lbl.TextColor3 = Color3.fromRGB(235,235,235)
+        lbl.TextWrapped = true
+        lbl.Text = table.concat(lines, "\n")
+    end
+end
+
+local function makeRow(fn, class)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -6, 0, 32)
+    b.Size = UDim2.new(1,-6,0,32)
     b.BackgroundColor3 = Color3.fromRGB(50,50,50)
     b.TextColor3 = Color3.fromRGB(235,235,235)
     b.Font = Enum.Font.Code
@@ -356,78 +341,20 @@ local function makeRemoteButton(fn, class)
     b.Text = fn
     b.AutoButtonColor = true
     b.MouseButton1Click:Connect(function()
-        currentSelectedFN = fn
         showData()
-        -- render data
-        DataTitle.Text = "["..class.."] "..fn
-        for _,c in ipairs(DataScroll:GetChildren()) do
-            if c:IsA("TextLabel") then c:Destroy() end
-        end
-        local rec = RemoteIndex[fn]
-        if not rec or #rec.calls==0 then
-            local t = Instance.new("TextLabel", DataScroll)
-            t.Size = UDim2.new(1,-10, 0, 22)
-            t.BackgroundTransparency = 1
-            t.TextXAlignment = Enum.TextXAlignment.Left
-            t.TextYAlignment = Enum.TextYAlignment.Top
-            t.Font = Enum.Font.Code
-            t.TextSize = 14
-            t.TextColor3 = Color3.fromRGB(220,220,220)
-            t.TextWrapped = true
-            t.Text = "Belum ada panggilan/args yang tertangkap."
-            return
-        end
-
-        -- Tampilkan hanya 40 call terakhir biar ringan
-        local start = math.max(1, #rec.calls-39)
-        for i=start, #rec.calls do
-            local call = rec.calls[i]
-            local header = string.format("%s %s  (%s)", call.dir, call.method, os.date("!%H:%M:%S", math.floor(call.t%86400)))
-            -- susun teks
-            local lines = {header, "Args:"}
-            for ai,arg in ipairs(call.args) do
-                table.insert(lines, string.format("  [%d] = %s", ai, pretty(arg)))
-            end
-            local sum = summarizeArgs(call.args)
-            if #sum>0 then
-                table.insert(lines, "-----")
-                table.insert(lines, sum)
-            end
-            table.insert(lines, "------------------------------")
-
-            local lbl = Instance.new("TextLabel", DataScroll)
-            lbl.Size = UDim2.new(1,-10, 0, 0)
-            lbl.AutomaticSize = Enum.AutomaticSize.Y
-            lbl.BackgroundTransparency = 1
-            lbl.TextXAlignment = Enum.TextXAlignment.Left
-            lbl.TextYAlignment = Enum.TextYAlignment.Top
-            lbl.Font = Enum.Font.Code
-            lbl.TextSize = 14
-            lbl.TextColor3 = Color3.fromRGB(235,235,235)
-            lbl.TextWrapped = true
-            lbl.Text = table.concat(lines, "\n")
-        end
+        renderData(fn)
     end)
     return b
 end
 
 local function refreshList()
     List:ClearAllChildren()
-    -- kumpulkan semua remote yang kita ketahui:
-    local items = {}
-    for fn, rec in pairs(RemoteIndex) do
-        table.insert(items, {fn=fn, class=rec.class})
-    end
-    -- tambahkan dari RS untuk jaga2 jika belum pernah terpanggil
+    -- pastikan RS remotes terindeks
     for _,v in ipairs(RS:GetDescendants()) do
         if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-            local fn = v:GetFullName()
-            if not RemoteIndex[fn] then
-                RemoteIndex[fn] = {instance=v, class=v.ClassName, calls={}}
-            end
+            ensureRemote(v)
         end
     end
-    -- filter + sort
     local q = string.lower(SearchBox.Text)
     local arr = {}
     for fn, rec in pairs(RemoteIndex) do
@@ -436,37 +363,28 @@ local function refreshList()
         end
     end
     table.sort(arr, function(a,b) return a.fn < b.fn end)
-    for _,it in ipairs(arr) do
-        makeRemoteButton(it.fn, it.class).Parent = List
-    end
-    -- canvas auto
+    for _,it in ipairs(arr) do makeRow(it.fn, it.class).Parent = List end
     List.CanvasSize = UDim2.new(0,0,0, UIList.AbsoluteContentSize.Y + 10)
 end
 
 SearchBox:GetPropertyChangedSignal("Text"):Connect(refreshList)
 
-BtnRescan.MouseButton1Click:Connect(function()
-    -- pasang OnClientEvent untuk setiap RemoteEvent di RS
+----------------
+-- Buttons    --
+----------------
+local function doRescan()
+    -- pasang listener client event
     for _,v in ipairs(RS:GetDescendants()) do
-        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-            ensureRemote(v)
+        if v:IsA("RemoteEvent") then
             connectClientEvent(v)
+        elseif v:IsA("RemoteFunction") then
+            ensureRemote(v)
         end
     end
     refreshList()
-end)
+end
 
-BtnClearAll.MouseButton1Click:Connect(function()
-    -- kosongkan semua call tapi pertahankan daftar
-    for _,rec in pairs(RemoteIndex) do
-        rec.calls = {}
-    end
-    if currentSelectedFN then
-        -- refresh panel data kalau sedang dibuka
-        TabDataBtn:Fire("MouseButton1Click") -- no-op, just to keep style
-    end
-end)
-
+BtnRescan.MouseButton1Click:Connect(doRescan)
 BtnCopyList.MouseButton1Click:Connect(function()
     if not setclipboard then return end
     local out = {}
@@ -474,13 +392,16 @@ BtnCopyList.MouseButton1Click:Connect(function()
     table.sort(out)
     setclipboard(table.concat(out, "\n"))
 end)
+BtnClearAll.MouseButton1Click:Connect(function()
+    for _,rec in pairs(RemoteIndex) do rec.calls = {} end
+    if currentSelectedFN then renderData(currentSelectedFN) end
+end)
 
 BtnCopyData.MouseButton1Click:Connect(function()
-    if not setclipboard or not currentSelectedFN then return end
-    local rec = RemoteIndex[currentSelectedFN]
-    if not rec then return end
+    if not (setclipboard and currentSelectedFN) then return end
+    local rec = RemoteIndex[currentSelectedFN]; if not rec then return end
     local out = { "["..rec.class.."] "..currentSelectedFN }
-    for i,call in ipairs(rec.calls) do
+    for _,call in ipairs(rec.calls) do
         table.insert(out, string.format("\n%s %s", call.dir, call.method))
         for ai,arg in ipairs(call.args) do
             table.insert(out, string.format("  [%d] = %s", ai, pretty(arg)))
@@ -491,17 +412,13 @@ BtnCopyData.MouseButton1Click:Connect(function()
     end
     setclipboard(table.concat(out, "\n"))
 end)
-
 BtnClearData.MouseButton1Click:Connect(function()
-    if not currentSelectedFN then return end
-    local rec = RemoteIndex[currentSelectedFN]
-    if rec then rec.calls = {} end
-    -- kosongkan tampilan
-    for _,c in ipairs(DataScroll:GetChildren()) do
-        if c:IsA("TextLabel") then c:Destroy() end
+    if currentSelectedFN and RemoteIndex[currentSelectedFN] then
+        RemoteIndex[currentSelectedFN].calls = {}
+        renderData(currentSelectedFN)
     end
 end)
 
--- awal: rescan manual agar list langsung ada
-BtnRescan:Fire("MouseButton1Click")
+-- start
 showRescan()
+doRescan()
