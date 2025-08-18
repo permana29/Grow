@@ -1,536 +1,479 @@
--- 📌 Remote Explorer (Final Stable + Sniff Code)
--- - Layout sama seperti final kamu (Rescan, Data)
--- - Tambahan tab "Sniff Code" (realtime, wrap, copy/clear)
--- - Sniff outbound FireServer/InvokeServer + inbound OnClientEvent/InvokeClient
--- - Filter sniff berdasarkan remote yang sedang dipilih
+-- 📌 Remote Explorer + SimpleSpy-Style Sniffer (Final Hybrid)
+-- Tabs: Rescan | Data | Sniffer
+-- Rescan manual + search; Data = detail remote; Sniffer = realtime code lines
+-- Local-only, teks wrap, Copy/Clear OK, filter All/Selected
 
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 
-local player = Players.LocalPlayer
+local localPlayer = Players.LocalPlayer
 
--- ========== Helpers ==========
-
-local function safeDecode(data, depth)
-	depth = depth or 0
-	if depth > 3 then return "<Max Depth>" end
-
-	local t = typeof(data)
-	if t == "string" then
-		return '"'..data..'"'
-	elseif t == "number" or t == "boolean" then
-		return tostring(data)
-	elseif t == "Instance" then
-		return data:GetFullName()
-	elseif t == "table" then
-		local ok, json = pcall(function()
-			return HttpService:JSONEncode(data)
-		end)
-		if ok then return json else return "<Table>" end
-	else
-		return tostring(data)
-	end
+-- =========================
+-- Helpers (string & encode)
+-- =========================
+local function escapeStr(s)
+    s = s:gsub("\\","\\\\"):gsub("\n","\\n"):gsub("\t","\\t"):gsub("\r","\\r"):gsub("\"","\\\"")
+    return '"'..s..'"'
 end
 
--- Convert data to Lua literal (for code gen). Keep it readable & safe.
-local function toLua(val, depth)
-	depth = depth or 0
-	if depth > 3 then return '"<max depth>"' end
-	local t = typeof(val)
-
-	if t == "string" then
-		return string.format("%q", val)
-	elseif t == "number" or t == "boolean" or t == "nil" then
-		return tostring(val)
-	elseif t == "Instance" then
-		-- Represent instance as a path comment + string
-		local path = val:GetFullName()
-		return string.format("--[[Instance: %s]] %q", path, path)
-	elseif t == "table" then
-		local items, count = {}, 0
-		for k,v in pairs(val) do
-			count += 1
-			local key
-			if typeof(k) == "string" and k:match("^[_%a][_%w]*$") then
-				key = k .. " = "
-			else
-				key = "["..toLua(k, depth+1).."] = "
-			end
-			table.insert(items, key..toLua(v, depth+1))
-			if count >= 10 then
-				table.insert(items, "--[[ ...more ]]")
-				break
-			end
-		end
-		return "{ "..table.concat(items, ", ").." }"
-	else
-		-- fallback readable
-		local ok, enc = pcall(function() return HttpService:JSONEncode(val) end)
-		if ok then
-			return "--[[json]] "..string.format("%q", enc)
-		end
-		return string.format("%q", tostring(val))
-	end
+local function shortInstance(inst)
+    local ok, path = pcall(function() return inst:GetFullName() end)
+    return ok and ("<Instance:"..path..">") or "<Instance>"
 end
 
-local function getServicePath(inst)
-	-- make path like: game:GetService("ReplicatedStorage").A.B.C
-	if not inst or not inst.Parent then
-		return "nil"
-	end
-	local segments = {}
-	local cursor = inst
-	while cursor and cursor ~= game do
-		table.insert(segments, 1, cursor.Name)
-		cursor = cursor.Parent
-	end
-	local root
-	if inst:IsDescendantOf(RS) then
-		root = 'game:GetService("ReplicatedStorage")'
-	elseif inst:IsDescendantOf(workspace) then
-		root = "workspace"
-	elseif inst:IsDescendantOf(game:GetService("StarterGui")) then
-		root = 'game:GetService("StarterGui")'
-	else
-		-- generic
-		root = "game"
-	end
-	-- Find common root node to trim duplicate name when using RS/workspace
-	local full = root
-	if root == 'game:GetService("ReplicatedStorage")' then
-		-- drop leading "ReplicatedStorage" from segments if present
-		if segments[1] == "ReplicatedStorage" then
-			table.remove(segments, 1)
-		end
-	elseif root == "workspace" then
-		if segments[1] == "Workspace" or segments[1] == "workspace" then
-			table.remove(segments, 1)
-		end
-	end
-	for _,s in ipairs(segments) do
-		-- if name has special chars, indexer style
-		if s:match("^[_%a][_%w]*$") then
-			full = full.."."..s
-		else
-			full = full..'["'..s..'"]'
-		end
-	end
-	return full
+-- Convert value -> Lua-ish literal (no JSON)
+local function toLiteral(v, depth)
+    depth = depth or 0
+    if depth > 3 then return "<DepthLimit>" end
+    local t = typeof(v)
+    if t == "string" then
+        return escapeStr(v)
+    elseif t == "number" or t == "boolean" then
+        return tostring(v)
+    elseif t == "nil" then
+        return "nil"
+    elseif t == "Instance" then
+        return escapeStr((pcall(function() return v:GetFullName() end) and v:GetFullName()) or tostring(v))
+    elseif t == "table" then
+        -- try pretty inline table
+        local parts, count = {}, 0
+        local isArray = true
+        local idx = 1
+        for k,_ in pairs(v) do
+            if k ~= idx then isArray = false end
+            idx += 1
+        end
+        for k,val in pairs(v) do
+            count += 1
+            if count > 15 then
+                table.insert(parts, "...") ; break
+            end
+            local vv = toLiteral(val, depth+1)
+            if isArray then
+                table.insert(parts, vv)
+            else
+                local keyT = typeof(k)
+                local key
+                if keyT == "string" and k:match("^[%a_][%w_]*$") then
+                    key = k
+                else
+                    key = "["..toLiteral(k, depth+1).."]"
+                end
+                table.insert(parts, key.." = "..vv)
+            end
+        end
+        return "{ "..table.concat(parts, ", ").." }"
+    else
+        -- last resort: tostring
+        return escapeStr(tostring(v))
+    end
 end
 
--- ========== GUI Builder (layout sama) ==========
+local function pathOf(inst)
+    local ok, s = pcall(function() return inst:GetFullName() end)
+    return ok and s or inst.Name
+end
 
+-- UI text append helper (auto-wrap + grow)
+local function appendLabel(parent, text, color)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1,-10,0,0)
+    lbl.AutomaticSize = Enum.AutomaticSize.Y
+    lbl.BackgroundTransparency = 1
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.TextYAlignment = Enum.TextYAlignment.Top
+    lbl.TextWrapped = true
+    lbl.TextColor3 = color or Color3.new(1,1,1)
+    lbl.Font = Enum.Font.Code
+    lbl.TextSize = 12
+    lbl.Text = text
+    lbl.Parent = parent
+    parent.CanvasSize = UDim2.new(0,0,0,parent.CanvasSize.Y.Offset + lbl.TextBounds.Y + 8)
+    return lbl
+end
+
+-- ===============
+-- GUI CONSTRUCTOR
+-- ===============
 local function CreateWindow(title)
-	local ScreenGui = Instance.new("ScreenGui")
-	ScreenGui.Name = "RemoteExplorerUI"
-	ScreenGui.ResetOnSpawn = false
-	ScreenGui.Parent = game.CoreGui
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Name = "RemoteExplorerHybrid"
+    ScreenGui.Parent = game:GetService("CoreGui")
 
-	local Main = Instance.new("Frame")
-	Main.Size = UDim2.new(0, 500, 0, 360) -- sedikit lebih tinggi untuk tab tambahan
-	Main.Position = UDim2.new(0.25, 0, 0.22, 0)
-	Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
-	Main.BorderSizePixel = 0
-	Main.Active = true
-	Main.Draggable = true
-	Main.Parent = ScreenGui
+    local Main = Instance.new("Frame")
+    Main.Size = UDim2.new(0, 500, 0, 360)
+    Main.Position = UDim2.new(0.25, 0, 0.22, 0)
+    Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    Main.Active = true
+    Main.Draggable = true
+    Main.Parent = ScreenGui
 
-	local Header = Instance.new("TextLabel")
-	Header.Size = UDim2.new(1, -80, 0, 30)
-	Header.BackgroundColor3 = Color3.fromRGB(35,35,35)
-	Header.Text = title
-	Header.TextColor3 = Color3.fromRGB(255,255,255)
-	Header.Font = Enum.Font.GothamBold
-	Header.TextSize = 14
-	Header.TextXAlignment = Enum.TextXAlignment.Left
-	Header.BorderSizePixel = 0
-	Header.Parent = Main
+    local Header = Instance.new("TextLabel")
+    Header.Size = UDim2.new(1,-80,0,30)
+    Header.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    Header.Text = title
+    Header.TextColor3 = Color3.new(1,1,1)
+    Header.Font = Enum.Font.GothamBold
+    Header.TextSize = 14
+    Header.TextXAlignment = Enum.TextXAlignment.Left
+    Header.Parent = Main
 
-	local TabBar = Instance.new("Frame")
-	TabBar.Size = UDim2.new(1, 0, 0, 25)
-	TabBar.Position = UDim2.new(0,0,0,30)
-	TabBar.BackgroundColor3 = Color3.fromRGB(30,30,30)
-	TabBar.BorderSizePixel = 0
-	TabBar.Parent = Main
+    local Minimize = Instance.new("TextButton")
+    Minimize.Size = UDim2.new(0,40,0,30)
+    Minimize.Position = UDim2.new(1,-80,0,0)
+    Minimize.Text = "-"
+    Minimize.TextColor3 = Color3.new(1,1,1)
+    Minimize.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    Minimize.Parent = Main
 
-	local Content = Instance.new("Frame")
-	Content.Size = UDim2.new(1,0,1,-55)
-	Content.Position = UDim2.new(0,0,0,55)
-	Content.BackgroundTransparency = 1
-	Content.Parent = Main
+    local Close = Instance.new("TextButton")
+    Close.Size = UDim2.new(0,40,0,30)
+    Close.Position = UDim2.new(1,-40,0,0)
+    Close.Text = "X"
+    Close.TextColor3 = Color3.new(1,1,1)
+    Close.BackgroundColor3 = Color3.fromRGB(100,50,50)
+    Close.Parent = Main
 
-	local Minimize = Instance.new("TextButton")
-	Minimize.Size = UDim2.new(0,40,0,30)
-	Minimize.Position = UDim2.new(1,-80,0,0)
-	Minimize.Text = "-"
-	Minimize.TextColor3 = Color3.new(1,1,1)
-	Minimize.BackgroundColor3 = Color3.fromRGB(60,60,60)
-	Minimize.Parent = Main
+    local TabBar = Instance.new("Frame")
+    TabBar.Size = UDim2.new(1, 0, 0, 25)
+    TabBar.Position = UDim2.new(0,0,0,30)
+    TabBar.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    TabBar.Parent = Main
 
-	local Close = Instance.new("TextButton")
-	Close.Size = UDim2.new(0,40,0,30)
-	Close.Position = UDim2.new(1,-40,0,0)
-	Close.Text = "X"
-	Close.TextColor3 = Color3.new(1,1,1)
-	Close.BackgroundColor3 = Color3.fromRGB(100,50,50)
-	Close.Parent = Main
+    local Content = Instance.new("Frame")
+    Content.Size = UDim2.new(1,0,1,-55)
+    Content.Position = UDim2.new(0,0,0,55)
+    Content.BackgroundTransparency = 1
+    Content.Parent = Main
 
-	local Tabs = {}
-	local CurrentTab
+    local Tabs = {}
+    local CurrentTab
 
-	local function AddTab(name)
-		local Button = Instance.new("TextButton")
-		Button.Size = UDim2.new(0,100,1,0)
-		Button.BackgroundColor3 = Color3.fromRGB(50,50,50)
-		Button.Text = name
-		Button.TextColor3 = Color3.new(1,1,1)
-		Button.Font = Enum.Font.Gotham
-		Button.TextSize = 12
-		Button.Parent = TabBar
+    local function AddTab(name)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0,100,1,0)
+        btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+        btn.Text = name
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.Font = Enum.Font.Gotham
+        btn.TextSize = 12
+        btn.Parent = TabBar
 
-		local Page = Instance.new("Frame")
-		Page.Size = UDim2.new(1,0,1,0)
-		Page.BackgroundTransparency = 1
-		Page.Visible = false
-		Page.Parent = Content
+        local page = Instance.new("Frame")
+        page.Size = UDim2.new(1,0,1,0)
+        page.BackgroundTransparency = 1
+        page.Visible = false
+        page.Parent = Content
 
-		Button.MouseButton1Click:Connect(function()
-			if CurrentTab then CurrentTab.Visible = false end
-			Page.Visible = true
-			CurrentTab = Page
-		end)
+        btn.MouseButton1Click:Connect(function()
+            if CurrentTab then CurrentTab.Visible = false end
+            page.Visible = true
+            CurrentTab = page
+        end)
 
-		Tabs[name] = Page
-		if not CurrentTab then
-			CurrentTab = Page
-			Page.Visible = true
-		end
-		return Page, Button
-	end
+        Tabs[name] = page
+        if not CurrentTab then
+            CurrentTab = page
+            page.Visible = true
+        end
+        return page
+    end
 
-	local Minimized = false
-	Minimize.MouseButton1Click:Connect(function()
-		Minimized = not Minimized
-		if Minimized then
-			Content.Visible = false
-			TabBar.Visible = false
-			Main.Size = UDim2.new(0,500,0,30)
-		else
-			Content.Visible = true
-			TabBar.Visible = true
-			Main.Size = UDim2.new(0,500,0,360)
-		end
-	end)
+    local minimized = false
+    Minimize.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        if minimized then
+            Content.Visible = false
+            TabBar.Visible = false
+            Main.Size = UDim2.new(0,500,0,30)
+        else
+            Content.Visible = true
+            TabBar.Visible = true
+            Main.Size = UDim2.new(0,500,0,360)
+        end
+    end)
 
-	Close.MouseButton1Click:Connect(function()
-		ScreenGui:Destroy()
-	end)
+    Close.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
 
-	return AddTab, Tabs, function(tabName)
-		if CurrentTab then CurrentTab.Visible = false end
-		if Tabs[tabName] then
-			Tabs[tabName].Visible = true
-			CurrentTab = Tabs[tabName]
-		end
-	end
+    local function SwitchTab(name)
+        if CurrentTab then CurrentTab.Visible = false end
+        if Tabs[name] then
+            Tabs[name].Visible = true
+            CurrentTab = Tabs[name]
+        end
+    end
+
+    return AddTab, SwitchTab
 end
 
--- ========== Main UI (Rescan, Data, Sniff Code) ==========
-
-local AddTab, Tabs, SwitchTab = CreateWindow("Remote Explorer")
+-- ====================
+-- Build our 3 main tabs
+-- ====================
+local AddTab, SwitchTab = CreateWindow("Remote Explorer")
 
 -- Rescan
 local ScanTab = AddTab("Rescan")
-local Search = Instance.new("TextBox", ScanTab)
+local Search = Instance.new("TextBox")
 Search.Size = UDim2.new(1,-10,0,25)
 Search.Position = UDim2.new(0,5,0,5)
 Search.PlaceholderText = "Search Remote..."
 Search.BackgroundColor3 = Color3.fromRGB(40,40,40)
 Search.TextColor3 = Color3.new(1,1,1)
+Search.Parent = ScanTab
 
-local RemoteList = Instance.new("ScrollingFrame", ScanTab)
+local RemoteList = Instance.new("ScrollingFrame")
 RemoteList.Size = UDim2.new(1,-10,1,-40)
 RemoteList.Position = UDim2.new(0,5,0,35)
 RemoteList.BackgroundTransparency = 1
 RemoteList.ScrollBarThickness = 6
+RemoteList.Parent = ScanTab
 
 -- Data
 local DataTab = AddTab("Data")
-
-local Toolbar = Instance.new("Frame", DataTab)
+local Toolbar = Instance.new("Frame")
 Toolbar.Size = UDim2.new(1,-10,0,25)
 Toolbar.Position = UDim2.new(0,5,0,5)
 Toolbar.BackgroundColor3 = Color3.fromRGB(35,35,35)
+Toolbar.Parent = DataTab
 
-local BackBtn = Instance.new("TextButton", Toolbar)
+local BackBtn = Instance.new("TextButton")
 BackBtn.Size = UDim2.new(0,60,1,0)
 BackBtn.Text = "Back"
 BackBtn.TextColor3 = Color3.new(1,1,1)
 BackBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+BackBtn.Parent = Toolbar
 
-local CopyBtn = Instance.new("TextButton", Toolbar)
+local CopyBtn = Instance.new("TextButton")
 CopyBtn.Size = UDim2.new(0,60,1,0)
 CopyBtn.Position = UDim2.new(0,65,0,0)
 CopyBtn.Text = "Copy"
 CopyBtn.TextColor3 = Color3.new(1,1,1)
 CopyBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+CopyBtn.Parent = Toolbar
 
-local ClearBtn = Instance.new("TextButton", Toolbar)
+local ClearBtn = Instance.new("TextButton")
 ClearBtn.Size = UDim2.new(0,60,1,0)
 ClearBtn.Position = UDim2.new(0,130,0,0)
 ClearBtn.Text = "Clear"
 ClearBtn.TextColor3 = Color3.new(1,1,1)
 ClearBtn.BackgroundColor3 = Color3.fromRGB(70,50,50)
+ClearBtn.Parent = Toolbar
 
-local DataLog = Instance.new("ScrollingFrame", DataTab)
+local DataLog = Instance.new("ScrollingFrame")
 DataLog.Size = UDim2.new(1,-10,1,-40)
 DataLog.Position = UDim2.new(0,5,0,35)
 DataLog.BackgroundTransparency = 1
 DataLog.ScrollBarThickness = 6
+DataLog.Parent = DataTab
 
--- Sniff Code
-local SniffTab = AddTab("Sniff Code")
+-- Sniffer
+local SniffTab = AddTab("Sniffer")
+local SnToolbar = Instance.new("Frame")
+SnToolbar.Size = UDim2.new(1,-10,0,25)
+SnToolbar.Position = UDim2.new(0,5,0,5)
+SnToolbar.BackgroundColor3 = Color3.fromRGB(35,35,35)
+SnToolbar.Parent = SniffTab
 
-local SniffBar = Instance.new("Frame", SniffTab)
-SniffBar.Size = UDim2.new(1,-10,0,25)
-SniffBar.Position = UDim2.new(0,5,0,5)
-SniffBar.BackgroundColor3 = Color3.fromRGB(35,35,35)
+local FollowBtn = Instance.new("TextButton")
+FollowBtn.Size = UDim2.new(0,110,1,0)
+FollowBtn.Text = "Filter: All"
+FollowBtn.TextColor3 = Color3.new(1,1,1)
+FollowBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+FollowBtn.Parent = SnToolbar
 
-local SniffCopy = Instance.new("TextButton", SniffBar)
-SniffCopy.Size = UDim2.new(0,70,1,0)
-SniffCopy.Text = "Copy All"
-SniffCopy.TextColor3 = Color3.new(1,1,1)
-SniffCopy.BackgroundColor3 = Color3.fromRGB(70,70,70)
+local SnCopyBtn = Instance.new("TextButton")
+SnCopyBtn.Size = UDim2.new(0,60,1,0)
+SnCopyBtn.Position = UDim2.new(0,115,0,0)
+SnCopyBtn.Text = "Copy"
+SnCopyBtn.TextColor3 = Color3.new(1,1,1)
+SnCopyBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+SnCopyBtn.Parent = SnToolbar
 
-local SniffClear = Instance.new("TextButton", SniffBar)
-SniffClear.Size = UDim2.new(0,60,1,0)
-SniffClear.Position = UDim2.new(0,75,0,0)
-SniffClear.Text = "Clear"
-SniffClear.TextColor3 = Color3.new(1,1,1)
-SniffClear.BackgroundColor3 = Color3.fromRGB(100,50,50)
+local SnClearBtn = Instance.new("TextButton")
+SnClearBtn.Size = UDim2.new(0,60,1,0)
+SnClearBtn.Position = UDim2.new(0,180,0,0)
+SnClearBtn.Text = "Clear"
+SnClearBtn.TextColor3 = Color3.new(1,1,1)
+SnClearBtn.BackgroundColor3 = Color3.fromRGB(70,50,50)
+SnClearBtn.Parent = SnToolbar
 
-local SniffLog = Instance.new("ScrollingFrame", SniffTab)
+local SniffLog = Instance.new("ScrollingFrame")
 SniffLog.Size = UDim2.new(1,-10,1,-40)
 SniffLog.Position = UDim2.new(0,5,0,35)
 SniffLog.BackgroundTransparency = 1
 SniffLog.ScrollBarThickness = 6
+SniffLog.Parent = SniffTab
 
--- ========== State ==========
-
-local DataLogs = {}
+-- =====================
+-- State & core behaviors
+-- =====================
+local CurrentRemote = nil
+local DataLines = {}
 local SniffLines = {}
-local CurrentRemote -- Remote yang dipilih di Rescan -> Data
+local followSelectedOnly = false
 
--- ========== Data Tab behavior ==========
-
-local function ShowRemote(remote)
-	DataLog:ClearAllChildren()
-	DataLogs = {}
-
-	local lines = {}
-	table.insert(lines, "Name: "..remote.Name)
-	table.insert(lines, "Class: "..remote.ClassName)
-	table.insert(lines, "Path: "..remote:GetFullName())
-	table.insert(lines, "")
-	table.insert(lines, "Properties:")
-
-	for _,prop in ipairs({"Archivable","Name","ClassName","Parent"}) do
-		local ok,val = pcall(function() return tostring(remote[prop]) end)
-		if ok then
-			table.insert(lines, "  "..prop..": "..val)
-		end
-	end
-
-	local text = table.concat(lines, "\n")
-	table.insert(DataLogs, text)
-
-	local Label = Instance.new("TextLabel")
-	Label.Size = UDim2.new(1,-10,0,0)
-	Label.AutomaticSize = Enum.AutomaticSize.Y
-	Label.BackgroundTransparency = 1
-	Label.TextXAlignment = Enum.TextXAlignment.Left
-	Label.TextYAlignment = Enum.TextYAlignment.Top
-	Label.TextWrapped = true
-	Label.TextColor3 = Color3.new(1,1,1)
-	Label.Font = Enum.Font.Code
-	Label.TextSize = 12
-	Label.Text = text
-	Label.Parent = DataLog
-
-	DataLog.CanvasSize = UDim2.new(0,0,0,Label.TextBounds.Y + 10)
+local function setClipboardSafe(text)
+    if typeof(setclipboard) == "function" then
+        pcall(function() setclipboard(text) end)
+    end
 end
 
+local function showRemote(remote)
+    DataLog:ClearAllChildren()
+    DataLog.CanvasSize = UDim2.new(0,0,0,0)
+    DataLines = {}
+    CurrentRemote = remote
+
+    local lines = {}
+    table.insert(lines, "Name: "..remote.Name)
+    table.insert(lines, "Class: "..remote.ClassName)
+    table.insert(lines, "Path: "..pathOf(remote))
+    table.insert(lines, "")
+    table.insert(lines, "Properties:")
+    for _,prop in ipairs({"Archivable","Name","ClassName","Parent"}) do
+        local ok,val = pcall(function() return tostring(remote[prop]) end)
+        if ok then table.insert(lines, "  "..prop..": "..val) end
+    end
+
+    local text = table.concat(lines, "\n")
+    table.insert(DataLines, text)
+    appendLabel(DataLog, text, Color3.new(1,1,0.7))
+end
+
+-- Buttons Data
 BackBtn.MouseButton1Click:Connect(function()
-	SwitchTab("Rescan")
-	CurrentRemote = nil
+    SwitchTab("Rescan")
 end)
 
 CopyBtn.MouseButton1Click:Connect(function()
-	if #DataLogs > 0 and setclipboard then
-		setclipboard(table.concat(DataLogs, "\n"))
-	end
+    if #DataLines > 0 then
+        setClipboardSafe(table.concat(DataLines, "\n"))
+    end
 end)
 
 ClearBtn.MouseButton1Click:Connect(function()
-	DataLogs = {}
-	DataLog:ClearAllChildren()
-	DataLog.CanvasSize = UDim2.new(0,0,0,0)
+    DataLines = {}
+    DataLog:ClearAllChildren()
+    DataLog.CanvasSize = UDim2.new(0,0,0,0)
 end)
 
--- ========== Sniff Tab behavior ==========
-
-local function appendSniffLine(text)
-	table.insert(SniffLines, text)
-
-	local Label = Instance.new("TextLabel")
-	Label.Size = UDim2.new(1,-10,0,0)
-	Label.AutomaticSize = Enum.AutomaticSize.Y
-	Label.BackgroundTransparency = 1
-	Label.TextXAlignment = Enum.TextXAlignment.Left
-	Label.TextYAlignment = Enum.TextYAlignment.Top
-	Label.TextWrapped = true
-	Label.TextColor3 = Color3.new(1,1,1)
-	Label.Font = Enum.Font.Code
-	Label.TextSize = 12
-	Label.Text = text
-	Label.Parent = SniffLog
-
-	SniffLog.CanvasSize = UDim2.new(0,0,0,SniffLog.CanvasSize.Y.Offset + Label.TextBounds.Y + 8)
-end
-
-SniffCopy.MouseButton1Click:Connect(function()
-	if #SniffLines > 0 and setclipboard then
-		setclipboard(table.concat(SniffLines, "\n\n"))
-	end
+-- Buttons Sniffer
+FollowBtn.MouseButton1Click:Connect(function()
+    followSelectedOnly = not followSelectedOnly
+    FollowBtn.Text = followSelectedOnly and "Filter: Selected" or "Filter: All"
 end)
 
-SniffClear.MouseButton1Click:Connect(function()
-	SniffLines = {}
-	SniffLog:ClearAllChildren()
-	SniffLog.CanvasSize = UDim2.new(0,0,0,0)
+SnCopyBtn.MouseButton1Click:Connect(function()
+    if #SniffLines > 0 then
+        setClipboardSafe(table.concat(SniffLines, "\n"))
+    end
 end)
 
--- ========== Rescan (tetap sama) ==========
+SnClearBtn.MouseButton1Click:Connect(function()
+    SniffLines = {}
+    SniffLog:ClearAllChildren()
+    SniffLog.CanvasSize = UDim2.new(0,0,0,0)
+end)
 
+-- Refresh list
 local function RefreshRemotes()
-	RemoteList:ClearAllChildren()
-	local y = 0
-	for _,v in ipairs(RS:GetDescendants()) do
-		if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-			if Search.Text == "" or v.Name:lower():find(Search.Text:lower()) then
-				local Btn = Instance.new("TextButton")
-				Btn.Size = UDim2.new(1,-10,0,25)
-				Btn.Position = UDim2.new(0,5,0,y)
-				Btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-				Btn.TextColor3 = Color3.new(1,1,1)
-				Btn.TextXAlignment = Enum.TextXAlignment.Left
-				Btn.Text = v:GetFullName()
-				Btn.Parent = RemoteList
+    RemoteList:ClearAllChildren()
+    local y = 0
+    for _,v in ipairs(RS:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            if Search.Text == "" or v.Name:lower():find(Search.Text:lower()) then
+                local Btn = Instance.new("TextButton")
+                Btn.Size = UDim2.new(1,-10,0,25)
+                Btn.Position = UDim2.new(0,5,0,y)
+                Btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+                Btn.TextColor3 = Color3.new(1,1,1)
+                Btn.TextXAlignment = Enum.TextXAlignment.Left
+                Btn.Text = v:GetFullName()
+                Btn.Parent = RemoteList
 
-				Btn.MouseButton1Click:Connect(function()
-					CurrentRemote = v
-					ShowRemote(v)
-					SwitchTab("Data")
-				end)
+                Btn.MouseButton1Click:Connect(function()
+                    showRemote(v)
+                    SwitchTab("Data")
+                end)
 
-				y = y + 30
-			end
-		end
-	end
-	RemoteList.CanvasSize = UDim2.new(0,0,0,y)
+                y += 30
+            end
+        end
+    end
+    RemoteList.CanvasSize = UDim2.new(0,0,0,y)
 end
 
 Search:GetPropertyChangedSignal("Text"):Connect(RefreshRemotes)
 RefreshRemotes()
 
--- ========== Sniffer (outbound & inbound) ==========
+-- ====================
+-- SimpleSpy-style hook
+-- ====================
+local function logSniff(remote, method, args)
+    -- filter by selection if needed
+    if followSelectedOnly and remote ~= CurrentRemote then return end
 
--- Generate snippet for a call
-local function makeSnippet(remote, kind, args)
-	-- kind: "FireServer", "InvokeServer", "OnClientEvent", "InvokeClient"
-	local path = getServicePath(remote)
-	local header = string.format("-- %s: %s (%s)", remote.ClassName, remote.Name, kind)
-	local argLits = {}
-	for i,a in ipairs(args) do
-		table.insert(argLits, toLua(a))
-	end
-	local body = ""
-	if kind == "FireServer" then
-		body = string.format("%s:FireServer(%s)", path, table.concat(argLits, ", "))
-	elseif kind == "InvokeServer" then
-		body = string.format("local result = %s:InvokeServer(%s)\nprint(result)", path, table.concat(argLits, ", "))
-	elseif kind == "OnClientEvent" then
-		body = string.format("-- Received from server\n-- args = { %s }", table.concat(argLits, ", "))
-	elseif kind == "InvokeClient" then
-		body = string.format("-- Server invoking client\n-- args = { %s }\n-- return <your result here>", table.concat(argLits, ", "))
-	else
-		body = "-- unknown kind"
-	end
-	return header.."\n"..body
+    -- build "RemoteName :FireServer(a, b)"
+    local call = remote.Name.." :"..method.."("
+    local alist = {}
+    for i=1, select("#", args) do
+        table.insert(alist, toLiteral(select(i, args)))
+    end
+    call = call .. table.concat(alist, ", ") .. ")"
+
+    -- include path comment for clarity
+    local line = "["..remote.ClassName.."] "..call.."  -- "..pathOf(remote)
+    table.insert(SniffLines, line)
+    appendLabel(SniffLog, line)
 end
 
--- Append only if matches selected remote
-local function tryLogSnippet(remote, kind, args)
-	if not remote then return end
-	if CurrentRemote and remote ~= CurrentRemote then
-		return -- filter: hanya remote terpilih
-	end
-	local ok, text = pcall(makeSnippet, remote, kind, args)
-	if ok then
-		appendSniffLine(text)
-	else
-		appendSniffLine("-- error generating snippet")
-	end
+-- __namecall (outgoing FireServer/InvokeServer)
+do
+    local okHM, oldNamecall = pcall(function() return hookmetamethod(game, "__namecall", function() end) end)
+    if okHM then
+        oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+            local methodOk, method = pcall(getnamecallmethod)
+            local args = {...}
+            -- try/catch around logging
+            if methodOk and self and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) then
+                if method == "FireServer" or method == "InvokeServer" then
+                    pcall(function() logSniff(self, method, args) end)
+                end
+            end
+            return oldNamecall(self, ...)
+        end)
+    else
+        -- fallback: best effort (no outgoing hook)
+        appendLabel(SniffLog, "-- __namecall hook tidak tersedia di eksekutor, log outgoing terbatas --", Color3.fromRGB(1,0.8,0.2))
+    end
 end
 
--- Inbound listeners
+-- Optional: incoming logs (OnClientEvent)
 for _,v in ipairs(RS:GetDescendants()) do
-	if v:IsA("RemoteEvent") then
-		pcall(function()
-			v.OnClientEvent:Connect(function(...)
-				tryLogSnippet(v, "OnClientEvent", {...})
-			end)
-		end)
-	elseif v:IsA("RemoteFunction") then
-		-- Hook InvokeClient if possible
-		pcall(function()
-			if hookfunction and v.InvokeClient then
-				local old
-				old = hookfunction(v.InvokeClient, function(self, plr, ...)
-					tryLogSnippet(self, "InvokeClient", {...})
-					return old(self, plr, ...)
-				end)
-			end
-		end)
-	end
+    if v:IsA("RemoteEvent") then
+        v.OnClientEvent:Connect(function(...)
+            local args = {...}
+            pcall(function()
+                if (not followSelectedOnly) or v == CurrentRemote then
+                    local call = v.Name.." :OnClientEvent("
+                    local al = {}
+                    for i=1, select("#", ...) do
+                        table.insert(al, toLiteral(select(i, ...)))
+                    end
+                    call = call..table.concat(al,", ")..")"
+                    local line = "["..v.ClassName.."] "..call.."  -- "..pathOf(v)
+                    table.insert(SniffLines, line)
+                    appendLabel(SniffLog, line, Color3.fromRGB(0.8,0.95,1))
+                end
+            end)
+        end)
+    end
 end
 
--- Outbound namecall hook (FireServer / InvokeServer)
-pcall(function()
-	local mt = getrawmetatable(game)
-	if not mt then return end
-	local old = mt.__namecall
-	setreadonly(mt, false)
-	mt.__namecall = newcclosure(function(self, ...)
-		local method = getnamecallmethod and getnamecallmethod() or ""
-		-- Only sniff remotes in RS, and only when selected remote matches
-		if (method == "FireServer" or method == "InvokeServer") and (self and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))) then
-			local args = {...}
-			-- filter by CurrentRemote
-			if CurrentRemote and self == CurrentRemote then
-				if method == "FireServer" then
-					tryLogSnippet(self, "FireServer", args)
-				else
-					tryLogSnippet(self, "InvokeServer", args)
-				end
-			end
-		end
-		return old(self, ...)
-	end)
-	setreadonly(mt, true)
-end)
-
--- Info awal di Sniff tab (biar user tau harus pilih remote dulu)
-appendSniffLine("-- Sniff Code siap.\n-- Pilih remote di tab Rescan → akan tampil detail di Data.\n-- Buka tab 'Sniff Code', lalu lakukan aksi (mis. beli/open egg) untuk melihat snippet.\n-- Catatan: Sniff hanya muncul untuk remote yang sedang dipilih.")
-
+-- Initial hint
+appendLabel(SniffLog, "-- Sniffer siap. Lakukan aksi di game (beli/claim/dll) untuk melihat :FireServer/:InvokeServer realtime. --", Color3.fromRGB(0.8,0.8,0.8))
+appendLabel(SniffLog, "-- Gunakan tombol 'Filter: Selected' agar hanya menampilkan remote yang dipilih di tab Data. --", Color3.fromRGB(0.8,0.8,0.8))
