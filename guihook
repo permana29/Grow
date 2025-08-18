@@ -1,4 +1,7 @@
 -- 📌 Remote Explorer (Final Improved)
+-- + Tab system responsif (Rescan <-> Data)
+-- + Copy / Clear di Data tab
+-- + Auto wrap teks log
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
