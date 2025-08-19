@@ -1,4 +1,7 @@
--- 📌 Remote Explorer (Final Stable + Sniff Toggle)
+-- 📌 Remote Explorer (Final Stable + Sniff Toggle & Runnable Code)
+-- Layout: Rescan, Data | Sniff toggle ada di toolbar Data
+-- Sniff: FireServer/InvokeServer (outbound), OnClientEvent (inbound), optional InvokeClient
+-- Filter sniff berdasarkan remote yang dipilih
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -6,145 +9,233 @@ local RS = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 
--- Decode helper
+-- ========== Helpers ==========
+
 local function safeDecode(data, depth)
-    depth = depth or 0
-    if depth > 3 then return "<Max Depth>" end
+	depth = depth or 0
+	if depth > 3 then return "<Max Depth>" end
 
-    local t = typeof(data)
-    if t == "string" then
-        return '"'..data..'"'
-    elseif t == "number" or t == "boolean" then
-        return tostring(data)
-    elseif t == "Instance" then
-        return data:GetFullName()
-    elseif t == "table" then
-        local ok, json = pcall(function()
-            return HttpService:JSONEncode(data)
-        end)
-        if ok then return json else return "<Table>" end
-    else
-        return tostring(data)
-    end
+	local t = typeof(data)
+	if t == "string" then
+		return '"'..data..'"'
+	elseif t == "number" or t == "boolean" then
+		return tostring(data)
+	elseif t == "Instance" then
+		return data:GetFullName()
+	elseif t == "table" then
+		local ok, json = pcall(function()
+			return HttpService:JSONEncode(data)
+		end)
+		if ok then return json else return "<Table>" end
+	else
+		return tostring(data)
+	end
 end
 
--- GUI Builder
+-- Convert data to Lua literal (untuk generate kode siap run).
+local function toLua(val, depth)
+	depth = depth or 0
+	if depth > 3 then return '"<max depth>"' end
+	local t = typeof(val)
+
+	if t == "string" then
+		return string.format("%q", val)
+	elseif t == "number" or t == "boolean" or t == "nil" then
+		return tostring(val)
+	elseif t == "Vector3" then
+		return string.format("Vector3.new(%s,%s,%s)", tostring(val.X), tostring(val.Y), tostring(val.Z))
+	elseif t == "CFrame" then
+		local comps = {val:components()}
+		return "CFrame.new("..table.concat(comps, ", ")..")"
+	elseif t == "Instance" then
+		-- Represent instance as a path comment + string (aman untuk copy-run manual)
+		local path = val:GetFullName()
+		return string.format("--[[Instance: %s]] %q", path, path)
+	elseif t == "table" then
+		local items, count = {}, 0
+		for k,v in pairs(val) do
+			count += 1
+			local key
+			if typeof(k) == "string" and k:match("^[_%a][_%w]*$") then
+				key = k .. " = "
+			else
+				key = "["..toLua(k, depth+1).."] = "
+			end
+			table.insert(items, key..toLua(v, depth+1))
+			if count >= 10 then
+				table.insert(items, "--[[ ...more ]]")
+				break
+			end
+		end
+		return "{ "..table.concat(items, ", ").." }"
+	else
+		local ok, enc = pcall(function() return HttpService:JSONEncode(val) end)
+		if ok then
+			return "--[[json]] "..string.format("%q", enc)
+		end
+		return string.format("%q", tostring(val))
+	end
+end
+
+local function getServicePath(inst)
+	-- result contoh: game:GetService("ReplicatedStorage").Folder.Remote
+	if not inst or not inst.Parent then
+		return "nil"
+	end
+	local segments = {}
+	local cursor = inst
+	while cursor and cursor ~= game do
+		table.insert(segments, 1, cursor.Name)
+		cursor = cursor.Parent
+	end
+	local root
+	if inst:IsDescendantOf(RS) then
+		root = 'game:GetService("ReplicatedStorage")'
+	elseif inst:IsDescendantOf(workspace) then
+		root = "workspace"
+	elseif inst:IsDescendantOf(game:GetService("StarterGui")) then
+		root = 'game:GetService("StarterGui")'
+	else
+		root = "game"
+	end
+	local full = root
+	if root == 'game:GetService("ReplicatedStorage")' then
+		if segments[1] == "ReplicatedStorage" then table.remove(segments, 1) end
+	elseif root == "workspace" then
+		if segments[1] == "Workspace" or segments[1] == "workspace" then table.remove(segments, 1) end
+	end
+	for _,s in ipairs(segments) do
+		if s:match("^[_%a][_%w]*$") then
+			full = full.."."..s
+		else
+			full = full..'["'..s..'"]'
+		end
+	end
+	return full
+end
+
+-- ========== GUI Builder (layout sama) ==========
+
 local function CreateWindow(title)
-    local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+	local ScreenGui = Instance.new("ScreenGui")
+	ScreenGui.Name = "RemoteExplorerUI"
+	ScreenGui.ResetOnSpawn = false
+	ScreenGui.Parent = game.CoreGui
 
-    local Main = Instance.new("Frame")
-    Main.Size = UDim2.new(0, 500, 0, 320)
-    Main.Position = UDim2.new(0.25, 0, 0.25, 0)
-    Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
-    Main.BorderSizePixel = 0
-    Main.Active = true
-    Main.Draggable = true
-    Main.Parent = ScreenGui
+	local Main = Instance.new("Frame")
+	Main.Size = UDim2.new(0, 500, 0, 320)
+	Main.Position = UDim2.new(0.25, 0, 0.25, 0)
+	Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+	Main.BorderSizePixel = 0
+	Main.Active = true
+	Main.Draggable = true
+	Main.Parent = ScreenGui
 
-    local Header = Instance.new("TextLabel")
-    Header.Size = UDim2.new(1, -80, 0, 30)
-    Header.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    Header.Text = title
-    Header.TextColor3 = Color3.fromRGB(255,255,255)
-    Header.Font = Enum.Font.GothamBold
-    Header.TextSize = 14
-    Header.TextXAlignment = Enum.TextXAlignment.Left
-    Header.BorderSizePixel = 0
-    Header.Parent = Main
+	local Header = Instance.new("TextLabel")
+	Header.Size = UDim2.new(1, -80, 0, 30)
+	Header.BackgroundColor3 = Color3.fromRGB(35,35,35)
+	Header.Text = title
+	Header.TextColor3 = Color3.fromRGB(255,255,255)
+	Header.Font = Enum.Font.GothamBold
+	Header.TextSize = 14
+	Header.TextXAlignment = Enum.TextXAlignment.Left
+	Header.BorderSizePixel = 0
+	Header.Parent = Main
 
-    local TabBar = Instance.new("Frame")
-    TabBar.Size = UDim2.new(1, 0, 0, 25)
-    TabBar.Position = UDim2.new(0,0,0,30)
-    TabBar.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    TabBar.BorderSizePixel = 0
-    TabBar.Parent = Main
+	local TabBar = Instance.new("Frame")
+	TabBar.Size = UDim2.new(1, 0, 0, 25)
+	TabBar.Position = UDim2.new(0,0,0,30)
+	TabBar.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	TabBar.BorderSizePixel = 0
+	TabBar.Parent = Main
 
-    local Content = Instance.new("Frame")
-    Content.Size = UDim2.new(1,0,1,-55)
-    Content.Position = UDim2.new(0,0,0,55)
-    Content.BackgroundTransparency = 1
-    Content.Parent = Main
+	local Content = Instance.new("Frame")
+	Content.Size = UDim2.new(1,0,1,-55)
+	Content.Position = UDim2.new(0,0,0,55)
+	Content.BackgroundTransparency = 1
+	Content.Parent = Main
 
-    local Minimize = Instance.new("TextButton")
-    Minimize.Size = UDim2.new(0,40,0,30)
-    Minimize.Position = UDim2.new(1,-80,0,0)
-    Minimize.Text = "-"
-    Minimize.TextColor3 = Color3.new(1,1,1)
-    Minimize.BackgroundColor3 = Color3.fromRGB(60,60,60)
-    Minimize.Parent = Main
+	local Minimize = Instance.new("TextButton")
+	Minimize.Size = UDim2.new(0,40,0,30)
+	Minimize.Position = UDim2.new(1,-80,0,0)
+	Minimize.Text = "-"
+	Minimize.TextColor3 = Color3.new(1,1,1)
+	Minimize.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	Minimize.Parent = Main
 
-    local Close = Instance.new("TextButton")
-    Close.Size = UDim2.new(0,40,0,30)
-    Close.Position = UDim2.new(1,-40,0,0)
-    Close.Text = "X"
-    Close.TextColor3 = Color3.new(1,1,1)
-    Close.BackgroundColor3 = Color3.fromRGB(100,50,50)
-    Close.Parent = Main
+	local Close = Instance.new("TextButton")
+	Close.Size = UDim2.new(0,40,0,30)
+	Close.Position = UDim2.new(1,-40,0,0)
+	Close.Text = "X"
+	Close.TextColor3 = Color3.new(1,1,1)
+	Close.BackgroundColor3 = Color3.fromRGB(100,50,50)
+	Close.Parent = Main
 
-    local Tabs = {}
-    local CurrentTab
+	local Tabs = {}
+	local CurrentTab
 
-    local function AddTab(name)
-        local Button = Instance.new("TextButton")
-        Button.Size = UDim2.new(0,100,1,0)
-        Button.BackgroundColor3 = Color3.fromRGB(50,50,50)
-        Button.Text = name
-        Button.TextColor3 = Color3.new(1,1,1)
-        Button.Font = Enum.Font.Gotham
-        Button.TextSize = 12
-        Button.Parent = TabBar
+	local function AddTab(name)
+		local Button = Instance.new("TextButton")
+		Button.Size = UDim2.new(0,100,1,0)
+		Button.BackgroundColor3 = Color3.fromRGB(50,50,50)
+		Button.Text = name
+		Button.TextColor3 = Color3.new(1,1,1)
+		Button.Font = Enum.Font.Gotham
+		Button.TextSize = 12
+		Button.Parent = TabBar
 
-        local Page = Instance.new("Frame")
-        Page.Size = UDim2.new(1,0,1,0)
-        Page.BackgroundTransparency = 1
-        Page.Visible = false
-        Page.Parent = Content
+		local Page = Instance.new("Frame")
+		Page.Size = UDim2.new(1,0,1,0)
+		Page.BackgroundTransparency = 1
+		Page.Visible = false
+		Page.Parent = Content
 
-        Button.MouseButton1Click:Connect(function()
-            if CurrentTab then CurrentTab.Visible = false end
-            Page.Visible = true
-            CurrentTab = Page
-        end)
+		Button.MouseButton1Click:Connect(function()
+			if CurrentTab then CurrentTab.Visible = false end
+			Page.Visible = true
+			CurrentTab = Page
+		end)
 
-        Tabs[name] = Page
-        if not CurrentTab then
-            CurrentTab = Page
-            Page.Visible = true
-        end
-        return Page
-    end
+		Tabs[name] = Page
+		if not CurrentTab then
+			CurrentTab = Page
+			Page.Visible = true
+		end
+		return Page
+	end
 
-    local Minimized = false
-    Minimize.MouseButton1Click:Connect(function()
-        Minimized = not Minimized
-        if Minimized then
-            Content.Visible = false
-            TabBar.Visible = false
-            Main.Size = UDim2.new(0,500,0,30)
-        else
-            Content.Visible = true
-            TabBar.Visible = true
-            Main.Size = UDim2.new(0,500,0,320)
-        end
-    end)
+	local Minimized = false
+	Minimize.MouseButton1Click:Connect(function()
+		Minimized = not Minimized
+		if Minimized then
+			Content.Visible = false
+			TabBar.Visible = false
+			Main.Size = UDim2.new(0,500,0,30)
+		else
+			Content.Visible = true
+			TabBar.Visible = true
+			Main.Size = UDim2.new(0,500,0,320)
+		end
+	end)
 
-    Close.MouseButton1Click:Connect(function()
-        ScreenGui:Destroy()
-    end)
+	Close.MouseButton1Click:Connect(function()
+		ScreenGui:Destroy()
+	end)
 
-    return AddTab, Tabs, function(tabName)
-        if CurrentTab then CurrentTab.Visible = false end
-        if Tabs[tabName] then
-            Tabs[tabName].Visible = true
-            CurrentTab = Tabs[tabName]
-        end
-    end
+	return AddTab, Tabs, function(tabName)
+		if CurrentTab then CurrentTab.Visible = false end
+		if Tabs[tabName] then
+			Tabs[tabName].Visible = true
+			CurrentTab = Tabs[tabName]
+		end
+	end
 end
 
--- Main Window
+-- ========== Main UI (Rescan, Data) ==========
+
 local AddTab, Tabs, SwitchTab = CreateWindow("Remote Explorer")
 
--- 📌 Tab Rescan
+-- Rescan
 local ScanTab = AddTab("Rescan")
 local Search = Instance.new("TextBox", ScanTab)
 Search.Size = UDim2.new(1,-10,0,25)
@@ -159,7 +250,7 @@ RemoteList.Position = UDim2.new(0,5,0,35)
 RemoteList.BackgroundTransparency = 1
 RemoteList.ScrollBarThickness = 6
 
--- 📌 Tab Data
+-- Data
 local DataTab = AddTab("Data")
 
 local Toolbar = Instance.new("Frame", DataTab)
@@ -188,11 +279,11 @@ ClearBtn.TextColor3 = Color3.new(1,1,1)
 ClearBtn.BackgroundColor3 = Color3.fromRGB(70,50,50)
 
 local SniffBtn = Instance.new("TextButton", Toolbar)
-SniffBtn.Size = UDim2.new(0,60,1,0)
+SniffBtn.Size = UDim2.new(0,70,1,0)
 SniffBtn.Position = UDim2.new(0,195,0,0)
 SniffBtn.Text = "Sniff: OFF"
 SniffBtn.TextColor3 = Color3.new(1,1,1)
-SniffBtn.BackgroundColor3 = Color3.fromRGB(50,70,50)
+SniffBtn.BackgroundColor3 = Color3.fromRGB(50,90,50)
 
 local DataLog = Instance.new("ScrollingFrame", DataTab)
 DataLog.Size = UDim2.new(1,-10,1,-40)
@@ -200,114 +291,230 @@ DataLog.Position = UDim2.new(0,5,0,35)
 DataLog.BackgroundTransparency = 1
 DataLog.ScrollBarThickness = 6
 
-local Logs = {}
-local Sniffing = false
-local CurrentRemote
+-- ========== State ==========
 
-local function AppendLog(text)
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1,-10,0,0)
-    Label.AutomaticSize = Enum.AutomaticSize.Y
-    Label.BackgroundTransparency = 1
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.TextYAlignment = Enum.TextYAlignment.Top
-    Label.TextWrapped = true
-    Label.TextColor3 = Color3.new(1,1,1)
-    Label.Font = Enum.Font.Code
-    Label.TextSize = 12
-    Label.Text = text
-    Label.Parent = DataLog
+local DataLogs = {}
+local CurrentRemote -- Remote yang dipilih
+local SniffEnabled = false
 
-    DataLog.CanvasSize = UDim2.new(0,0,0,DataLog.CanvasSize.Y.Offset + Label.TextBounds.Y + 5)
+-- ========== Append lines ke Data log ==========
+
+local function appendDataLine(text)
+	table.insert(DataLogs, text)
+	local Label = Instance.new("TextLabel")
+	Label.Size = UDim2.new(1,-10,0,0)
+	Label.AutomaticSize = Enum.AutomaticSize.Y
+	Label.BackgroundTransparency = 1
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.TextYAlignment = Enum.TextYAlignment.Top
+	Label.TextWrapped = true
+	Label.TextColor3 = Color3.new(1,1,1)
+	Label.Font = Enum.Font.Code
+	Label.TextSize = 12
+	Label.Text = text
+	Label.Parent = DataLog
+
+	local newH = 0
+	for _,child in ipairs(DataLog:GetChildren()) do
+		if child:IsA("TextLabel") then
+			newH += child.TextBounds.Y + 8
+		end
+	end
+	DataLog.CanvasSize = UDim2.new(0,0,0,newH)
 end
+
+-- ========== Data Tab behavior ==========
 
 local function ShowRemote(remote)
-    DataLog:ClearAllChildren()
-    Logs = {}
-    CurrentRemote = remote
+	DataLog:ClearAllChildren()
+	DataLogs = {}
 
-    local lines = {}
-    table.insert(lines, "Name: "..remote.Name)
-    table.insert(lines, "Class: "..remote.ClassName)
-    table.insert(lines, "Path: "..remote:GetFullName())
-    table.insert(lines, "")
+	local lines = {}
+	table.insert(lines, "Name: "..remote.Name)
+	table.insert(lines, "Class: "..remote.ClassName)
+	table.insert(lines, "Path: "..remote:GetFullName())
+	table.insert(lines, "")
+	table.insert(lines, "Properties:")
 
-    AppendLog(table.concat(lines, "\n"))
+	for _,prop in ipairs({"Archivable","Name","ClassName","Parent"}) do
+		local ok,val = pcall(function() return tostring(remote[prop]) end)
+		if ok then
+			table.insert(lines, "  "..prop..": "..val)
+		end
+	end
+
+	appendDataLine(table.concat(lines, "\n"))
+
+	-- Petunjuk sniff
+	appendDataLine("\n-- Tips: Klik 'Sniff: ON' lalu lakukan aksi di game.\n-- Hanya log untuk remote yang dipilih ini yang akan muncul.\n")
 end
 
--- Buttons
 BackBtn.MouseButton1Click:Connect(function()
-    SwitchTab("Rescan")
+	SwitchTab("Rescan")
+	CurrentRemote = nil
 end)
 
 CopyBtn.MouseButton1Click:Connect(function()
-    if #Logs > 0 then
-        setclipboard(table.concat(Logs, "\n"))
-    end
+	if #DataLogs > 0 and setclipboard then
+		setclipboard(table.concat(DataLogs, "\n"))
+	end
 end)
 
 ClearBtn.MouseButton1Click:Connect(function()
-    Logs = {}
-    DataLog:ClearAllChildren()
-    DataLog.CanvasSize = UDim2.new(0,0,0,0)
+	DataLogs = {}
+	DataLog:ClearAllChildren()
+	DataLog.CanvasSize = UDim2.new(0,0,0,0)
 end)
 
 SniffBtn.MouseButton1Click:Connect(function()
-    if not CurrentRemote then return end
-    Sniffing = not Sniffing
-    if Sniffing then
-        SniffBtn.Text = "Sniff: ON"
-        if CurrentRemote:IsA("RemoteEvent") then
-            CurrentRemote.OnClientEvent:Connect(function(...)
-                local args = {...}
-                local out = {}
-                for i,v in ipairs(args) do
-                    table.insert(out, "["..i.."] "..safeDecode(v))
-                end
-                AppendLog("Event Fired:\n"..table.concat(out, "\n"))
-            end)
-        elseif CurrentRemote:IsA("RemoteFunction") then
-            hookfunction(CurrentRemote.InvokeServer, function(self, ...)
-                local args = {...}
-                local out = {}
-                for i,v in ipairs(args) do
-                    table.insert(out, "["..i.."] "..safeDecode(v))
-                end
-                AppendLog("Function Invoked:\n"..table.concat(out, "\n"))
-                return self.InvokeServer(self, ...)
-            end)
-        end
-    else
-        SniffBtn.Text = "Sniff: OFF"
-    end
+	SniffEnabled = not SniffEnabled
+	SniffBtn.Text = SniffEnabled and "Sniff: ON" or "Sniff: OFF"
+	SniffBtn.BackgroundColor3 = SniffEnabled and Color3.fromRGB(70,120,70) or Color3.fromRGB(50,90,50)
+	appendDataLine("-- Sniff "..(SniffEnabled and "diaktifkan." or "dimatikan.").."\n")
 end)
 
--- Refresh list
+-- ========== Rescan (tetap sama) ==========
+
 local function RefreshRemotes()
-    RemoteList:ClearAllChildren()
-    local y = 0
-    for _,v in ipairs(RS:GetDescendants()) do
-        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-            if Search.Text == "" or v.Name:lower():find(Search.Text:lower()) then
-                local Btn = Instance.new("TextButton")
-                Btn.Size = UDim2.new(1,-10,0,25)
-                Btn.Position = UDim2.new(0,5,0,y)
-                Btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-                Btn.TextColor3 = Color3.new(1,1,1)
-                Btn.Text = v:GetFullName()
-                Btn.Parent = RemoteList
+	RemoteList:ClearAllChildren()
+	local y = 0
+	for _,v in ipairs(RS:GetDescendants()) do
+		if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+			if Search.Text == "" or v.Name:lower():find(Search.Text:lower()) then
+				local Btn = Instance.new("TextButton")
+				Btn.Size = UDim2.new(1,-10,0,25)
+				Btn.Position = UDim2.new(0,5,0,y)
+				Btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+				Btn.TextColor3 = Color3.new(1,1,1)
+				Btn.TextXAlignment = Enum.TextXAlignment.Left
+				Btn.Text = v:GetFullName()
+				Btn.Parent = RemoteList
 
-                Btn.MouseButton1Click:Connect(function()
-                    ShowRemote(v)
-                    SwitchTab("Data")
-                end)
+				Btn.MouseButton1Click:Connect(function()
+					CurrentRemote = v
+					ShowRemote(v)
+					SwitchTab("Data")
+				end)
 
-                y = y + 30
-            end
-        end
-    end
-    RemoteList.CanvasSize = UDim2.new(0,0,0,y)
+				y = y + 30
+			end
+		end
+	end
+	RemoteList.CanvasSize = UDim2.new(0,0,0,y)
 end
 
 Search:GetPropertyChangedSignal("Text"):Connect(RefreshRemotes)
 RefreshRemotes()
+
+-- Dynamic: sambungkan listener baru jika ada remote baru di RS
+RS.DescendantAdded:Connect(function(v)
+	if v:IsA("RemoteEvent") then
+		pcall(function()
+			v.OnClientEvent:Connect(function(...)
+				-- akan tertangkap oleh inbound handler di bawah juga (safe)
+			end)
+		end)
+	end
+end)
+
+-- ========== Generator runnable snippet (ala SimpleSpy) ==========
+
+local function makeRunnableSnippet(remote, kind, args)
+	-- kind: "FireServer", "InvokeServer", "OnClientEvent", "InvokeClient"
+	local path = getServicePath(remote) -- ex: game:GetService("ReplicatedStorage").Folder.Remote
+	local header = string.format("-- %s: %s (%s)", remote.ClassName, remote.Name, kind)
+	local argLits = {}
+	for i,a in ipairs(args) do
+		table.insert(argLits, toLua(a))
+	end
+
+	if kind == "FireServer" then
+		return string.format("%s\n%s:FireServer(%s)", header, path, table.concat(argLits, ", "))
+	elseif kind == "InvokeServer" then
+		return string.format("%s\nlocal result = %s:InvokeServer(%s)\nprint(result)", header, path, table.concat(argLits, ", "))
+	elseif kind == "OnClientEvent" then
+		-- Replay setara (kalau mau test manual kirim balik ke server)
+		return string.format("%s\n-- Received from server\n-- args = { %s }", header, table.concat(argLits, ", "))
+	elseif kind == "InvokeClient" then
+		return string.format("%s\n-- Server invoked client\n-- args = { %s }\n-- return <your result here>", header, table.concat(argLits, ", "))
+	else
+		return header.."\n-- unknown kind"
+	end
+end
+
+local function tryAppendSniff(remote, kind, args)
+	if not SniffEnabled then return end
+	if not remote then return end
+	if CurrentRemote and remote ~= CurrentRemote then
+		return -- filter hanya remote terpilih
+	end
+	local ok, text = pcall(makeRunnableSnippet, remote, kind, args)
+	if ok then
+		appendDataLine(text.."\n")
+	else
+		appendDataLine("-- error generating snippet\n")
+	end
+end
+
+-- ========== Inbound listeners (OnClientEvent / optional InvokeClient) ==========
+
+local function attachInboundFor(inst)
+	if inst:IsA("RemoteEvent") then
+		pcall(function()
+			inst.OnClientEvent:Connect(function(...)
+				tryAppendSniff(inst, "OnClientEvent", {...})
+			end)
+		end)
+	elseif inst:IsA("RemoteFunction") then
+		-- Optional attempt hook InvokeClient (tidak selalu tersedia di client)
+		pcall(function()
+			if hookfunction and inst.InvokeClient then
+				local old
+				old = hookfunction(inst.InvokeClient, function(self, plr, ...)
+					tryAppendSniff(self, "InvokeClient", {...})
+					return old(self, plr, ...)
+				end)
+			end
+		end)
+	end
+end
+
+for _,v in ipairs(RS:GetDescendants()) do
+	if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+		attachInboundFor(v)
+	end
+end
+RS.DescendantAdded:Connect(function(v)
+	if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+		attachInboundFor(v)
+	end
+end)
+
+-- ========== Outbound namecall hook (FireServer / InvokeServer) ==========
+
+pcall(function()
+	local mt = getrawmetatable(game)
+	if not mt then return end
+	local old = mt.__namecall
+	setreadonly(mt, false)
+	mt.__namecall = newcclosure(function(self, ...)
+		local method = getnamecallmethod and getnamecallmethod() or ""
+		if (method == "FireServer" or method == "InvokeServer")
+			and self and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) then
+			local args = {...}
+			-- log hanya jika filter cocok
+			if CurrentRemote and self == CurrentRemote then
+				if method == "FireServer" then
+					tryAppendSniff(self, "FireServer", args)
+				else
+					tryAppendSniff(self, "InvokeServer", args)
+				end
+			end
+		end
+		return old(self, ...)
+	end)
+	setreadonly(mt, true)
+end)
+
+-- ========== Info awal ==========
+appendDataLine("-- Remote Explorer siap.\n-- Pilih remote di 'Rescan' lalu buka 'Data'.\n-- Tekan 'Sniff: ON' untuk mulai menangkap call.\n")
