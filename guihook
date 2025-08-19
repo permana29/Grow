@@ -1,4 +1,4 @@
--- 📌 Remote Explorer (Final Stable)
+-- 📌 Remote Explorer (Final Stable + Sniff Toggle)
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -187,6 +187,13 @@ ClearBtn.Text = "Clear"
 ClearBtn.TextColor3 = Color3.new(1,1,1)
 ClearBtn.BackgroundColor3 = Color3.fromRGB(70,50,50)
 
+local SniffBtn = Instance.new("TextButton", Toolbar)
+SniffBtn.Size = UDim2.new(0,60,1,0)
+SniffBtn.Position = UDim2.new(0,195,0,0)
+SniffBtn.Text = "Sniff: OFF"
+SniffBtn.TextColor3 = Color3.new(1,1,1)
+SniffBtn.BackgroundColor3 = Color3.fromRGB(50,70,50)
+
 local DataLog = Instance.new("ScrollingFrame", DataTab)
 DataLog.Size = UDim2.new(1,-10,1,-40)
 DataLog.Position = UDim2.new(0,5,0,35)
@@ -194,28 +201,10 @@ DataLog.BackgroundTransparency = 1
 DataLog.ScrollBarThickness = 6
 
 local Logs = {}
+local Sniffing = false
+local CurrentRemote
 
-local function ShowRemote(remote)
-    DataLog:ClearAllChildren()
-    Logs = {}
-
-    local lines = {}
-    table.insert(lines, "Name: "..remote.Name)
-    table.insert(lines, "Class: "..remote.ClassName)
-    table.insert(lines, "Path: "..remote:GetFullName())
-    table.insert(lines, "")
-    table.insert(lines, "Properties:")
-
-    for _,prop in ipairs({"Archivable","Name","ClassName","Parent"}) do
-        local ok,val = pcall(function() return tostring(remote[prop]) end)
-        if ok then
-            table.insert(lines, "  "..prop..": "..val)
-        end
-    end
-
-    local text = table.concat(lines, "\n")
-    table.insert(Logs, text)
-
+local function AppendLog(text)
     local Label = Instance.new("TextLabel")
     Label.Size = UDim2.new(1,-10,0,0)
     Label.AutomaticSize = Enum.AutomaticSize.Y
@@ -229,7 +218,21 @@ local function ShowRemote(remote)
     Label.Text = text
     Label.Parent = DataLog
 
-    DataLog.CanvasSize = UDim2.new(0,0,0,Label.TextBounds.Y + 10)
+    DataLog.CanvasSize = UDim2.new(0,0,0,DataLog.CanvasSize.Y.Offset + Label.TextBounds.Y + 5)
+end
+
+local function ShowRemote(remote)
+    DataLog:ClearAllChildren()
+    Logs = {}
+    CurrentRemote = remote
+
+    local lines = {}
+    table.insert(lines, "Name: "..remote.Name)
+    table.insert(lines, "Class: "..remote.ClassName)
+    table.insert(lines, "Path: "..remote:GetFullName())
+    table.insert(lines, "")
+
+    AppendLog(table.concat(lines, "\n"))
 end
 
 -- Buttons
@@ -247,6 +250,36 @@ ClearBtn.MouseButton1Click:Connect(function()
     Logs = {}
     DataLog:ClearAllChildren()
     DataLog.CanvasSize = UDim2.new(0,0,0,0)
+end)
+
+SniffBtn.MouseButton1Click:Connect(function()
+    if not CurrentRemote then return end
+    Sniffing = not Sniffing
+    if Sniffing then
+        SniffBtn.Text = "Sniff: ON"
+        if CurrentRemote:IsA("RemoteEvent") then
+            CurrentRemote.OnClientEvent:Connect(function(...)
+                local args = {...}
+                local out = {}
+                for i,v in ipairs(args) do
+                    table.insert(out, "["..i.."] "..safeDecode(v))
+                end
+                AppendLog("Event Fired:\n"..table.concat(out, "\n"))
+            end)
+        elseif CurrentRemote:IsA("RemoteFunction") then
+            hookfunction(CurrentRemote.InvokeServer, function(self, ...)
+                local args = {...}
+                local out = {}
+                for i,v in ipairs(args) do
+                    table.insert(out, "["..i.."] "..safeDecode(v))
+                end
+                AppendLog("Function Invoked:\n"..table.concat(out, "\n"))
+                return self.InvokeServer(self, ...)
+            end)
+        end
+    else
+        SniffBtn.Text = "Sniff: OFF"
+    end
 end)
 
 -- Refresh list
