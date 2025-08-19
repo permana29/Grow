@@ -1,188 +1,227 @@
---// Simple Executor & Remote Sniffer UI
---// Versi gabungan oleh ChatGPT
+--// Roblox Script Hub - Executor + Remote List + Sniff Logger
+--// Full Version (Final)
 
+-- UI Library sederhana
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 
--- GUI Container
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ExecutorRemoteSniffer"
-ScreenGui.Parent = CoreGui
+-- Buat ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ScriptHubUI"
+screenGui.Parent = CoreGui
 
--- Main Frame
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 400, 0, 250)
-MainFrame.Position = UDim2.new(0.5, -200, 0.5, -125)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
+-- Frame utama (Menu)
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 300, 0, 250)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -125)
+mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
 
--- Title
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-Title.Text = "Executor & Remote Sniffer"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 20
-Title.Parent = MainFrame
+-- Judul
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+title.TextColor3 = Color3.new(1,1,1)
+title.Text = "Script Hub"
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 20
+title.Parent = mainFrame
 
--- Menu Container
-local MenuFrame = Instance.new("Frame")
-MenuFrame.Size = UDim2.new(1, 0, 1, -40)
-MenuFrame.Position = UDim2.new(0, 0, 0, 40)
-MenuFrame.BackgroundTransparency = 1
-MenuFrame.Parent = MainFrame
+-- Container tombol
+local buttonContainer = Instance.new("Frame")
+buttonContainer.Size = UDim2.new(1, 0, 1, -40)
+buttonContainer.Position = UDim2.new(0, 0, 0, 40)
+buttonContainer.BackgroundTransparency = 1
+buttonContainer.Parent = mainFrame
 
--- Buttons function
-local function createButton(text, pos, callback)
+-- Fungsi buat tombol
+local function createButton(name, text, yPos, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -20, 0, 40)
-    btn.Position = UDim2.new(0, 10, 0, pos)
-    btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Position = UDim2.new(0, 10, 0, yPos)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.new(1,1,1)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 18
     btn.Text = text
-    btn.Parent = MenuFrame
+    btn.Parent = buttonContainer
     btn.MouseButton1Click:Connect(callback)
     return btn
 end
 
--- Navigation system
-local CurrentPage = nil
-local function switchPage(newPage)
-    if CurrentPage then CurrentPage.Visible = false end
-    CurrentPage = newPage
-    CurrentPage.Visible = true
-end
+-- =========================
+-- Executor Frame
+-- =========================
+local execFrame = Instance.new("Frame")
+execFrame.Size = mainFrame.Size
+execFrame.Position = mainFrame.Position
+execFrame.Visible = false
+execFrame.BackgroundColor3 = mainFrame.BackgroundColor3
+execFrame.Parent = screenGui
 
----------------------------------------------------------------------
--- PAGE: Main Menu
----------------------------------------------------------------------
-local MainMenu = Instance.new("Frame")
-MainMenu.Size = UDim2.new(1, 0, 1, 0)
-MainMenu.BackgroundTransparency = 1
-MainMenu.Parent = MenuFrame
-CurrentPage = MainMenu
+local execTitle = title:Clone()
+execTitle.Text = "Executor"
+execTitle.Parent = execFrame
 
-local btnExec = createButton("Executor", 10, function() switchPage(MainMenu.ExecutorPage) end)
-local btnRemote = createButton("Remote", 60, function() switchPage(MainMenu.RemotePage) end)
-local btnSniff = createButton("Sniff", 110, function() switchPage(MainMenu.SniffPage) end)
+local execBox = Instance.new("TextBox")
+execBox.Size = UDim2.new(1, -20, 1, -100)
+execBox.Position = UDim2.new(0, 10, 0, 50)
+execBox.Text = "-- Ketik script di sini"
+execBox.MultiLine = true
+execBox.ClearTextOnFocus = false
+execBox.TextColor3 = Color3.new(1,1,1)
+execBox.BackgroundColor3 = Color3.fromRGB(30,30,30)
+execBox.Font = Enum.Font.Code
+execBox.TextSize = 16
+execBox.Parent = execFrame
 
----------------------------------------------------------------------
--- PAGE: Executor
----------------------------------------------------------------------
-local ExecutorPage = Instance.new("Frame")
-ExecutorPage.Size = UDim2.new(1, 0, 1, 0)
-ExecutorPage.BackgroundTransparency = 1
-ExecutorPage.Visible = false
-ExecutorPage.Parent = MenuFrame
-MainMenu.ExecutorPage = ExecutorPage
-
-local SourceBox = Instance.new("TextBox")
-SourceBox.Size = UDim2.new(1, -20, 1, -100)
-SourceBox.Position = UDim2.new(0, 10, 0, 10)
-SourceBox.MultiLine = true
-SourceBox.ClearTextOnFocus = false
-SourceBox.Text = "-- Input Script Here"
-SourceBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-SourceBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-SourceBox.Font = Enum.Font.Code
-SourceBox.TextSize = 14
-SourceBox.TextXAlignment = Enum.TextXAlignment.Left
-SourceBox.TextYAlignment = Enum.TextYAlignment.Top
-SourceBox.Parent = ExecutorPage
-
-local ExecuteBtn = Instance.new("TextButton")
-ExecuteBtn.Size = UDim2.new(0.5, -15, 0, 40)
-ExecuteBtn.Position = UDim2.new(0, 10, 1, -50)
-ExecuteBtn.Text = "Execute"
-ExecuteBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-ExecuteBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ExecuteBtn.Font = Enum.Font.SourceSansBold
-ExecuteBtn.TextSize = 18
-ExecuteBtn.Parent = ExecutorPage
-
-ExecuteBtn.MouseButton1Click:Connect(function()
-    local source = SourceBox.Text
-    local func, err = loadstring(source)
+local runBtn = createButton("Run", "▶ Run Script", 200, function()
+    local code = execBox.Text
+    local func, err = loadstring(code)
     if func then
-        pcall(func)
+        func()
     else
-        warn("Executor Error: " .. err)
+        warn("Error: "..err)
     end
 end)
+runBtn.Parent = execFrame
 
-local BackExec = createButton("Back", 200, function() switchPage(MainMenu) end)
-BackExec.Parent = ExecutorPage
+local backExec = createButton("BackExec", "← Back", 160, function()
+    execFrame.Visible = false
+    mainFrame.Visible = true
+end)
+backExec.Parent = execFrame
 
----------------------------------------------------------------------
--- PAGE: Remote
----------------------------------------------------------------------
-local RemotePage = Instance.new("Frame")
-RemotePage.Size = UDim2.new(1, 0, 1, 0)
-RemotePage.BackgroundTransparency = 1
-RemotePage.Visible = false
-RemotePage.Parent = MenuFrame
-MainMenu.RemotePage = RemotePage
+-- =========================
+-- Remote List Frame
+-- =========================
+local remoteFrame = Instance.new("Frame")
+remoteFrame.Size = mainFrame.Size
+remoteFrame.Position = mainFrame.Position
+remoteFrame.Visible = false
+remoteFrame.BackgroundColor3 = mainFrame.BackgroundColor3
+remoteFrame.Parent = screenGui
 
-local RemoteLabel = Instance.new("TextLabel")
-RemoteLabel.Size = UDim2.new(1, -20, 0, 40)
-RemoteLabel.Position = UDim2.new(0, 10, 0, 10)
-RemoteLabel.Text = "Remote Menu (dummy)"
-RemoteLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-RemoteLabel.BackgroundTransparency = 1
-RemoteLabel.Font = Enum.Font.SourceSansBold
-RemoteLabel.TextSize = 18
-RemoteLabel.Parent = RemotePage
+local remoteTitle = title:Clone()
+remoteTitle.Text = "Remote List"
+remoteTitle.Parent = remoteFrame
 
-local BackRemote = createButton("Back", 200, function() switchPage(MainMenu) end)
-BackRemote.Parent = RemotePage
+local remoteBox = Instance.new("ScrollingFrame")
+remoteBox.Size = UDim2.new(1, -20, 1, -60)
+remoteBox.Position = UDim2.new(0, 10, 0, 50)
+remoteBox.CanvasSize = UDim2.new(0,0,0,0)
+remoteBox.ScrollBarThickness = 6
+remoteBox.BackgroundColor3 = Color3.fromRGB(30,30,30)
+remoteBox.Parent = remoteFrame
 
----------------------------------------------------------------------
--- PAGE: Sniff (RemoteEvent/Function Logger)
----------------------------------------------------------------------
-local SniffPage = Instance.new("Frame")
-SniffPage.Size = UDim2.new(1, 0, 1, 0)
-SniffPage.BackgroundTransparency = 1
-SniffPage.Visible = false
-SniffPage.Parent = MenuFrame
-MainMenu.SniffPage = SniffPage
-
-local LogBox = Instance.new("TextBox")
-LogBox.Size = UDim2.new(1, -20, 1, -60)
-LogBox.Position = UDim2.new(0, 10, 0, 10)
-LogBox.MultiLine = true
-LogBox.ClearTextOnFocus = false
-LogBox.TextEditable = false
-LogBox.Text = "[Sniffer Logs]\n"
-LogBox.TextColor3 = Color3.fromRGB(200, 200, 200)
-LogBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-LogBox.Font = Enum.Font.Code
-LogBox.TextSize = 14
-LogBox.TextXAlignment = Enum.TextXAlignment.Left
-LogBox.TextYAlignment = Enum.TextYAlignment.Top
-LogBox.Parent = SniffPage
-
-local BackSniff = createButton("Back to Remote", 200, function() switchPage(RemotePage) end)
-BackSniff.Parent = SniffPage
-
--- Sniffer (RemoteEvent & RemoteFunction)
-local function logEvent(msg)
-    LogBox.Text = LogBox.Text .. msg .. "\n"
+local function scanRemotes()
+    remoteBox:ClearAllChildren()
+    local y = 0
+    for _, obj in pairs(game:GetDescendants()) do
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -10, 0, 30)
+            btn.Position = UDim2.new(0, 5, 0, y)
+            btn.Text = obj:GetFullName()
+            btn.TextColor3 = Color3.new(1,1,1)
+            btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+            btn.Parent = remoteBox
+            y = y + 35
+        end
+    end
+    remoteBox.CanvasSize = UDim2.new(0,0,0,y)
 end
 
--- Hook RemoteEvent
-for _, obj in ipairs(game:GetDescendants()) do
+local refreshBtn = createButton("Refresh", "🔄 Refresh", 160, scanRemotes)
+refreshBtn.Parent = remoteFrame
+
+local backRemote = createButton("BackRemote", "← Back", 200, function()
+    remoteFrame.Visible = false
+    mainFrame.Visible = true
+end)
+backRemote.Parent = remoteFrame
+
+-- =========================
+-- Sniff Logger Frame
+-- =========================
+local sniffFrame = Instance.new("Frame")
+sniffFrame.Size = mainFrame.Size
+sniffFrame.Position = mainFrame.Position
+sniffFrame.Visible = false
+sniffFrame.BackgroundColor3 = mainFrame.BackgroundColor3
+sniffFrame.Parent = screenGui
+
+local sniffTitle = title:Clone()
+sniffTitle.Text = "Sniff Logger"
+sniffTitle.Parent = sniffFrame
+
+local logBox = Instance.new("ScrollingFrame")
+logBox.Size = UDim2.new(1, -20, 1, -60)
+logBox.Position = UDim2.new(0, 10, 0, 50)
+logBox.CanvasSize = UDim2.new(0,0,0,0)
+logBox.ScrollBarThickness = 6
+logBox.BackgroundColor3 = Color3.fromRGB(30,30,30)
+logBox.Parent = sniffFrame
+
+local function addLog(text)
+    local count = #logBox:GetChildren()
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -10, 0, 20)
+    lbl.Position = UDim2.new(0, 5, 0, count * 22)
+    lbl.BackgroundTransparency = 1
+    lbl.TextColor3 = Color3.new(1,1,1)
+    lbl.Font = Enum.Font.Code
+    lbl.TextSize = 14
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Text = text
+    lbl.Parent = logBox
+    logBox.CanvasSize = UDim2.new(0,0,0,(count+1)*22)
+end
+
+-- Hook RemoteEvent & RemoteFunction
+for _, obj in pairs(game:GetDescendants()) do
     if obj:IsA("RemoteEvent") then
-        obj.OnClientEvent:Connect(function(...)
-            logEvent("[RemoteEvent] " .. obj.Name .. " | Args: " .. tostring(...))
+        obj.OnServerEvent:Connect(function(player, ...)
+            local args = {...}
+            local str = "RemoteEvent Fired: "..obj.Name.." | Args: "..table.concat(args,", ")
+            print(str)
+            addLog(str)
         end)
     elseif obj:IsA("RemoteFunction") then
-        obj.OnClientInvoke = function(...)
-            logEvent("[RemoteFunction] " .. obj.Name .. " | Args: " .. tostring(...))
+        obj.OnServerInvoke = function(player, ...)
+            local args = {...}
+            local str = "RemoteFunction Invoked: "..obj.Name.." | Args: "..table.concat(args,", ")
+            print(str)
+            addLog(str)
         end
     end
 end
+
+local backSniff = createButton("BackSniff", "← Back", 200, function()
+    sniffFrame.Visible = false
+    mainFrame.Visible = true
+end)
+backSniff.Parent = sniffFrame
+
+-- =========================
+-- Main Menu Buttons
+-- =========================
+createButton("ExecBtn", "📜 Executor", 10, function()
+    mainFrame.Visible = false
+    execFrame.Visible = true
+end)
+
+createButton("RemoteBtn", "📡 Remote List", 60, function()
+    mainFrame.Visible = false
+    remoteFrame.Visible = true
+    scanRemotes()
+end)
+
+createButton("SniffBtn", "🔍 Sniff Logger", 110, function()
+    mainFrame.Visible = false
+    sniffFrame.Visible = true
+end)
+
+print("[ScriptHub] Loaded successfully!")
